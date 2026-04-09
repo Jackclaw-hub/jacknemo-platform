@@ -1,141 +1,98 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - SaaS Plattform Prototyp</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .header {
-            background-color: #007bff;
-            color: white;
-            padding: 20px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-        }
-        .nav {
-            margin-bottom: 20px;
-        }
-        .nav a {
-            margin-right: 15px;
-            color: #007bff;
-            text-decoration: none;
-        }
-        .nav a:hover {
-            text-decoration: underline;
-        }
-        .nav a.active {
-            font-weight: bold;
-        }
-        .content {
-            background: white;
-            padding: 20px;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .stats {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-        .stat-box {
-            text-align: center;
-            padding: 20px;
-            background-color: #e9ecef;
-            border-radius: 4px;
-            flex: 1;
-            min-width: 200px;
-            margin: 10px;
-        }
-        .stat-number {
-            font-size: 2em;
-            font-weight: bold;
-            color: #007bff;
-        }
-        .stat-label {
-            color: #6c757d;
-        }
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #28a745;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin-top: 10px;
-            margin-right: 10px;
-        }
-        .btn:hover {
-            background-color: #218838;
-        }
-        .btn-secondary {
-            background-color: #6c757d;
-        }
-        .btn-secondary:hover {
-            background-color: #5a6268;
-        }
-        .btn-danger {
-            background-color: #dc3545;
-        }
-        .btn-danger:hover {
-            background-color: #c82333;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
+{% extends "base.html" %}
+
+{% block title %}Dashboard - JackNemo Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
         <h1>Dashboard</h1>
-        <p>Willkommen zurück, {{ current_user.name }}!</p>
+        <p class="lead">Willkommen zurück, {{ current_user.name }}!</p>
     </div>
-    
-    <div class="nav">
-        <a href="/dashboard" class="active">Dashboard</a>
-        <a href="/profile">Profil</a>
-        <a href="/settings">Einstellungen</a>
-        <a href="/environments">Umgebungen</a>
+    <div class="col-md-4 text-md-end">
         {% if current_user.role == 'admin' %}
-        <a href="/admin">Admin</a>
+        <a href="{{ url_for('admin.index') }}" class="btn btn-outline-primary me-2">
+            <i class="bi bi-gear"></i> Admin-Bereich
+        </a>
         {% endif %}
-        <a href="{{ url_for('auth.logout') }}">Logout</a>
+        <a href="#" class="btn btn-outline-secondary">
+            <i class="bi bi-download"></i> Bericht exportieren
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Aktive Projekte</h5>
+                <p class="card-text display-4 fw-bold">5</p>
+                <p class="text-muted">+2 diese Woche</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Benutzer</h5>
+                <p class="card-text display-4 fw-bold">12</p>
+                <p class="text-muted">+3 neue diesen Monat</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Systemverfügbarkeit</h5>
+                <p class="card-text display-4 fw-bold">98%</p>
+                <p class="text-muted">Letzte 24 Stunden</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Kurzinfo</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Letzte Aktivität:</strong> Heute um 08:30 Uhr</p>
+                        <p><strong>Ausstehende Aufgaben:</strong> 3</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Speicherauslastung:</strong> 45%</p>
+                        <p><strong>CPU-Last:</strong> 23%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
-    <div class="content">
-        <h2>Übersicht</h2>
-        <p>Dies ist dein persönliches Dashboard in der SaaS-Plattform.</p>
-        
-        <div class="stats">
-            <div class="stat-box">
-                <div class="stat-number">5</div>
-                <div class="stat-label">Aktive Projekte</div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Schnellzugriff</h5>
             </div>
-            <div class="stat-box">
-                <div class="stat-number">12</div>
-                <div class="stat-label">Benutzer</div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <i class="bi bi-plus-circle me-2"></i> Neues Projekt erstellen
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <i class="bi bi-people me-2"></i> Team einladen
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <i class="bi bi-file-earmark-measure me-2"></i> Performance-Bericht
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <i class="bi bi-bell me-2"></i> Benachrichtigungen
+                    </a>
+                </div>
             </div>
-            <div class="stat-box">
-                <div class="stat-number">98%</div>
-                <div class="stat-label">Systemverfügbarkeit</div>
-            </div>
-        </div>
-        
-        <h3>Kurzinfo</h3>
-        <p>Letzte Aktivität: Heute um 08:30 Uhr</p>
-        <p>Ausstehende Aufgaben: 3</p>
-        <p>Speicherauslastung: 45%</p>
-        
-        <div style="margin-top: 30px;">
-            <a href="#" class="btn">Alle Aktivitäten anzeigen</a>
-            <a href="#" class="btn btn-secondary">Einstellungen</a>
-            {% if current_user.role == 'admin' %}
-            <a href="/admin" class="btn btn-danger">Admin-Bereich</a>
-            {% endif %}
         </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

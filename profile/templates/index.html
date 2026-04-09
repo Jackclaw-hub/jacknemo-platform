@@ -1,15 +1,56 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profil - SaaS Plattform Prototyp</title>
-</head>
-<body>
-    <h1>Profilseite</h1>
-    <p>Willkommen, {{ current_user.name }}!</p>
-    <p>E-Mail: {{ current_user.email }}</p>
-    <p>Rolle: {{ current_user.role }}</p>
-    <a href="/dashboard">Zurück zum Dashboard</a>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Profil - JackNemo SaaS Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h2>Mein Profil</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Name:</strong>
+                    </div>
+                    <div class="col-md-9">
+                        {{ current_user.name }}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3">
+                        <strong>E-Mail:</strong>
+                    </div>
+                    <div class="col-md-9">
+                        {{ current_user.email }}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3">
+                        <strong>Rolle:</strong>
+                    </div>
+                    <div class="col-md-9">
+                        {% if current_user.role == 'admin' %}
+                        <span class="badge bg-danger">Administrator</span>
+                        {% else %}
+                        <span class="badge bg-success">Benutzer</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h2>Kontoeinstellungen</h2>
+            </div>
+            <div class="card-body">
+                <a href="{{ url_for('profile.edit') }}" class="btn btn-outline-primary w-100 mb-2">Profil bearbeiten</a>
+                <a href="{{ url_for('profile.security') }}" class="btn btn-outline-secondary w-100 mb-2">Sicherheitseinstellungen</a>
+                <a href="#" class="btn btn-outline-danger w-100">Konto löschen</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

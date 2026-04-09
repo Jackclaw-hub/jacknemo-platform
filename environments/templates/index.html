@@ -1,182 +1,46 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Umgebungen - SaaS Plattform Prototyp</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .header {
-            background-color: #28a745;
-            color: white;
-            padding: 20px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-        }
-        .nav {
-            margin-bottom: 20px;
-        }
-        .nav a {
-            margin-right: 15px;
-            color: #28a745;
-            text-decoration: none;
-        }
-        .nav a:hover {
-            text-decoration: underline;
-        }
-        .nav a.active {
-            font-weight: bold;
-        }
-        .content {
-            background: white;
-            padding: 20px;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #28a745;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin: 5px;
-        }
-        .btn:hover {
-            background-color: #218838;
-        }
-        .btn-secondary {
-            background-color: #6c757d;
-        }
-        .btn-secondary:hover {
-            background-color: #5a6268;
-        }
-        .btn-danger {
-            background-color: #dc3545;
-        }
-        .btn-danger:hover {
-            background-color: #c82333;
-        }
-        .env-card {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .env-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        .env-title {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #333;
-        }
-        .env-status {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .status-active {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .status-inactive {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        .status-maintenance {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-        .env-description {
-            color: #6c757d;
-            margin-bottom: 15px;
-        }
-        .env-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-        .detail-item {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        .detail-label {
-            font-weight: bold;
-            color: #495057;
-            font-size: 0.9em;
-        }
-        .detail-value {
-            margin-top: 5px;
-            color: #212529;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Umgebungsverwaltung</h1>
-        <p>Überwache und verwalte DEV, INT und PROD Umgebungen</p>
+{% extends "base.html" %}
+{% block title %}Umgebungen - JackNemo SaaS Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>Umgebungsverwaltung</h2>
+        <p class="lead">Überwache und verwalte DEV, INT und PROD Umgebungen</p>
     </div>
-    
-    <div class="nav">
-        <a href="/environments/" class="active">Übersicht</a>
-        <a href="/dashboard">Dashboard</a>
-        <a href="{{ url_for('auth.logout') }}">Logout</a>
-    </div>
-    
-    <div class="content">
-        {% for env_id, env in environments.items() %}
-        <div class="env-card">
-            <div class="env-header">
-                <div class="env-title">{{ env.name }} ({{ env_id }})</div>
-                <div class="env-status status-{{ env.status | lower }}">{{ env.status }}</div>
+</div>
+
+<div class="row">
+    {% for env_id, env in environments.items() %}
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>{{ env.name }} <span class="badge bg-{{ 'success' if env.status == 'active' else 'warning' if env.status == 'maintenance' else 'danger' }}">{{ env.status }}</span></h5>
             </div>
-            
-            <p class="env-description">{{ env.description }}</p>
-            
-            <div class="env-details">
-                <div class="detail-item">
-                    <div class="detail-label">URL</div>
-                    <div class="detail-value"><a href="{{ env.url }}" target="_blank">{{ env.url }}</a></div>
+            <div class="card-body">
+                <p class="card-text">{{ env.description }}</p>
+                
+                <div class="mb-3">
+                    <strong>URL:</strong>
+                    <a href="{{ env.url }}" target="_blank" class="link-primary">{{ env.url }}</a>
                 </div>
-                <div class="detail-item">
-                    <div class="detail-label">Letzter Deploy</div>
-                    <div class="detail-value">{{ env.last_deploy }}</div>
+                
+                <div class="mb-2">
+                    <strong>Letzter Deploy:</strong> {{ env.last_deploy }}
                 </div>
-                <div class="detail-item">
-                    <div class="detail-label">Version</div>
-                    <div class="detail-value">{{ env.version }}</div>
+                
+                <div class="mb-2">
+                    <strong>Services:</strong> {{ env.services | length }} aktiv
                 </div>
-                <div class="detail-item">
-                    <div class="detail-label">Status</div>
-                    <div class="detail-value">
-                        {% if env.status == 'active' %}<span class="status-badge status-active">Online</span>
-                        {% elif env.status == 'maintenance' %}<span class="status-badge status-maintenance">Wartung</span>
-                        {% else %}<span class="status-badge status-inactive">Offline</span>
-                        {% endif %}
-                    </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="/environments/{{ env_id }}" class="btn btn-outline-primary">Details</a>
+                    <form method="POST" action="/environments/deploy/{{ env_id }}" class="d-inline">
+                        <button type="submit" class="btn btn-success">Deploy</button>
+                    </form>
                 </div>
-            </div>
-            
-            <div class="btn-group mt-3">
-                <a href="/environments/{{ env_id }}" class="btn btn-secondary">Details</a>
-                <form method="POST" action="/environments/deploy/{{ env_id }}" style="display: inline;">
-                    <button type="submit" class="btn">Deploy</button>
-                </form>
             </div>
         </div>
-        {% endfor %}
     </div>
-</body>
-</html>
+    {% endfor %}
+</div>
+{% endblock %}
