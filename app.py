@@ -13,6 +13,7 @@ from admin import admin_bp
 from environments import environments_bp
 from profile import profile_bp
 from api import api_bp
+from monitoring import monitoring_bp
 
 app = Flask(__name__)
 app.config.from_mapping(config.to_dict())
@@ -64,6 +65,7 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(environments_bp)
 app.register_blueprint(profile_bp)
 app.register_blueprint(api_bp)
+app.register_blueprint(monitoring_bp)
 
 # Hauptroutes
 @app.route('/')
