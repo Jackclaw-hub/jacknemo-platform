@@ -1,105 +1,108 @@
 // Main JavaScript for JackNemo SaaS Platform
-
 document.addEventListener('DOMContentLoaded', function() {
     // Tooltip initialization
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
-    });
-
+    })
+    
     // Popover initialization
     const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
     const popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
         return new bootstrap.Popover(popoverTriggerEl)
-    });
-
+    })
+    
     // Alert auto-dismiss after 5 seconds
-    const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
+    const alerts = document.querySelectorAll('.alert.alert-dismissible')
     alerts.forEach(function(alert) {
         setTimeout(function() {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
-        }, 5000);
-    });
-
-    // Sidebar toggle for mobile (if we implement one later)
-    // Form validation enhancements
-    const forms = document.querySelectorAll('form.needs-validation');
-    Array.from(forms).forEach(function(form) {
+            const bsAlert = new bootstrap.Alert(alert)
+            bsAlert.close()
+        }, 5000)
+    })
+    
+    // Sidebar toggle for mobile
+    const sidebarToggle = document.getElementById('sidebarToggle')
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('show')
+        })
+    }
+    
+    // Form validation
+    const forms = document.querySelectorAll('.needs-validation')
+    forms.forEach(function(form) {
         form.addEventListener('submit', function(event) {
             if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
+                event.preventDefault()
+                event.stopPropagation()
             }
-            form.classList.add('was-validated');
-        }, false);
-    });
-
-    // Environment status badge updater (example)
-    function updateEnvStatus() {
-        const statusElements = document.querySelectorAll('.env-status-badge');
-        statusElements.forEach(function(element) {
-            const status = element.getAttribute('data-status');
-            if (status) {
-                element.classList.remove('bg-success', 'bg-warning', 'bg-danger', 'bg-info');
-                switch(status) {
-                    case 'active':
-                        element.classList.add('bg-success');
-                        break;
-                    case 'maintenance':
-                        element.classList.add('bg-warning');
-                        break;
-                    case 'inactive':
-                        element.classList.add('bg-danger');
-                        break;
-                    default:
-                        element.classList.add('bg-info');
+            form.classList.add('was-validated')
+        })
+    })
+    
+    // Environment status indicator updater
+    const envStatusIndicators = document.querySelectorAll('.env-status-indicator')
+    envStatusIndicators.forEach(function(indicator) {
+        const status = indicator.getAttribute('data-status')
+        if (status) {
+            indicator.classList.add(`status-${status}`)
+        }
+    })
+    
+    // Chart.js initialization (if charts are present)
+    const ctx = document.getElementById('usageChart')
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Systemauslastung (%)',
+                    data: [65, 59, 80, 81, 56, 55],
+                    borderColor: 'rgb(13, 110, 253)',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Monatliche Systemauslastung'
+                    }
                 }
             }
-        });
+        })
     }
-
-    // Call on load and periodically
-    updateEnvStatus();
-    setInterval(updateEnvStatus, 30000); // Update every 30 seconds
-
-    // Make sure Bootstrap tooltips work dynamically
-    const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    tooltipElements.forEach(function(el) {
-        new bootstrap.Tooltip(el);
-    });
-});
-
-// Helper functions for API calls
-async function fetchAPI(endpoint, options = {}) {
-    try {
-        const token = localStorage.getItem('authToken'); // If we implement JWT later
-        const headers = {
-            'Content-Type': 'application/json',
-            ...options.headers
-        };
+    
+    // Environment cards hover effect
+    const envCards = document.querySelectorAll('.env-card')
+    envCards.forEach(function(card) {
+        card.addEventListener('mouseenter', function() {
+            card.style.transform = 'translateY(-5px)'
+            card.style.boxShadow = '0 0.75rem 1.5rem rgba(0, 0, 0, 0.2)'
+        })
         
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-        
-        const response = await fetch(`/api/v1${endpoint}`, {
-            ...options,
-            headers: headers
-        });
-        
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
-        }
-        
-        return await response.json();
-    } catch (error) {
-        console.error('API call failed:', error);
-        throw error;
+        card.addEventListener('mouseleave', function() {
+            card.style.transform = 'translateY(0)'
+            card.style.boxShadow = '0 0.5rem 1rem rgba(0, 0, 0, 0.15)'
+        })
+    })
+    
+    // Dark mode toggle (placeholder for future implementation)
+    const darkModeToggle = document.getElementById('darkModeToggle')
+    if (darkModeToggle) {
+        darkModeToggle.addEventListener('change', function() {
+            if (this.checked) {
+                document.documentElement.setAttribute('data-bs-theme', 'dark')
+            } else {
+                document.documentElement.setAttribute('data-bs-theme', 'light')
+            }
+        })
     }
-}
-
-// Example usage:
-// fetchAPI('/auth/status')
-//   .then(data => console.log('User data:', data))
-//   .catch(error => console.error('Failed to fetch auth status:', error));
+})
