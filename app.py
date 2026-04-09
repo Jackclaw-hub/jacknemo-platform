@@ -7,7 +7,15 @@ from flask import Flask, render_template, redirect, url_for, flash
 from flask_login import LoginManager, current_user
 import os
 
+from utils import config
+from auth import auth_bp
+from admin import admin_bp
+from environments import environments_bp
+from profile import profile_bp
+from api import api_bp
+
 app = Flask(__name__)
+app.config.from_mapping(config.to_dict())
 app.secret_key = os.urandom(24)  # In Production: sicherer Secret Key aus Env-Var
 
 # Flask-Login Setup
@@ -51,17 +59,9 @@ def load_user(user_id):
     return None
 
 # Blueprints registrieren
-from auth import auth_bp
 app.register_blueprint(auth_bp)
-
-from admin import admin_bp
 app.register_blueprint(admin_bp)
-
-from environments import environments_bp
 app.register_blueprint(environments_bp)
-
-from profile import profile_bp
-from api import api_bp
 app.register_blueprint(profile_bp)
 app.register_blueprint(api_bp)
 
