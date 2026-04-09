@@ -61,7 +61,9 @@ from environments import environments_bp
 app.register_blueprint(environments_bp)
 
 from profile import profile_bp
+from api import api_bp
 app.register_blueprint(profile_bp)
+app.register_blueprint(api_bp)
 
 # Hauptroutes
 @app.route('/')
