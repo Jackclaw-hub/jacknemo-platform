@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil - SaaS Plattform Prototyp</title>
+</head>
+<body>
+    <h1>Profilseite</h1>
+    <p>Willkommen, {{ current_user.name }}!</p>
+    <p>E-Mail: {{ current_user.email }}</p>
+    <p>Rolle: {{ current_user.role }}</p>
+    <a href="/dashboard">Zurück zum Dashboard</a>
+</body>
+</html>
