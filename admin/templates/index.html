@@ -1,44 +1,37 @@
 {% extends "base.html" %}
-{% block title %}Admin - JackNemo SaaS Platform{% endblock %}
+
+{% block title %}Admin-Dashboard - JackNemo Platform{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <h2>Admin-Bereich</h2>
+<div class="row mb-4">
+    <div class="col">
+        <h1>Admin-Bereich</h1>
         <p class="lead">Willkommen, {{ current_user.name }} (Administrator)</p>
     </div>
 </div>
 
 <div class="row mb-4">
-    <div class="col-md-3">
+    <div class="col-md-4">
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Gesamtbenutzer</h5>
-                <p class="card-text display-4">{{ users | length }}</p>
+                <p class="card-text display-4 fw-bold">{{ users | length }}</p>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-4">
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Administratoren</h5>
-                <p class="card-text display-4">{{ users | selectattr('role', 'equalto', 'admin') | list | length }}</p>
+                <p class="card-text display-4 fw-bold">{{ users | selectattr('role', 'equalto', 'admin') | list | length }}</p>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-4">
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Normale Benutzer</h5>
-                <p class="card-text display-4">{{ users | selectattr('role', 'equalto', 'user') | list | length }}</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Letzte Aktivität</h5>
-                <p class="card-text display-4">heute um 09:15 Uhr</p>
+                <p class="card-text display-4 fw-bold">{{ users | selectattr('role', 'equalto', 'user') | list | length }}</p>
             </div>
         </div>
     </div>
@@ -48,25 +41,40 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-header">
-                <h3>Systemstatus</h3>
+                <h5 class="mb-0">Systemstatus</h5>
             </div>
             <div class="card-body">
-                <p><strong>Status:</strong> <span class="badge bg-success">Alle Systeme betrieblich</span></p>
-                <p><strong>CPU-Last:</strong> 23%</p>
-                <p><strong>Speicher:</strong> 45% von 8 GB verwendet</p>
-                <p><strong>Festplatte:</strong> 60% von 100 GB verwendet</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Status:</strong> <span class="badge bg-success">Alle Systeme betrieblich</span></p>
+                        <p><strong>CPU-Last:</strong> 23%</p>
+                        <p><strong>Speicher:</strong> 45% von 8 GB verwendet</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Festplatte:</strong> 60% von 100 GB verwendet</p>
+                        <p><strong>Netzwerk:</strong> Normal</p>
+                        <p><strong>Uptime:</strong> 99.9%</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+    
     <div class="col-md-4">
         <div class="card">
             <div class="card-header">
-                <h3>Aktionen</h3>
+                <h5 class="mb-0">Admin-Aktionen</h5>
             </div>
             <div class="card-body">
-                <a href="/admin/users" class="btn btn-primary w-100 mb-2">Benutzer verwalten</a>
-                <a href="/admin/roles" class="btn btn-outline-primary w-100 mb-2">Rollen verwalten</a>
-                <a href="/admin/system" class="btn btn-outline-secondary w-100">Systemeinstellungen</a>
+                <a href="{{ url_for('admin.users') }}" class="btn btn-primary w-100 mb-2">
+                    <i class="bi bi-people me-2"></i> Benutzer verwalten
+                </a>
+                <a href="{{ url_for('admin.roles') }}" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="bi bi-person-badge me-2"></i> Rollen verwalten
+                </a>
+                <a href="{{ url_for('admin.system') }}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-tools me-2"></i> Systemeinstellungen
+                </a>
             </div>
         </div>
     </div>
