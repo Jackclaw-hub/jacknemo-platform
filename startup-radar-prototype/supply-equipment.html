@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>List Equipment — Startup Radar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="page-header">
+      <a href="index.html" class="back">← Back</a>
+      <span class="logo-icon" style="font-size:1.25rem;color:var(--accent-2)">◎</span>
+      <h1>List Equipment or Space</h1>
+    </header>
+
+    <!-- Listing Form -->
+    <section class="supply-form">
+      <h2>New Listing</h2>
+      <div class="form-grid">
+        <div class="field">
+          <label for="eq-title">Title</label>
+          <input type="text" id="eq-title" placeholder="e.g. 4K Video Studio — Half Day" />
+        </div>
+        <div class="field">
+          <label for="eq-owner">Your name / org</label>
+          <input type="text" id="eq-owner" placeholder="Studio Hub Berlin" />
+        </div>
+        <div class="field">
+          <label for="eq-type">Owner type</label>
+          <select id="eq-type">
+            <option value="hub">Hub / Organisation</option>
+            <option value="solo">Individual / Solo</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="eq-geo">Availability</label>
+          <select id="eq-geo">
+            <option value="regional">Local / Regional</option>
+            <option value="remote">Remote / Shippable</option>
+          </select>
+        </div>
+        <div class="field" id="city-field">
+          <label for="eq-city">City</label>
+          <input type="text" id="eq-city" placeholder="Berlin" />
+        </div>
+        <div class="field">
+          <label for="eq-daily">Daily rate (€)</label>
+          <input type="number" id="eq-daily" placeholder="0 = free" min="0" />
+        </div>
+        <div class="field">
+          <label for="eq-hourly">Hourly rate (€, optional)</label>
+          <input type="number" id="eq-hourly" placeholder="Leave blank if N/A" min="0" />
+        </div>
+        <div class="field field--full">
+          <label for="eq-summary">Description</label>
+          <textarea id="eq-summary" placeholder="What is it, what's included, ideal use cases…"></textarea>
+        </div>
+        <div class="field field--full">
+          <label>Best for (stages &amp; sectors)</label>
+          <div class="tag-picker" id="eq-tags"></div>
+        </div>
+      </div>
+      <button class="btn btn--primary" id="eq-submit">Save Listing</button>
+      <span id="eq-success" style="display:none;margin-left:1rem;color:var(--green);font-size:.9rem">✓ Listing saved</span>
+    </section>
+
+    <!-- Saved Drafts -->
+    <section class="drafts-section" id="drafts-section">
+      <h2>Your Listings</h2>
+      <div id="drafts-list"><p style="color:var(--text-muted);font-size:.9rem">No listings yet.</p></div>
+    </section>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/supply.js"></script>
+  <script>
+    initSupplyForm({
+      type: 'equipment',
+      titleEl:   'eq-title',
+      ownerEl:   'eq-owner',
+      ownerTypeEl:'eq-type',
+      geoEl:     'eq-geo',
+      cityEl:    'eq-city',
+      cityField: 'city-field',
+      dailyEl:   'eq-daily',
+      hourlyEl:  'eq-hourly',
+      summaryEl: 'eq-summary',
+      tagsEl:    'eq-tags',
+      submitEl:  'eq-submit',
+      successEl: 'eq-success',
+      draftsEl:  'drafts-list',
+      storageKey:'sr_equipment_drafts',
+      availableTags: ['idea','mvp','early-revenue','growth','tech','saas','health','climate','hardware','b2b','creative','media','agritech'],
+    });
+  </script>
+</body>
+</html>

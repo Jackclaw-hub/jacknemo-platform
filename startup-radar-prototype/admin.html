@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Startup Radar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="page-header">
+      <a href="index.html" class="back">← Back</a>
+      <span class="logo-icon" style="font-size:1.25rem;color:var(--amber)">◎</span>
+      <h1>Platform Admin</h1>
+    </header>
+
+    <!-- Stats row -->
+    <div class="admin-stats" id="admin-stats"></div>
+
+    <!-- Tabs -->
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="users">Users</button>
+      <button class="tab-btn" data-tab="funding">Funding</button>
+      <button class="tab-btn" data-tab="equipment">Equipment</button>
+      <button class="tab-btn" data-tab="services">Services</button>
+    </nav>
+
+    <!-- Users tab -->
+    <div class="tab-panel active" id="tab-users">
+      <table class="data-table" id="users-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Stage</th>
+            <th>Sector</th>
+            <th>Joined</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Funding tab -->
+    <div class="tab-panel" id="tab-funding">
+      <table class="data-table" id="funding-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Org</th>
+            <th>Stages</th>
+            <th>Geo</th>
+            <th>Deadline</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Equipment tab -->
+    <div class="tab-panel" id="tab-equipment">
+      <table class="data-table" id="equipment-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Owner</th>
+            <th>City</th>
+            <th>Daily rate</th>
+            <th>Hourly rate</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Services tab -->
+    <div class="tab-panel" id="tab-services">
+      <table class="data-table" id="services-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Provider</th>
+            <th>Stages</th>
+            <th>From</th>
+            <th>Starter-friendly</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
