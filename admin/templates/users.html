@@ -93,6 +93,25 @@
             color: #dc3545;
             font-weight: bold;
         }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        .status-verified {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-flagged {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
     </style>
 </head>
 <body>
@@ -139,8 +158,18 @@
                         <span style="color: #28a745;">Benutzer</span>
                         {% endif %}
                     </td>
-                    <td><span class="status-active">Aktiv</span></td>
-                    <td>heute um {{ 8 + loop.index }}:{{ 30 + loop.index * 2 }} Uhr</td>
+                    <td>
+                        {% if user.status == 'verified' %}
+                        <span class="status-badge status-verified">Verifiziert</span>
+                        {% elif user.status == 'pending' %}
+                        <span class="status-badge status-pending">Ausstehend</span>
+                        {% elif user.status == 'flagged' %}
+                        <span class="status-badge status-flagged">Gekennzeichnet</span>
+                        {% else %}
+                        <span class="status-badge">{{ user.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.last_activity }}</td>
                     <td>
                         <a href="#" class="btn btn-secondary">Bearbeiten</a>
                         <a href="#" class="btn btn-danger">Löschen</a>

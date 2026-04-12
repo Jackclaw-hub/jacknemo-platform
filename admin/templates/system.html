@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Systemeinstellungen - SaaS Plattform Prototyp</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background-color: #17a2b8;
+            color: white;
+            padding: 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .nav {
+            margin-bottom: 20px;
+        }
+        .nav a {
+            margin-right: 15px;
+            color: #17a2b8;
+            text-decoration: none;
+        }
+        .nav a:hover {
+            text-decoration: underline;
+        }
+        .nav a.active {
+            font-weight: bold;
+        }
+        .content {
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #17a2b8;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn:hover {
+            background-color: #138496;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        .status-operational {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-degraded {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-down {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .status-maintenance {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        .metric-value {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .metric-good { color: #28a745; }
+        .metric-warning { color: #ffc107; }
+        .metric-critical { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Systemeinstellungen</h1>
+        <p>Systemkonfiguration und -überwachung</p>
+    </div>
+    
+    <div class="nav">
+        <a href="/admin/">Übersicht</a>
+        <a href="/admin/users">Benutzer</a>
+        <a href="/admin/roles">Rollen</a>
+        <a href="/admin/system" class="active">System</a>
+        <a href="{{ url_for('auth.logout') }}">Logout</a>
+    </div>
+    
+    <div class="content">
+        <h2>Systemstatus</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Komponente</th>
+                    <th>Status</th>
+                    <th>Letzte Prüfung</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Webserver</td>
+                    <td><span class="status-badge status-operational">Betriebsbereit</span></td>
+                    <td>2026-04-12 09:15:00</td>
+                    <td>Läuft stabil</td>
+                </tr>
+                <tr>
+                    <td>Datenbank</td>
+                    <td><span class="status-badge status-operational">Betriebsbereit</span></td>
+                    <td>2026-04-12 09:14:30</td>
+                    <td>Keine Verbindungsprobleme</td>
+                </tr>
+                <tr>
+                    <td>Cache</td>
+                    <td><span class="status-badge status-degraded">Eingeschränkt</span></td>
+                    <td>2026-04-12 09:10:15</td>
+                    <td>Höhere Latenz als normal</td>
+                </tr>
+                <tr>
+                    <td>E-Mail Service</td>
+                    <td><span class="status-badge status-down">Ausfall</span></td>
+                    <td>2026-04-12 08:45:00</td>
+                    <td>SMTP-Verbindungsfehler</td>
+                </tr>
+                <tr>
+                    <td>Backup Service</td>
+                    <td><span class="status-badge status-maintenance">Wartung</span></td>
+                    <td>2026-04-12 07:30:00</td>
+                    <td>Regelmäßige Wartung läuft</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h3>Systemmetriken</h3>
+        <table>
+            <tr>
+                <th>Metrik</th>
+                <th>Wert</th>
+                <th>Status</th>
+                <th>Schwellenwert</th>
+            </tr>
+            <tr>
+                <td>CPU-Last</td>
+                <td class="metric-value metric-good">23%</td>
+                <td><span class="status-badge status-operational">Normal</span></td>
+                <td>&lt; 80%</td>
+            </tr>
+            <tr>
+                <td>Speicherverbrauch</td>
+                <td class="metric-value metric-warning">68%</td>
+                <td><span class="status-badge status-degraded">Warnung</span></td>
+                <td>&lt; 70%</td>
+            </tr>
+            <tr>
+                <td>Festplattennutzung</td>
+                <td class="metric-value metric-critical">92%</td>
+                <td><span class="status-badge status-down">Kritisch</span></td>
+                <td>&lt; 85%</td>
+            </tr>
+            <tr>
+                <td>Netzwerkauslastung</td>
+                <td class="metric-value metric-good">15%</td>
+                <td><span class="status-badge status-operational">Normal</span></td>
+                <td>&lt; 50%</td>
+            </tr>
+        </table>
+        
+        <h3>Konfiguration</h3>
+        <a href="#" class="btn">Systemkonfiguration bearbeiten</a>
+        <a href="#" class="btn btn-secondary">Backup erstellen</a>
+        <a href="#" class="btn btn-danger">System neu starten</a>
+        
+        <h3>Protokolle</h3>
+        <p>Letzte Systemprotokolle:</p>
+        <textarea style="width: 100%; height: 100px; font-family: monospace; font-size: 0.9em;" readonly>
+2026-04-12 09:15:00 INFO: Systemstart erfolgreich
+2026-04-12 09:14:30 INFO: Datenbankverbindung hergestellt
+2026-04-12 09:10:15 WARN: Cache-Latenz erhöht
+2026-04-12 08:45:00 ERROR: E-Mail Service nicht erreichbar
+2026-04-12 07:30:00 INFO: Backup-Wartung gestartet
+        </textarea>
+    </div>
+</body>
+</html>

@@ -100,6 +100,25 @@
         .permission-read { background-color: #d1ecf1; color: #0c5460; }
         .permission-write { background-color: #d4edda; color: #155724; }
         .permission-delete { background-color: #f8d7da; color: #721c24; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-deprecated {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
     </style>
 </head>
 <body>
@@ -127,6 +146,7 @@
                     <th>ID</th>
                     <th>Name</th>
                     <th>Beschreibung</th>
+                    <th>Status</th>
                     <th>Berechtigungen</th>
                     <th>Erstellt am</th>
                     <th>Aktionen</th>
@@ -138,6 +158,17 @@
                     <td>{{ role.id }}</td>
                     <td>{{ role.name }}</td>
                     <td>{{ role.description }}</td>
+                    <td>
+                        {% if role.status == 'active' %}
+                        <span class="status-badge status-active">Aktiv</span>
+                        {% elif role.status == 'pending' %}
+                        <span class="status-badge status-pending">Ausstehend</span>
+                        {% elif role.status == 'deprecated' %}
+                        <span class="status-badge status-deprecated">Veraltet</span>
+                        {% else %}
+                        <span class="status-badge">{{ role.status }}</span>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if role.permissions %}
                             {% for perm in role.permissions %}

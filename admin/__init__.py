@@ -17,14 +17,36 @@ users = {
         'email': 'test@example.com',
         'password': 'securepassword123',  # In Production: gehashtes Passwort!
         'name': 'Test User',
-        'role': 'admin'
+        'role': 'admin',
+        'status': 'verified',
+        'last_activity': '2026-04-12 09:15:00'
     },
     'user@example.com': {
         'id': 2,
         'email': 'user@example.com',
         'password': 'userpassword123',  # In Production: gehashtes Passwort!
         'name': 'Regular User',
-        'role': 'user'
+        'role': 'user',
+        'status': 'pending',
+        'last_activity': '2026-04-11 14:30:00'
+    },
+    'newuser@example.com': {
+        'id': 3,
+        'email': 'newuser@example.com',
+        'password': 'newpassword123',
+        'name': 'New User',
+        'role': 'user',
+        'status': 'pending',
+        'last_activity': '2026-04-12 10:45:00'
+    },
+    'flagged@example.com': {
+        'id': 4,
+        'email': 'flagged@example.com',
+        'password': 'flagpassword123',
+        'name': 'Flagged User',
+        'role': 'user',
+        'status': 'flagged',
+        'last_activity': '2026-04-10 16:20:00'
     }
 }
 
@@ -50,11 +72,61 @@ def index():
 def users():
     return render_template('admin/users.html', user=current_user, users=users)
 
+# Simulierte Rollendaten
+roles_data = [
+    {
+        'id': 1,
+        'name': 'Administrator',
+        'description': 'Vollzugriff auf alle Systemfunktionen',
+        'permissions': [
+            {'resource': 'users', 'action': 'read'},
+            {'resource': 'users', 'action': 'write'},
+            {'resource': 'users', 'action': 'delete'},
+            {'resource': 'roles', 'action': 'read'},
+            {'resource': 'roles', 'action': 'write'},
+            {'resource': 'roles', 'action': 'delete'},
+            {'resource': 'system', 'action': 'read'},
+            {'resource': 'system', 'action': 'write'}
+        ],
+        'created_at': '2026-04-10 14:30:00',
+        'status': 'active'
+    },
+    {
+        'id': 2,
+        'name': 'Moderator',
+        'description': 'Kann Benutzer verwalten, aber keine Systemeinstellungen',
+        'permissions': [
+            {'resource': 'users', 'action': 'read'},
+            {'resource': 'users', 'action': 'write'}
+        ],
+        'created_at': '2026-04-11 09:15:00',
+        'status': 'active'
+    },
+    {
+        'id': 3,
+        'name': 'Support',
+        'description': 'Kann Benutzerdaten einsehen, aber nicht ändern',
+        'permissions': [
+            {'resource': 'users', 'action': 'read'}
+        ],
+        'created_at': '2026-04-12 11:45:00',
+        'status': 'pending'
+    },
+    {
+        'id': 4,
+        'name': 'Deprecated Role',
+        'description': 'Veraltete Rolle - nicht mehr verwenden',
+        'permissions': [],
+        'created_at': '2026-03-15 16:20:00',
+        'status': 'deprecated'
+    }
+]
+
 @admin_bp.route('/roles')
 @login_required
 @admin_required
 def roles():
-    return render_template('admin/roles.html', user=current_user)
+    return render_template('admin/roles.html', user=current_user, roles=roles_data)
 
 @admin_bp.route('/system')
 @login_required
