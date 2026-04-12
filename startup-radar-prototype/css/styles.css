@@ -201,9 +201,34 @@ button { cursor: pointer; font-family: inherit; }
   font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--green);
   min-width: 2.5rem;
   text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--surface-2), var(--surface));
+  border: 2px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+
+.radar-card__score[data-score="high"] { 
+  color: var(--green); 
+  border-color: var(--green);
+  background: linear-gradient(135deg, var(--surface-2), #34d39915);
+}
+
+.radar-card__score[data-score="medium"] { 
+  color: var(--amber); 
+  border-color: var(--amber);
+  background: linear-gradient(135deg, var(--surface-2), #fbbf2415);
+}
+
+.radar-card__score[data-score="low"] { 
+  color: var(--text-muted); 
+  border-color: var(--border);
 }
 
 .empty-state {

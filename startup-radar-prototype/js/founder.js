@@ -137,6 +137,12 @@
   function renderCard(score, type, title, meta, summary, url) {
     const badgeClass = { funding: 'badge--funding', equipment: 'badge--equipment', service: 'badge--service' }[type];
     const metaHtml = meta.map(m => `<span>${escHtml(m)}</span>`).join('');
+    
+    // Categorize score for styling
+    let scoreClass = 'low';
+    if (score >= 80) scoreClass = 'high';
+    else if (score >= 60) scoreClass = 'medium';
+    
     return `
       <a href="${escHtml(url)}" class="radar-card" target="_blank" rel="noopener">
         <span class="radar-card__badge ${badgeClass}">${type}</span>
@@ -145,7 +151,7 @@
           <div class="radar-card__meta">${metaHtml}</div>
           <div style="margin-top:.5rem;font-size:.85rem;color:var(--text-muted)">${escHtml(summary)}</div>
         </div>
-        <div class="radar-card__score">${score}</div>
+        <div class="radar-card__score" data-score="${scoreClass}">${score}</div>
       </a>`;
   }
 
@@ -190,7 +196,16 @@
     countEl.textContent = `(${results.length} matched)`;
 
     if (results.length === 0) {
-      listEl.innerHTML = '<div class="empty-state">No matches for your current profile. Try broadening your filters.</div>';
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <h3>No matches found</h3>
+          <p>Your current filters didn't match any opportunities.</p>
+          <ul style="margin-top:1rem;text-align:left;font-size:.9rem">
+            <li>Try selecting "All sectors"</li>
+            <li>Choose "Anywhere" for region</li>
+            <li>Uncheck "Remote-only listings"</li>
+          </ul>
+        </div>`;
       return;
     }
 
