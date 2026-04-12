@@ -149,6 +149,46 @@ button { cursor: pointer; font-family: inherit; }
 .field select:focus,
 .field input:focus { border-color: var(--accent); }
 
+/* Field validation states */
+.field--valid select,
+.field--valid input,
+.field--valid textarea {
+  border-color: var(--green) !important;
+}
+
+.field--invalid select,
+.field--invalid input,
+.field--invalid textarea {
+  border-color: var(--red) !important;
+}
+
+.field-error {
+  color: var(--red);
+  font-size: .75rem;
+  margin-top: .25rem;
+  display: none;
+}
+
+.validation-errors {
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid var(--red);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  font-size: .9rem;
+}
+
+.validation-errors strong {
+  color: var(--red);
+  margin-bottom: .5rem;
+  display: block;
+}
+
+.validation-errors ul {
+  margin-left: 1.5rem;
+  color: var(--text-muted);
+}
+
 .field--checkbox {
   flex-direction: row;
   align-items: center;
