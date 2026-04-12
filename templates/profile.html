@@ -1,130 +1,116 @@
-{% extends "base.html" %}
-
-{% block title %}Profil - JackNemo Platform{% endblock %}
-
-{% block content %}
-<div class="row">
-    <div class="col-md-8">
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil - SaaS Plattform Prototyp</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .nav {
+            margin-bottom: 20px;
+        }
+        .nav a {
+            margin-right: 15px;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .nav a:hover {
+            text-decoration: underline;
+        }
+        .nav a.active {
+            font-weight: bold;
+        }
+        .content {
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="email"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
         <h1>Mein Profil</h1>
-        
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <i class="bi bi-person-circle display-1 text-primary"></i>
-                        <h4 class="mt-3">{{ current_user.name }}</h4>
-                        <p class="text-muted">{{ current_user.email }}</p>
-                        <span class="badge bg-{{ 'primary' if current_user.role == 'admin' else 'secondary' }}">
-                            {{ current_user.role | capitalize }}
-                        </span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Profilinformationen</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Vollständiger Name</label>
-                                <input type="text" class="form-control" value="{{ current_user.name }}" disabled>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">E-Mail-Adresse</label>
-                                <input type="email" class="form-control" value="{{ current_user.email }}" disabled>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Rolle</label>
-                            <input type="text" class="form-control" value="{{ current_user.role | capitalize }}" disabled>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Konto erstellt am</label>
-                            <input type="text" class="form-control" value="01.04.2026" disabled>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Kontoeinstellungen</h5>
-                    </div>
-                    <div class="card-body">
-                        <a href="{{ url_for('profile.edit') }}" class="btn btn-outline-primary me-2">
-                            <i class="bi bi-pencil me-1"></i> Profil bearbeiten
-                        </a>
-                        <a href="{{ url_for('profile.security') }}" class="btn btn-outline-secondary me-2">
-                            <i class="bi bi-shield-lock me-1"></i> Sicherheit
-                        </a>
-                        <a href="#" class="btn btn-outline-danger">
-                            <i class="bi bi-trash me-1"></i> Konto löschen
-                        </a>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Aktivität & Sicherheit</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Letzte Anmeldung</label>
-                            <input type="text" class="form-control" value="Heute, 08:30 Uhr" disabled>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Anmeldungen questa Woche</label>
-                            <input type="text" class="form-control" value="5" disabled>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Zwei-Faktor-Authentifizierung</label>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" disabled>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
     
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Kurzstatistik</h5>
-            </div>
-            <div class="card-body">
-                <div class="text-center">
-                    <div class="mb-3">
-                        <i class="bi bi-file-earmark-text display-4 text-primary"></i>
-                        <div>12</div>
-                        <small class="text-muted">Dokumente</small>
-                    </div>
-                    <div class="mb-3">
-                        <i class="bi bi-calendar-check display-4 text-success"></i>
-                        <div>8</div>
-                        <small class="text-muted">Aufgaben erledigt</small>
-                    </div>
-                    <div class="mb-3">
-                        <i class="bi bi-graph-up display-4 text-info"></i>
-                        <div>+15%</div>
-                        <small class="text-muted">Produktivität</small>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="nav">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/profile" class="active">Profil</a>
+        <a href="/settings">Einstellungen</a>
+        <a href="/environments">Umgebungen</a>
+        {% if current_user.role == 'admin' %}
+        <a href="/admin">Admin</a>
+        {% endif %}
+        <a href="{{ url_for('logout') }}">Logout</a>
     </div>
-</div>
-{% endblock %}
+    
+    <div class="content">
+        <h2>Profilinformationen</h2>
+        
+        <div class="form-group">
+            <label for="name">Vollständiger Name</label>
+            <input type="text" id="name" name="name" value="{{ current_user.name }}" disabled>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">E-Mail-Adresse</label>
+            <input type="email" id="email" name="email" value="{{ current_user.email }}" disabled>
+        </div>
+        
+        <div class="form-group">
+            <label for="role">Rolle</label>
+            <input type="text" id="role" name="role" value="{{ current_user.role | capitalize }}" disabled>
+        </div>
+        
+        <h3>Kontoeinstellungen</h3>
+        <p>Hier kannst du dein Passwort ändern und weitere Kontoeinstellungen vornehmen.</p>
+        
+        <a href="#" class="btn btn-secondary">Passwort ändern</a>
+        <a href="#" class="btn">Konto löschen</a>
+    </div>
+</body>
+</html>

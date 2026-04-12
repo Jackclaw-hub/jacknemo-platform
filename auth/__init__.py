@@ -52,7 +52,7 @@ def login():
         if email in users and users[email]['password'] == password:
             user = User(users[email]['id'], users[email]['email'], users[email]['name'], users[email]['role'])
             login_user(user)
-            return redirect(url_for('dashboard'))  # Weiterleitung zum Main-Dashboard
+            return redirect(url_for('main.index'))  # Weiterleitung zum Main-Dashboard
         else:
             flash('Ungültige E-Mail oder Passwort')
     

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Benutzerverwaltung - SaaS Plattform Prototyp</title>
+    <title>Rollenverwaltung - SaaS Plattform Prototyp</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,8 +12,8 @@
             background-color: #f5f5f5;
         }
         .header {
-            background-color: #dc3545;
-            color: white;
+            background-color: #ffc107;
+            color: #212529;
             padding: 20px;
             border-radius: 4px;
             margin-bottom: 20px;
@@ -23,7 +23,7 @@
         }
         .nav a {
             margin-right: 15px;
-            color: #dc3545;
+            color: #ffc107;
             text-decoration: none;
         }
         .nav a:hover {
@@ -57,90 +57,97 @@
         .btn {
             display: inline-block;
             padding: 8px 16px;
-            background-color: #dc3545;
-            color: white;
+            background-color: #ffc107;
+            color: #212529;
             text-decoration: none;
             border-radius: 4px;
             margin-right: 10px;
             margin-bottom: 10px;
         }
         .btn:hover {
-            background-color: #c82333;
+            background-color: #e0a800;
         }
         .btn-success {
             background-color: #28a745;
+            color: white;
         }
         .btn-success:hover {
             background-color: #218838;
         }
         .btn-secondary {
             background-color: #6c757d;
+            color: white;
         }
         .btn-secondary:hover {
             background-color: #5a6268;
         }
         .btn-danger {
             background-color: #dc3545;
+            color: white;
         }
         .btn-danger:hover {
             background-color: #c82333;
         }
-        .status-active {
-            color: #28a745;
-            font-weight: bold;
+        .permission-tag {
+            display: inline-block;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            padding: 2px 6px;
+            margin: 2px;
+            font-size: 0.9em;
         }
-        .status-inactive {
-            color: #dc3545;
-            font-weight: bold;
-        }
+        .permission-read { background-color: #d1ecf1; color: #0c5460; }
+        .permission-write { background-color: #d4edda; color: #155724; }
+        .permission-delete { background-color: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Benutzerverwaltung</h1>
-        <p>Alle Benutzer der Plattform verwalten</p>
+        <h1>Rollenverwaltung</h1>
+        <p>Rollen und deren Berechtigungen verwalten</p>
     </div>
     
     <div class="nav">
         <a href="/admin/">Übersicht</a>
-        <a href="/admin/users" class="active">Benutzer</a>
-        <a href="/admin/roles">Rollen</a>
+        <a href="/admin/users">Benutzer</a>
+        <a href="/admin/roles" class="active">Rollen</a>
         <a href="/admin/system">System</a>
         <a href="{{ url_for('auth.logout') }}">Logout</a>
     </div>
     
     <div class="content">
-        <h2>Benutzerliste</h2>
+        <h2>Rollenliste</h2>
         
-        <a href="#" class="btn btn-success">Neuen Benutzer hinzufügen</a>
+        <a href="#" class="btn btn-success">Neue Rolle hinzufügen</a>
         
         <table>
             <thead>
                 <tr>
                     <th>ID</th>
                     <th>Name</th>
-                    <th>E-Mail</th>
-                    <th>Rolle</th>
-                    <th>Status</th>
-                    <th>Letzte Aktivität</th>
+                    <th>Beschreibung</th>
+                    <th>Berechtigungen</th>
+                    <th>Erstellt am</th>
                     <th>Aktionen</th>
                 </tr>
             </thead>
             <tbody>
-                {% for email, user in users.items() %}
+                {% for role in roles %}
                 <tr>
-                    <td>{{ user.id }}</td>
-                    <td>{{ user.name }}</td>
-                    <td>{{ user.email }}</td>
+                    <td>{{ role.id }}</td>
+                    <td>{{ role.name }}</td>
+                    <td>{{ role.description }}</td>
                     <td>
-                        {% if user.role == 'admin' %}
-                        <span style="color: #dc3545;">Administrator</span>
+                        {% if role.permissions %}
+                            {% for perm in role.permissions %}
+                            <span class="permission-tag permission-{{ perm.action|lower }}">{{ perm.resource }}:{{ perm.action }}</span>
+                            {% endfor %}
                         {% else %}
-                        <span style="color: #28a745;">Benutzer</span>
+                            <em>Keine Berechtigungen</em>
                         {% endif %}
                     </td>
-                    <td><span class="status-active">Aktiv</span></td>
-                    <td>heute um {{ 8 + loop.index }}:{{ 30 + loop.index * 2 }} Uhr</td>
+                    <td>{{ role.created_at }}</td>
                     <td>
                         <a href="#" class="btn btn-secondary">Bearbeiten</a>
                         <a href="#" class="btn btn-danger">Löschen</a>
