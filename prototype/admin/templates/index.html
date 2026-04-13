@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin-Dashboard - SaaS Plattform Prototyp</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background-color: #dc3545;
+            color: white;
+            padding: 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .nav {
+            margin-bottom: 20px;
+        }
+        .nav a {
+            margin-right: 15px;
+            color: #dc3545;
+            text-decoration: none;
+        }
+        .nav a:hover {
+            text-decoration: underline;
+        }
+        .nav a.active {
+            font-weight: bold;
+        }
+        .content {
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #dc3545;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn:hover {
+            background-color: #c82333;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Admin-Bereich</h1>
+        <p>Willkommen, {{ current_user.name }} (Administrator)</p>
+    </div>
+    
+    <div class="nav">
+        <a href="/admin/" class="active">Übersicht</a>
+        <a href="/admin/users">Benutzer</a>
+        <a href="/admin/roles">Rollen</a>
+        <a href="/admin/system">System</a>
+        <a href="{{ url_for('auth.logout') }}">Logout</a>
+    </div>
+    
+    <div class="content">
+        <h2>System-Übersicht</h2>
+        <p>Willkommen im Admin-Bereich der SaaS-Plattform. Hier kannst du alle Systemeinstellungen verwalten.</p>
+        
+        <h3>Benutzerstatistik</h3>
+        <table>
+            <tr>
+                <th>Metrik</th>
+                <th>Anzahl</th>
+            </tr>
+            <tr>
+                <td>Gesamtbenutzer</td>
+                <td>{{ users | length }}</td>
+            </tr>
+            <tr>
+                <td>Administratoren</td>
+                <td>{{ users | selectattr('role', 'equalto', 'admin') | list | length }}</td>
+            </tr>
+            <tr>
+                <td>Normale Benutzer</td>
+                <td>{{ users | selectattr('role', 'equalto', 'user') | list | length }}</td>
+            </tr>
+            <tr>
+                <td>Letzte Aktivität</td>
+                <td>heute um 09:15 Uhr</td>
+            </tr>
+        </table>
+        
+        <h3>Systemstatus</h3>
+        <p><strong>Status:</strong> Alle Systeme betrieblich</p>
+        <p><strong>CPU-Last:</strong> 23%</p>
+        <p><strong>Speicher:</strong> 45% von 8 GB verwendet</p>
+        <p><strong>Festplatte:</strong> 60% von 100 GB verwendet</p>
+        
+        <a href="/admin/users" class="btn">Benutzer verwalten</a>
+        <a href="/admin/roles" class="btn btn-secondary">Rollen verwalten</a>
+        <a href="/admin/system" class="btn btn-secondary">Systemeinstellungen</a>
+    </div>
+</body>
+</html>

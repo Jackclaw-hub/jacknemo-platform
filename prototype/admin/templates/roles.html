@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rollenverwaltung - SaaS Plattform Prototyp</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background-color: #ffc107;
+            color: #212529;
+            padding: 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .nav {
+            margin-bottom: 20px;
+        }
+        .nav a {
+            margin-right: 15px;
+            color: #ffc107;
+            text-decoration: none;
+        }
+        .nav a:hover {
+            text-decoration: underline;
+        }
+        .nav a.active {
+            font-weight: bold;
+        }
+        .content {
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #ffc107;
+            color: #212529;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn:hover {
+            background-color: #e0a800;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .permission-tag {
+            display: inline-block;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            padding: 2px 6px;
+            margin: 2px;
+            font-size: 0.9em;
+        }
+        .permission-read { background-color: #d1ecf1; color: #0c5460; }
+        .permission-write { background-color: #d4edda; color: #155724; }
+        .permission-delete { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Rollenverwaltung</h1>
+        <p>Rollen und deren Berechtigungen verwalten</p>
+    </div>
+    
+    <div class="nav">
+        <a href="/admin/">Übersicht</a>
+        <a href="/admin/users">Benutzer</a>
+        <a href="/admin/roles" class="active">Rollen</a>
+        <a href="/admin/system">System</a>
+        <a href="{{ url_for('auth.logout') }}">Logout</a>
+    </div>
+    
+    <div class="content">
+        <h2>Rollenliste</h2>
+        
+        <a href="#" class="btn btn-success">Neue Rolle hinzufügen</a>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Beschreibung</th>
+                    <th>Berechtigungen</th>
+                    <th>Erstellt am</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for role in roles %}
+                <tr>
+                    <td>{{ role.id }}</td>
+                    <td>{{ role.name }}</td>
+                    <td>{{ role.description }}</td>
+                    <td>
+                        {% if role.permissions %}
+                            {% for perm in role.permissions %}
+                            <span class="permission-tag permission-{{ perm.action|lower }}">{{ perm.resource }}:{{ perm.action }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <em>Keine Berechtigungen</em>
+                        {% endif %}
+                    </td>
+                    <td>{{ role.created_at }}</td>
+                    <td>
+                        <a href="#" class="btn btn-secondary">Bearbeiten</a>
+                        <a href="#" class="btn btn-danger">Löschen</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

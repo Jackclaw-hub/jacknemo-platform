@@ -1,0 +1,38 @@
+Benutzer-ID,E-Mail-Adresse,Name,Rolle,Status,Letzte Aktivität,Erstellt am
+1,test@example.com,Test User,Admin,Aktiv,2026-04-10 08:30,2026-04-08 10:15
+2,user@example.com,Regular User,Benutzer,Aktiv,2026-04-10 07:45,2026-04-08 10:16
+3,manager@example.com,Manager User,Manager,Aktiv,2026-04-10 09:00,2026-04-09 14:22
+4,audit@example.com,Audit User,Prüfer,Aktiv,2026-04-10 06:30,2026-04-09 16:45
+
+Rollen- und Berechtigungsmatrix:
+Rollen-ID,Rollenname,Beschreibung,Erstellt am
+admin-001,Admin,Systemadministrator mit vollem Zugang,2026-04-08 10:10
+manager-002,Manager,Teamleiter mit eingeschränkten Admin-Rechten,2026-04-08 10:11
+user-003,Benutzer,Standard-Plattformbenutzer,2026-04-08 10:12
+pruefer-004,Prüfer,Datenprüfer mit Lesezugriff,2026-04-09 14:20
+
+Berechtigungen:
+Berechtigungs-ID,Rolle,Ressource,Aktion,Erstellt am
+perm-001,Admin,Benutzer,Lesen,2026-04-08 10:13
+perm-002,Admin,Benutzer,Schreiben,2026-04-08 10:13
+perm-003,Admin,Benutzer,Löschen,2026-04-08 10:13
+perm-004,Admin,Rollen,Lesen,2026-04-08 10:14
+perm-005,Admin,Rollen,Schreiben,2026-04-08 10:14
+perm-006,Admin,Rollen,Löschen,2026-04-08 10:14
+perm-007,Admin,Umgebungen,Lesen,2026-04-08 10:15
+perm-008,Admin,Umgebungen,Schreiben,2026-04-08 10:15
+perm-009,Manager,Benutzer,Lesen,2026-04-08 10:16
+perm-010,Manager,Benutzer,Schreiben,2026-04-08 10:16
+perm-011,Manager,Rollen,Lesen,2026-04-08 10:17
+perm-012,Manager,Umgebungen,Lesen,2026-04-08 10:18
+perm-013,Manager,Umgebungen,Schreiben,2026-04-08 10:18
+perm-014,Benutzer,Umgebungen,Lesen,2026-04-08 10:19
+perm-015,Benutzer,Profil,Lesen,2026-04-08 10:20
+perm-016,Benutzer,Profil,Schreiben,2026-04-08 10:20
+perm-017,Prüfer,Alle Ressourcen,Lesen nur,2026-04-09 14:21
+
+Umgebungsübersicht:
+Umgebung,Name,Beschreibung,Status,Letzter Deploy,Services
+dev,Development,Entwicklungsumgebung für neue Features,aktiv,2026-04-09 08:30,api,web,database,cache
+int,Integration,Testumgebung für Qualitätssicherung,aktiv,2026-04-08 16:45,api,web,database,cache,monitoring
+prod,Production,Live-Umgebung für Endbenutzer,aktiv,2026-04-07 09:15,api,web,database,cache,monitoring,security,backup
