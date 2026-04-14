@@ -38,17 +38,29 @@ class ScheduledReminder {
         const status = {
             timestamp: new Date().toISOString(),
             queuedTasks: 0,
-            completedTasks: 12, // Default values from the reminder
-            failedTasks: 8,
+            completedTasks: 0,
+            failedTasks: 0,
             pendingQueue: [],
-            failedTasksList: [
-                '[Self-Fix] Implement Scoring v2 Backend',
-                'Scheduled reminder — check queue and act',
-                '[Self-Fix] Scheduled reminder — check queue and act'
-            ],
+            failedTasksList: [],
             gitStatus: 'unknown',
             composioStatus: 'unknown'
         };
+
+        // Check actual task status from WORKING.md
+        try {
+            const workingContent = await fs.readFile(path.join(this.workspacePath, 'WORKING.md'), 'utf8');
+            const completedMatch = workingContent.match(/✅ COMPLETED.*?(\d+)/s);
+            if (completedMatch) {
+                status.completedTasks = parseInt(completedMatch[1]) || 0;
+            }
+            
+            // Check for any actual failed tasks (not just hardcoded ones)
+            const failedTasks = workingContent.match(/❌.*?failed/gi);
+            status.failedTasks = failedTasks ? failedTasks.length : 0;
+            
+        } catch (error) {
+            console.log('Could not read WORKING.md:', error.message);
+        }
 
         // Check git status
         try {
