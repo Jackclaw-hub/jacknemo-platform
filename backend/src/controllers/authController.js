@@ -1,63 +1,80 @@
-const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const NativeAuth = require('../auth-native');
+const auth = new NativeAuth();
 
 const generateToken = (user) => {
-  return jwt.sign(
-    { 
-      id: user.id, 
-      email: user.email, 
-      role: user.role,
-      email_verified: user.email_verified
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRE }
-  );
+  return auth.generateToken(user);
 };
 
 const register = async (req, res) => {
   try {
     const { email, password, role, name } = req.body;
-
+    
     // Validate role
-    const validRoles = ['founder', 'equipment_provider', 'service_provider', 'admin'];
+    const validRoles = ['founder', 'equipment_provider', 'service_provider', 'investor'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ 
         error: 'Invalid role', 
-        validRoles 
+        message: `Role must be one of: ${validRoles.join(', ')}` 
+      });
+    }
+
+    // Validate required fields
+    if (!email || !password || !role || !name) {
+      return res.status(400).json({ 
+        error: 'Missing required fields', 
+        message: 'Email, password, role, and name are required' 
       });
     }
 
     // Check if user already exists
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
-      return res.status(400).json({ error: 'User already exists' });
+      return res.status(409).json({ 
+        error: 'User already exists', 
+        message: 'A user with this email already exists' 
+      });
     }
 
-    // Create new user
-    const user = await User.create({ email, password, role, name });
+    // Hash password
+    const hashedPassword = await auth.hashPassword(password);
     
-    // Generate JWT token (with limited permissions until email verification)
+    // Create verification token
+    const verificationToken = auth.generateVerificationToken();
+
+    // Create user
+    const user = await User.create({
+      email,
+      password_hash: hashedPassword,
+      role,
+      name,
+      email_verified: false,
+      verification_token: verificationToken,
+      created_at: new Date(),
+      updated_at: new Date()
+    });
+
+    // Generate JWT token
     const token = generateToken(user);
 
     res.status(201).json({
-      message: 'User registered successfully. Please check your email to verify your account.',
-      data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          name: user.name,
-          email_verified: user.email_verified
-        },
-        token
-      }
+      message: 'User registered successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        email_verified: user.email_verified
+      },
+      token,
+      verification_token: verificationToken // For testing purposes
     });
 
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ 
       error: 'Registration failed', 
-      message: error.message 
+      message: 'Could not create user account' 
     });
   }
 };
@@ -66,47 +83,52 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user by email
+    // Validate required fields
+    if (!email || !password) {
+      return res.status(400).json({ 
+        error: 'Missing required fields', 
+        message: 'Email and password are required' 
+      });
+    }
+
+    // Find user
     const user = await User.findByEmail(email);
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ 
+        error: 'Invalid credentials', 
+        message: 'Email or password is incorrect' 
+      });
     }
 
     // Verify password
-    const isValidPassword = await User.verifyPassword(password, user.password_hash);
+    const isValidPassword = await auth.verifyPassword(password, user.password_hash);
     if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    // Check if email is verified
-    if (!user.email_verified) {
-      return res.status(403).json({ 
-        error: 'Email not verified', 
-        message: 'Please verify your email before logging in' 
+      return res.status(401).json({ 
+        error: 'Invalid credentials', 
+        message: 'Email or password is incorrect' 
       });
     }
 
     // Generate JWT token
     const token = generateToken(user);
 
-    res.status(200).json({
+    res.json({
       message: 'Login successful',
-      data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          name: user.name
-        },
-        token
-      }
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        email_verified: user.email_verified
+      },
+      token
     });
 
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ 
       error: 'Login failed', 
-      message: error.message 
+      message: 'Could not authenticate user' 
     });
   }
 };
@@ -114,52 +136,65 @@ const login = async (req, res) => {
 const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
+    
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ 
+        error: 'User not found', 
+        message: 'User profile does not exist' 
+      });
     }
 
-    res.status(200).json({
-      data: {
+    res.json({
+      user: {
         id: user.id,
         email: user.email,
         role: user.role,
         name: user.name,
+        email_verified: user.email_verified,
         created_at: user.created_at,
         updated_at: user.updated_at
       }
     });
 
   } catch (error) {
-    console.error('Profile fetch error:', error);
+    console.error('Get profile error:', error);
     res.status(500).json({ 
-      error: 'Failed to fetch profile', 
-      message: error.message 
+      error: 'Could not fetch profile', 
+      message: 'Failed to retrieve user profile' 
     });
   }
 };
 
 const updateProfile = async (req, res) => {
   try {
-    const { name, email } = req.body;
-    
-    const updatedUser = await User.updateProfile(req.user.id, { name, email });
+    const { name } = req.body;
+    const userId = req.user.id;
 
-    res.status(200).json({
+    if (!name) {
+      return res.status(400).json({ 
+        error: 'Missing required field', 
+        message: 'Name is required' 
+      });
+    }
+
+    const updatedUser = await User.update(userId, { name, updated_at: new Date() });
+
+    res.json({
       message: 'Profile updated successfully',
-      data: {
+      user: {
         id: updatedUser.id,
         email: updatedUser.email,
         role: updatedUser.role,
         name: updatedUser.name,
-        updated_at: updatedUser.updated_at
+        email_verified: updatedUser.email_verified
       }
     });
 
   } catch (error) {
-    console.error('Profile update error:', error);
+    console.error('Update profile error:', error);
     res.status(500).json({ 
-      error: 'Failed to update profile', 
-      message: error.message 
+      error: 'Could not update profile', 
+      message: 'Failed to update user profile' 
     });
   }
 };
@@ -167,30 +202,35 @@ const updateProfile = async (req, res) => {
 const verifyEmail = async (req, res) => {
   try {
     const { token } = req.params;
-
+    
     const user = await User.findByVerificationToken(token);
     if (!user) {
-      return res.status(400).json({ 
-        error: 'Invalid or expired verification token' 
+      return res.status(404).json({ 
+        error: 'Invalid verification token', 
+        message: 'Verification token is invalid or expired' 
       });
     }
 
-    const verifiedUser = await User.verifyEmail(user.id);
+    await User.update(user.id, { 
+      email_verified: true, 
+      verification_token: null,
+      updated_at: new Date() 
+    });
 
-    res.status(200).json({
+    res.json({ 
       message: 'Email verified successfully',
-      data: {
-        id: verifiedUser.id,
-        email: verifiedUser.email,
-        email_verified: verifiedUser.email_verified
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name
       }
     });
 
   } catch (error) {
     console.error('Email verification error:', error);
     res.status(500).json({ 
-      error: 'Failed to verify email', 
-      message: error.message 
+      error: 'Email verification failed', 
+      message: 'Could not verify email address' 
     });
   }
 };
@@ -199,30 +239,45 @@ const resendVerification = async (req, res) => {
   try {
     const { email } = req.body;
 
+    if (!email) {
+      return res.status(400).json({ 
+        error: 'Email required', 
+        message: 'Email address is required' 
+      });
+    }
+
     const user = await User.findByEmail(email);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ 
+        error: 'User not found', 
+        message: 'No user found with this email' 
+      });
     }
 
     if (user.email_verified) {
-      return res.status(400).json({ error: 'Email already verified' });
+      return res.status(400).json({ 
+        error: 'Email already verified', 
+        message: 'This email address is already verified' 
+      });
     }
 
-    const updatedUser = await User.resendVerification(email);
+    // Generate new verification token
+    const newToken = auth.generateVerificationToken();
+    await User.update(user.id, { 
+      verification_token: newToken,
+      updated_at: new Date() 
+    });
 
-    res.status(200).json({
-      message: 'Verification email sent successfully',
-      data: {
-        id: updatedUser.id,
-        email: updatedUser.email
-      }
+    res.json({ 
+      message: 'Verification email resent',
+      verification_token: newToken // For testing purposes
     });
 
   } catch (error) {
     console.error('Resend verification error:', error);
     res.status(500).json({ 
-      error: 'Failed to resend verification email', 
-      message: error.message 
+      error: 'Could not resend verification', 
+      message: 'Failed to resend verification email' 
     });
   }
 };
