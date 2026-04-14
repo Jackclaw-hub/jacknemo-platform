@@ -3,14 +3,21 @@ const cors = require('cors');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
+const { securityHeaders, apiRateLimiter } = require('./middleware/security');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Security middleware
+app.use(securityHeaders);
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Rate limiting for all API routes
+app.use('/api', apiRateLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -26,7 +33,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({ 
     error: 'Route not found',
     path: req.originalUrl 

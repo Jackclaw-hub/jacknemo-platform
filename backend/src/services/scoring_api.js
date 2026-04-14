@@ -22,13 +22,13 @@ router.post('/score', async (req, res) => {
             opportunities: opportunities || []
         };
 
-        // Call Python scoring script
-        const pythonScript = path.join(__dirname, '../../scoring_demo.js');
+        // Call Node.js scoring script
+        const scoringScript = path.join(__dirname, '../../scoring_demo.js');
         
-        exec(`python3 ${pythonScript} '${JSON.stringify(scoringData)}'`, 
+        exec(`node ${scoringScript} '${JSON.stringify(scoringData)}'`, 
             (error, stdout, stderr) => {
                 if (error) {
-                    console.error('Python scoring error:', error);
+                    console.error('Scoring error:', error);
                     return res.status(500).json({ 
                         error: 'Scoring failed', 
                         details: stderr 

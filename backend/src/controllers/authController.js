@@ -2,8 +2,11 @@ const User = require('../models/User');
 const NativeAuth = require('../auth-native');
 const auth = new NativeAuth();
 
-const generateToken = (user) => {
-  return auth.generateToken(user);
+const generateTokens = (user) => {
+  return {
+    access_token: auth.generateAccessToken(user),
+    refresh_token: auth.generateRefreshToken(user)
+  };
 };
 
 const register = async (req, res) => {
@@ -54,8 +57,8 @@ const register = async (req, res) => {
       updated_at: new Date()
     });
 
-    // Generate JWT token
-    const token = generateToken(user);
+    // Generate tokens
+    const tokens = generateTokens(user);
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -66,7 +69,7 @@ const register = async (req, res) => {
         name: user.name,
         email_verified: user.email_verified
       },
-      token,
+      ...tokens,
       verification_token: verificationToken // For testing purposes
     });
 
@@ -109,8 +112,8 @@ const login = async (req, res) => {
       });
     }
 
-    // Generate JWT token
-    const token = generateToken(user);
+    // Generate tokens
+    const tokens = generateTokens(user);
 
     res.json({
       message: 'Login successful',
@@ -121,7 +124,7 @@ const login = async (req, res) => {
         name: user.name,
         email_verified: user.email_verified
       },
-      token
+      ...tokens
     });
 
   } catch (error) {
@@ -282,11 +285,78 @@ const resendVerification = async (req, res) => {
   }
 };
 
+const refreshToken = async (req, res) => {
+  try {
+    const { refresh_token } = req.body;
+
+    if (!refresh_token) {
+      return res.status(400).json({ 
+        error: 'Refresh token required', 
+        message: 'Refresh token is required for token refresh' 
+      });
+    }
+
+    // Verify refresh token
+    const result = auth.verifyRefreshToken(refresh_token);
+    if (!result.valid) {
+      return res.status(401).json({ 
+        error: 'Invalid refresh token', 
+        message: result.error 
+      });
+    }
+
+    // Get user from database
+    const user = await User.findById(result.user.id);
+    if (!user) {
+      return res.status(404).json({ 
+        error: 'User not found', 
+        message: 'User associated with refresh token does not exist' 
+      });
+    }
+
+    // Generate new tokens
+    const tokens = generateTokens(user);
+
+    res.json({
+      message: 'Token refresh successful',
+      ...tokens
+    });
+
+  } catch (error) {
+    console.error('Refresh token error:', error);
+    res.status(500).json({ 
+      error: 'Token refresh failed', 
+      message: 'Could not refresh authentication tokens' 
+    });
+  }
+};
+
+const logout = async (req, res) => {
+  try {
+    // In a real implementation, you would invalidate the refresh token
+    // For now, we'll just return success since we're using stateless JWT
+    
+    res.json({
+      message: 'Logout successful',
+      note: 'In a production system, refresh tokens should be invalidated server-side'
+    });
+
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ 
+      error: 'Logout failed', 
+      message: 'Could not complete logout process' 
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   getProfile,
   updateProfile,
   verifyEmail,
-  resendVerification
+  resendVerification,
+  refreshToken,
+  logout
 };
