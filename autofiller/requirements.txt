@@ -1,0 +1,20 @@
+# Autofiller Requirements
+# Production dependencies
+
+# Core
+pytest==7.4.0
+pytest-cov==4.1.0
+
+# Optional (for future web integration)
+# flask==2.3.2
+# requests==2.31.0
+# beautifulsoup4==4.12.2
+# selenium==4.11.2
+
+# Development
+black==23.7.0
+flake8==6.0.0
+mypy==1.4.1
+
+# Note: This is a minimal requirements file since the core system
+# uses zero external dependencies for the business logic

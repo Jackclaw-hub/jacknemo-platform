@@ -50,7 +50,12 @@ results = use_case.execute(query)
 print(presenter.present(results))
 ```
 
-## Nächste Schritte
+## 📚 Documentation
+- [Setup Guide](SETUP_GUIDE.md) - Complete installation and configuration guide
+- [Architecture](docs/architecture.md) - System design and components
+- [Requirements](docs/requirements.md) - Business requirements and specifications
+
+## 🚀 Nächste Schritte
 - Einheitstests für Entities, Use Cases und Presenter schreiben
 - API-Endpunkt entwickeln (falls Webinterface gewünscht)
 - Echte Scraping-Gateways für ausgewählte Förderportale implementieren
