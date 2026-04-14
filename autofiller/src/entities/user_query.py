@@ -19,6 +19,7 @@ class UserQuery:
     investment_preference: Optional[str] = None
     company_stage: Optional[str] = None
     remote_preference: Optional[bool] = None
+    survey_responses: Optional[Dict[str, Any]] = None
 
     def __post_init__(self):
         if isinstance(self.timestamp, str):

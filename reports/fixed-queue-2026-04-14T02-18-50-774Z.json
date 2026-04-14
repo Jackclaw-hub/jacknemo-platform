@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-04-14T02:18:50.773Z",
+  "summary": "Accurate Status: 0 queued, 1 completed, 0 failed",
+  "backlog": {
+    "totalTasks": 1,
+    "completedTasks": 1,
+    "queuedTasks": 0,
+    "failedTasks": 0,
+    "backlogContent": "# Startup Radar — Backlog Last synced: 2026-04-13 ## SPRINT 0 — Prototype polish (Jack leads, Alisia accepts) | ID | Title | Owner | Status | |----|-------|-------|--------| | SR-001 | Push existing prototype files to GitHub repo | Jack | DONE"
+  },
+  "system": {
+    "git": "dirty",
+    "composio": "working",
+    "memory": "accessible",
+    "tools": "available"
+  },
+  "isHealthy": true,
+  "recommendations": [
+    "All tasks completed! Request new backlog items from Alisia"
+  ]
+}

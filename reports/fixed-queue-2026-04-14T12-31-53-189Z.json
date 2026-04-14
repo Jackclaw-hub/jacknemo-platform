@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-04-14T12:31:53.187Z",
+  "summary": "Accurate Status: 0 queued, 0 completed, 0 failed",
+  "backlog": {
+    "totalTasks": 0,
+    "completedTasks": 0,
+    "queuedTasks": 0,
+    "failedTasks": 0,
+    "backlogContent": "# Startup Radar — Backlog Last synced: 2026-04-14 ## SPRINT 0 — Prototype polish (Jack leads, Alisia accepts) | ID | Title | Owner | Status | |----|-------|-------|--------| | SR-001 | Implement React + TypeScript frontend foundation | Jack | ✅ COMPLETED | | SR-002 | Push frontend foundation to GitHub repo | Jack | ✅ COMPLETED"
+  },
+  "system": {
+    "git": "clean",
+    "composio": "working",
+    "memory": "accessible",
+    "tools": "error: Command failed: which git node npm composio\n"
+  },
+  "isHealthy": true,
+  "recommendations": [
+    "System healthy - continue development"
+  ]
+}

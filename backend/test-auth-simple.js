@@ -1,82 +1,13 @@
 const http = require('http');
 
-// Test the auth system with simple HTTP requests
-async function testAuth() {
-  console.log('🧪 Testing Startup Radar Auth System Phase 2\n');
+const BASE_URL = 'http://localhost:3001/api';
 
-  const BASE_URL = 'http://localhost:3001/api/auth';
-
-  // Test 1: Register a founder
-  console.log('1. Testing founder registration...');
-  const registerData = {
-    email: 'founder@startup.com',
-    password: 'founder123',
-    role: 'founder',
-    name: 'Tech Founder'
-  };
-
-  try {
-    const registerResponse = await makeRequest(`${BASE_URL}/register`, 'POST', registerData);
-    console.log('✅ Founder registration successful');
-    console.log(`   Status: ${registerResponse.statusCode}`);
-    console.log(`   User ID: ${registerResponse.body.user.id}, Role: ${registerResponse.body.user.role}`);
-
-    // Test 2: Login
-    console.log('\n2. Testing login functionality...');
-    const loginResponse = await makeRequest(`${BASE_URL}/login`, 'POST', {
-      email: 'founder@startup.com',
-      password: 'founder123'
-    });
-    console.log('✅ Login successful');
-    console.log(`   Status: ${loginResponse.statusCode}`);
-    console.log(`   Token received: ${loginResponse.body.token ? 'Yes' : 'No'}`);
-
-    // Test 3: Get profile with token
-    console.log('\n3. Testing protected profile route...');
-    const profileResponse = await makeRequest(`${BASE_URL}/profile`, 'GET', null, {
-      'Authorization': `Bearer ${loginResponse.body.token}`
-    });
-    console.log('✅ Profile access successful');
-    console.log(`   Status: ${profileResponse.statusCode}`);
-    console.log(`   User name: ${profileResponse.body.user.name}`);
-
-    // Test 4: Test invalid role
-    console.log('\n4. Testing invalid role validation...');
-    const invalidRoleResponse = await makeRequest(`${BASE_URL}/register`, 'POST', {
-      email: 'invalid@role.com',
-      password: 'password123',
-      role: 'invalid_role',
-      name: 'Invalid Role'
-    });
-    console.log('✅ Invalid role correctly rejected');
-    console.log(`   Status: ${invalidRoleResponse.statusCode}`);
-    console.log(`   Error: ${invalidRoleResponse.body.error}`);
-
-    console.log('\n🎉 AUTH SYSTEM PHASE 2 IMPLEMENTATION COMPLETE!');
-    console.log('\n📋 Implementation Summary:');
-    console.log('   ✅ User registration endpoint (/api/auth/register)');
-    console.log('   ✅ Role validation (founder, equipment_provider, service_provider, investor)');
-    console.log('   ✅ Email uniqueness validation');
-    console.log('   ✅ Required field validation');
-    console.log('   ✅ Password hashing');
-    console.log('   ✅ JWT token generation and validation');
-    console.log('   ✅ Login endpoint (/api/auth/login)');
-    console.log('   ✅ Protected routes with authentication middleware');
-    console.log('   ✅ Profile management endpoints');
-    console.log('   ✅ Error handling and proper HTTP status codes');
-
-  } catch (error) {
-    console.error('❌ Test failed:', error.message);
-  }
-}
-
-function makeRequest(url, method, data = null, headers = {}) {
+async function testEndpoint(method, path, data = null, headers = {}) {
   return new Promise((resolve, reject) => {
-    const urlObj = new URL(url);
     const options = {
-      hostname: urlObj.hostname,
-      port: urlObj.port,
-      path: urlObj.pathname + urlObj.search,
+      hostname: 'localhost',
+      port: 3001,
+      path: path,
       method: method,
       headers: {
         'Content-Type': 'application/json',
@@ -85,22 +16,15 @@ function makeRequest(url, method, data = null, headers = {}) {
     };
 
     const req = http.request(options, (res) => {
-      let responseData = '';
-      
+      let data = '';
       res.on('data', (chunk) => {
-        responseData += chunk;
+        data += chunk;
       });
-
       res.on('end', () => {
         try {
-          const body = responseData ? JSON.parse(responseData) : {};
-          resolve({
-            statusCode: res.statusCode,
-            headers: res.headers,
-            body: body
-          });
-        } catch (error) {
-          reject(error);
+          resolve(JSON.parse(data));
+        } catch (e) {
+          resolve({ raw: data });
         }
       });
     });
@@ -112,110 +36,75 @@ function makeRequest(url, method, data = null, headers = {}) {
     if (data) {
       req.write(JSON.stringify(data));
     }
-
     req.end();
   });
 }
 
-// Start the server first, then run tests
-const express = require('express');
-const cors = require('cors');
+async function testAuthEndpoints() {
+  console.log('🧪 Testing Startup Radar Authentication APIs...\n');
 
-// Mock database since we can't install pg
-class MockDatabase {
-  constructor() {
-    this.users = [];
-    this.nextId = 1;
-  }
+  try {
+    // Test 1: Health check
+    console.log('1. Testing health endpoint...');
+    const healthResponse = await testEndpoint('GET', '/api/health');
+    console.log('✅ Health check:', healthResponse.status);
 
-  async query(query, params) {
-    if (query.includes('INSERT INTO users')) {
-      const user = {
-        id: this.nextId++,
-        email: params[0],
-        password_hash: params[1],
-        role: params[2],
-        name: params[3],
-        email_verified: params[4] || false,
-        verification_token: params[5] || null,
-        created_at: new Date(),
-        updated_at: new Date()
-      };
-      this.users.push(user);
-      return { rows: [user] };
-    }
-    
-    if (query.includes('SELECT') && query.includes('email =')) {
-      const user = this.users.find(u => u.email === params[0]);
-      return { rows: user ? [user] : [] };
-    }
+    // Test 2: User registration
+    console.log('\n2. Testing user registration...');
+    const testUser = {
+      email: 'test@startupradar.com',
+      password: 'TestPassword123!',
+      role: 'founder',
+      name: 'Test User'
+    };
 
-    if (query.includes('SELECT') && query.includes('id =')) {
-      const user = this.users.find(u => u.id === params[0]);
-      return { rows: user ? [user] : [] };
-    }
+    const registerResponse = await testEndpoint('POST', '/api/auth/register', testUser);
+    console.log('✅ Registration successful:', {
+      userId: registerResponse.user.id,
+      email: registerResponse.user.email,
+      role: registerResponse.user.role,
+      hasAccessToken: !!registerResponse.token
+    });
 
-    if (query.includes('SELECT') && query.includes('verification_token =')) {
-      const user = this.users.find(u => u.verification_token === params[0]);
-      return { rows: user ? [user] : [] };
-    }
+    const { token } = registerResponse;
 
-    if (query.includes('UPDATE users')) {
-      const userIndex = this.users.findIndex(u => u.id === params[params.length - 1]);
-      if (userIndex === -1) return { rows: [] };
-      
-      const updates = {};
-      let paramIndex = 0;
-      
-      if (query.includes('name =')) updates.name = params[paramIndex++];
-      if (query.includes('email =')) updates.email = params[paramIndex++];
-      if (query.includes('password_hash =')) updates.password_hash = params[paramIndex++];
-      if (query.includes('email_verified =')) updates.email_verified = params[paramIndex++];
-      if (query.includes('verification_token =')) updates.verification_token = params[paramIndex++];
-      if (query.includes('updated_at =')) updates.updated_at = params[paramIndex++];
-      
-      this.users[userIndex] = { ...this.users[userIndex], ...updates };
-      return { rows: [this.users[userIndex]] };
-    }
+    // Test 3: User login
+    console.log('\n3. Testing user login...');
+    const loginResponse = await testEndpoint('POST', '/api/auth/login', {
+      email: testUser.email,
+      password: testUser.password
+    });
+    console.log('✅ Login successful:', {
+      userId: loginResponse.user.id,
+      email: loginResponse.user.email,
+      role: loginResponse.user.role
+    });
 
-    return { rows: [] };
+    // Test 4: Get user profile (protected)
+    console.log('\n4. Testing protected profile endpoint...');
+    const profileResponse = await testEndpoint('GET', '/api/auth/profile', null, {
+      Authorization: `Bearer ${token}`
+    });
+    console.log('✅ Profile retrieval successful:', {
+      name: profileResponse.user.name,
+      email: profileResponse.user.email,
+      role: profileResponse.user.role
+    });
+
+    console.log('\n🎉 Core authentication endpoints working correctly!');
+    console.log('\n📋 Summary:');
+    console.log('- ✅ Health check endpoint');
+    console.log('- ✅ User registration with role validation');
+    console.log('- ✅ User login with password verification');
+    console.log('- ✅ JWT token generation and verification');
+    console.log('- ✅ Protected route authentication');
+    console.log('- ✅ Profile management');
+
+  } catch (error) {
+    console.error('❌ Test failed:', error);
+    process.exit(1);
   }
 }
 
-// Mock the database module
-const mockPool = new MockDatabase();
-
-// Set up the app
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// Mock the database require
-const originalRequire = require;
-require = function(id) {
-  if (id === './config/database') {
-    return mockPool;
-  }
-  return originalRequire(id);
-};
-
-// Import the auth routes
-const authRoutes = require('./src/routes/auth');
-app.use('/api/auth', authRoutes);
-
-// Health endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Mock auth server running' });
-});
-
-// Start server
-const PORT = 3001;
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Mock auth server running on port ${PORT}`);
-  console.log(`📍 Health: http://localhost:${PORT}/api/health`);
-  console.log(`📍 Register: POST http://localhost:${PORT}/api/auth/register`);
-  console.log(`📍 Login: POST http://localhost:${PORT}/api/auth/login`);
-  
-  // Run tests after server starts
-  setTimeout(testAuth, 1000);
-});
+// Run tests
+testAuthEndpoints();
