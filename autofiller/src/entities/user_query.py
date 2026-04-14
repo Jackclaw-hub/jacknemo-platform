@@ -9,12 +9,17 @@ class UserQuery:
     user_id: Optional[str] = None
     # Company data
     employee_count: Optional[int] = None
-    annual_revenue: Optional[float] = None  # in euros
+    annual_revenue: Optional[float] = None
+    # in euros
     industry: Optional[str] = None
-    location_state: Optional[str] = None  # e.g., "NRW"
-    # Survey responses: map of question_id to answer
-    survey_responses: Optional[Dict[str, Any]] = None
-    
+    location_state: Optional[str] = None
+    # e.g., "NRW"
+    funding_needed: Optional[int] = None
+    equity_willingness: Optional[float] = None
+    investment_preference: Optional[str] = None
+    company_stage: Optional[str] = None
+    remote_preference: Optional[bool] = None
+
     def __post_init__(self):
         if isinstance(self.timestamp, str):
             self.timestamp = datetime.fromisoformat(self.timestamp)

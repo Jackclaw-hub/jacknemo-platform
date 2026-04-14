@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Startup Radar — List Equipment</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏢 List Equipment/Space</h1>
+            <p>Share your equipment or space with startups</p>
+            <nav>
+                <a href="index.html">← Back to Home</a>
+            </nav>
+        </header>
+        
+        <main>
+            <div class="form-container">
+                <form id="equipment-form">
+                    <div class="form-section">
+                        <h2>Basic Information</h2>
+                        
+                        <div class="form-group">
+                            <label for="title">Title/Name *</label>
+                            <input type="text" id="title" name="title" required 
+                                   placeholder="e.g., Office Space in Berlin, MacBook Pro M1"
+                                   minlength="5" maxlength="100">
+                            <div class="error-message" id="title-error"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="category">Category *</label>
+                            <select id="category" name="category" required>
+                                <option value="">Select a category</option>
+                                <option value="office-space">Office Space</option>
+                                <option value="co-working">Co-Working Space</option>
+                                <option value="meeting-rooms">Meeting Rooms</option>
+                                <option value="computers">Computers & Laptops</option>
+                                <option value="av-equipment">AV Equipment</option>
+                                <option value="lab-equipment">Lab Equipment</option>
+                                <option value="manufacturing">Manufacturing Equipment</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="description">Description *</label>
+                            <textarea id="description" name="description" required 
+                                      placeholder="Describe the equipment or space in detail..."
+                                      rows="4" minlength="20" maxlength="1000"></textarea>
+                            <div class="char-count"><span id="desc-chars">0</span>/1000 characters</div>
+                            <div class="error-message" id="description-error"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h2>Location & Availability</h2>
+                        
+                        <div class="form-group">
+                            <label for="location">Location *</label>
+                            <input type="text" id="location" name="location" required
+                                   placeholder="City, Country (e.g., Berlin, Germany)">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="availability">Availability *</label>
+                            <select id="availability" name="availability" required>
+                                <option value="">Select availability</option>
+                                <option value="immediate">Immediate</option>
+                                <option value="within-week">Within 1 week</option>
+                                <option value="within-month">Within 1 month</option>
+                                <option value="custom">Custom date range</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" id="custom-date-group" style="display: none;">
+                            <label>Custom Date Range</label>
+                            <div class="date-range">
+                                <input type="date" id="available-from" name="available_from" 
+                                       placeholder="Available from">
+                                <span>to</span>
+                                <input type="date" id="available-to" name="available_to" 
+                                       placeholder="Available to">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h2>Pricing & Terms</h2>
+                        
+                        <div class="form-group">
+                            <label for="pricing-type">Pricing Type *</label>
+                            <select id="pricing-type" name="pricing_type" required>
+                                <option value="">Select pricing type</option>
+                                <option value="free">Free</option>
+                                <option value="hourly">Hourly Rate</option>
+                                <option value="daily">Daily Rate</option>
+                                <option value="weekly">Weekly Rate</option>
+                                <option value="monthly">Monthly Rate</option>
+                                <option value="one-time">One-time Fee</option>
+                                <option value="negotiable">Negotiable</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" id="price-amount-group" style="display: none;">
+                            <label for="price">Price (€) *</label>
+                            <input type="number" id="price" name="price" 
+                                   min="0" step="0.01" placeholder="0.00">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="currency">Currency</label>
+                            <select id="currency" name="currency">
+                                <option value="EUR">EUR (€)</option>
+                                <option value="USD">USD ($)</option>
+                                <option value="GBP">GBP (£)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h2>Contact Information</h2>
+                        
+                        <div class="form-group">
+                            <label for="contact-name">Your Name *</label>
+                            <input type="text" id="contact-name" name="contact_name" required
+                                   placeholder="Your full name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contact-email">Email *</label>
+                            <input type="email" id="contact-email" name="contact_email" required
+                                   placeholder="your.email@example.com">
+                            <div class="error-message" id="email-error"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contact-phone">Phone (optional)</label>
+                            <input type="tel" id="contact-phone" name="contact_phone"
+                                   placeholder="+49 123 456 789">
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" id="save-draft" class="secondary">
+                            💾 Save Draft
+                        </button>
+                        <button type="submit" id="submit-form">
+                            🚀 Submit Listing
+                        </button>
+                    </div>
+                    
+                    <div class="draft-status" id="draft-status">
+                        <span class="draft-count" id="draft-count">0</span> drafts saved
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+    
+    <script src="js/supply.js"></script>
+</body>
+</html>

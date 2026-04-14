@@ -36,3 +36,6 @@ React + TypeScript frontend application built with Vite.
 - Vite for fast development and building
 - ESLint for code linting
 - Modern CSS with gradient backgrounds and glassmorphism effects
+- Environment variables support
+- Git ignore configuration
+- TypeScript strict mode

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Startup Radar — Founder Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>👤 Founder Dashboard</h1>
+            <p>Your personalized opportunity radar</p>
+        </header>
+
+        <div class="profile-section">
+            <h2>Your Profile</h2>
+            <div id="founder-profile">
+                <p><strong>Name:</strong> <span id="founder-name">Loading...</span></p>
+                <p><strong>Startup:</strong> <span id="startup-name">Loading...</span></p>
+                <p><strong>Stage:</strong> <span id="startup-stage">Loading...</span></p>
+                <p><strong>Sector:</strong> <span id="startup-sector">Loading...</span></p>
+                <p><strong>Location:</strong> <span id="founder-location">Loading...</span></p>
+            </div>
+        </div>
+
+        <div class="profile-section">
+            <h2>Funding Opportunities <span class="score-badge" id="funding-count">0</span></h2>
+            <div class="radar-grid" id="funding-radar">
+                <!-- Funding opportunities will be injected here -->
+            </div>
+        </div>
+
+        <div class="profile-section">
+            <h2>Available Equipment <span class="score-badge" id="equipment-count">0</span></h2>
+            <div class="radar-grid" id="equipment-radar">
+                <!-- Equipment listings will be injected here -->
+            </div>
+        </div>
+
+        <div class="profile-section">
+            <h2>Service Providers <span class="score-badge" id="services-count">0</span></h2>
+            <div class="radar-grid" id="services-radar">
+                <!-- Service offerings will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/founder.js"></script>
+</body>
+</html>
