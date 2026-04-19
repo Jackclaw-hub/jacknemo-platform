@@ -29,6 +29,11 @@
     .toast.rejected { background: #ef4444; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     .sse-status { font-size: 12px; color: #9ca3af; margin-bottom: 6px; }
+    .profile-section { margin-top: 24px; }
+    .profile-section .card { padding: 24px; }
+    .form-msg { font-size: 13px; margin: 6px 0; display: none; }
+    .form-msg.success { color: #059669; }
+    .form-msg.error { color: #dc2626; }
     .sse-status.live { color: #10b981; }
   </style>
 </head>
@@ -77,6 +82,24 @@
         <div class="sse-status" id="sse-status">&#x25CB; Connecting for live updates...</div>
         <div id="my-listings"><em>Lade...</em></div>
       </div>
+    </div>
+  </div>
+
+  <div class="profile-section">
+    <div class="card">
+      <h2>&#x1F464; Mein Profil</h2>
+      <form id="profile-form">
+        <label>Firmenname</label>
+        <input type="text" id="p-company" placeholder="z.B. TechEquip GmbH">
+        <label>Beschreibung</label>
+        <textarea id="p-desc" rows="3" placeholder="Kurze Beschreibung eures Angebots..." maxlength="500"></textarea>
+        <label>Website</label>
+        <input type="url" id="p-website" placeholder="https://...">
+        <label>Kontakt-E-Mail</label>
+        <input type="email" id="p-email" placeholder="info@example.com">
+        <div class="form-msg" id="p-msg"></div>
+        <button type="submit" class="primary" style="margin-top:4px">Profil speichern</button>
+      </form>
     </div>
   </div>
 
@@ -195,7 +218,44 @@
         ok.style.display = 'block';
         ok.textContent = 'Inserat eingereicht! Wird nach Pr&#xFC;fung freigeschaltet.';
         e.target.reset();
-        loadMyListings();
+        // Load saved provider profile
+    async function loadProviderProfile() {
+      try {
+        const data = await api('GET', '/providers/profile', null, auth.getToken());
+        const p = data.profile;
+        if (p) {
+          document.getElementById('p-company').value = p.company_name || '';
+          document.getElementById('p-desc').value = p.description || '';
+          document.getElementById('p-website').value = p.website || '';
+          document.getElementById('p-email').value = p.contact_email || '';
+        }
+      } catch(e) { /* profile may not exist yet */ }
+    }
+
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('p-msg');
+      msg.style.display = 'none';
+      try {
+        await api('POST', '/providers/profile', {
+          company_name: document.getElementById('p-company').value,
+          description: document.getElementById('p-desc').value,
+          website: document.getElementById('p-website').value,
+          contact_email: document.getElementById('p-email').value,
+        }, auth.getToken());
+        msg.className = 'form-msg success';
+        msg.textContent = '&#x2713; Profil gespeichert';
+        msg.style.display = 'block';
+        setTimeout(() => { msg.style.display = 'none'; }, 3000);
+      } catch(ex) {
+        msg.className = 'form-msg error';
+        msg.textContent = 'Fehler: ' + ex.message;
+        msg.style.display = 'block';
+      }
+    });
+
+    loadMyListings();
+    loadProviderProfile();
       } catch(ex) {
         err.style.display = 'block';
         err.textContent = ex.message;
