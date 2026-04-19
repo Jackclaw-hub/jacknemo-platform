@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Startup Radar — Provider Dashboard</title>
+  <style>
+    body { font-family: system-ui; max-width: 800px; margin: 0 auto; padding: 20px; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 2px solid #4f46e5; margin-bottom: 24px; }
+    nav h1 { margin: 0; color: #4f46e5; }
+    nav button { background: none; border: 1px solid #ddd; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+    .panel { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; }
+    input, select, textarea { width: 100%; padding: 10px; margin: 6px 0 14px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+    button.primary { width: 100%; padding: 12px; background: #4f46e5; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 15px; }
+    button.primary:hover { background: #4338ca; }
+    .error { color: red; margin: 6px 0; display: none; }
+    .success { color: green; margin: 6px 0; display: none; }
+    .listing-item { border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; margin: 8px 0; }
+    .status-badge { font-size: 12px; padding: 2px 8px; border-radius: 12px; }
+    .status-pending { background: #fef3c7; color: #92400e; }
+    .status-approved { background: #d1fae5; color: #065f46; }
+    .status-rejected { background: #fee2e2; color: #991b1b; }
+    .tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>🚀 Startup Radar</h1>
+    <div><span id="user-name"></span> <button onclick="logout()">Logout</button></div>
+  </nav>
+
+  <div class="panel">
+    <div>
+      <div class="card">
+        <h2>Inserat erstellen</h2>
+        <form id="listing-form">
+          <label>Titel</label>
+          <input type="text" id="l-title" placeholder="z.B. 3D-Drucker verfügbar" required>
+          <label>Typ</label>
+          <select id="l-type">
+            <option value="equipment">Equipment</option>
+            <option value="space">Workspace / Space</option>
+            <option value="service">Service</option>
+          </select>
+          <label>Region</label>
+          <select id="l-geo">
+            <option value="local">Lokal (&lt;50km)</option>
+            <option value="regional">Regional (&lt;200km)</option>
+            <option value="national">National</option>
+          </select>
+          <label>Stadt</label>
+          <input type="text" id="l-city" placeholder="Berlin">
+          <label>Tags (kommagetrennt)</label>
+          <input type="text" id="l-tags" placeholder="3d-druck, prototyping">
+          <label>Beschreibung</label>
+          <textarea id="l-desc" rows="3" placeholder="Kurze Beschreibung..."></textarea>
+          <div class="error" id="l-error"></div>
+          <div class="success" id="l-success"></div>
+          <button type="submit" class="primary">Inserat einreichen</button>
+        </form>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Meine Inserate</h2>
+        <div id="my-listings"><em>Lade...</em></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="api-client.js"></script>
+  <script>
+    redirectIfNotLoggedIn();
+    const user = auth.getUser();
+    document.getElementById('user-name').textContent = user?.name || user?.email || '';
+
+    function logout() { AuthAPI.logout(); location.href = 'auth.html'; }
+
+    async function loadMyListings() {
+      try {
+        const data = await ListingsAPI.getAll();
+        const el = document.getElementById('my-listings');
+        if (!data.listings?.length) { el.innerHTML = '<em>Noch keine Inserate.</em>'; return; }
+        el.innerHTML = data.listings.map(l => `
+          <div class="listing-item">
+            <strong>${l.title}</strong>
+            <span class="status-badge status-${l.status}">${l.status}</span>
+            <p style="margin:4px 0;font-size:13px">${l.type} · ${l.geo} · ${l.city || ''}</p>
+            <div>${(l.tags||[]).map(t => `<span class="tag">${t}</span>`).join('')}</div>
+          </div>
+        `).join('');
+      } catch(ex) {
+        document.getElementById('my-listings').innerHTML = '<em>Fehler: ' + ex.message + '</em>';
+      }
+    }
+
+    document.getElementById('listing-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const err = document.getElementById('l-error');
+      const ok = document.getElementById('l-success');
+      err.style.display = 'none'; ok.style.display = 'none';
+      const tags = document.getElementById('l-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+      try {
+        await ListingsAPI.create({
+          title: document.getElementById('l-title').value,
+          type: document.getElementById('l-type').value,
+          geo: document.getElementById('l-geo').value,
+          city: document.getElementById('l-city').value,
+          tags,
+          description: document.getElementById('l-desc').value,
+        });
+        showSuccess(ok, 'Inserat eingereicht! Wird nach Prüfung freigeschaltet.');
+        e.target.reset();
+        loadMyListings();
+      } catch(ex) { showError(err, ex.message); }
+    });
+
+    loadMyListings();
+  </script>
+</body>
+</html>

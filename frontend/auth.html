@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Startup Radar — Login</title>
+  <style>
+    body { font-family: system-ui; max-width: 440px; margin: 60px auto; padding: 0 20px; }
+    h1 { color: #1a1a2e; }
+    .card { background: #f8f9fa; border-radius: 8px; padding: 24px; margin: 20px 0; }
+    input, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+    button { width: 100%; padding: 12px; background: #4f46e5; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+    button:hover { background: #4338ca; }
+    .error { color: red; display: none; margin: 8px 0; }
+    .toggle { text-align: center; margin: 12px 0; color: #666; }
+    .toggle a { color: #4f46e5; cursor: pointer; }
+    #login-form { display: none; }
+  </style>
+</head>
+<body>
+  <h1>🚀 Startup Radar</h1>
+
+  <div id="register-section" class="card">
+    <h2>Registrieren</h2>
+    <form id="register-form">
+      <input type="text" id="reg-name" placeholder="Name" required>
+      <input type="email" id="reg-email" placeholder="E-Mail" required>
+      <input type="password" id="reg-password" placeholder="Passwort" required>
+      <select id="reg-role">
+        <option value="founder">Founder / Startup</option>
+        <option value="equipment_provider">Equipment Provider</option>
+        <option value="service_provider">Service Provider</option>
+      </select>
+      <div class="error" id="reg-error"></div>
+      <button type="submit">Registrieren</button>
+    </form>
+    <div class="toggle">Bereits registriert? <a onclick="showLogin()">Einloggen</a></div>
+  </div>
+
+  <div id="login-section" class="card" style="display:none">
+    <h2>Login</h2>
+    <form id="login-form">
+      <input type="email" id="login-email" placeholder="E-Mail" required>
+      <input type="password" id="login-password" placeholder="Passwort" required>
+      <div class="error" id="login-error"></div>
+      <button type="submit">Einloggen</button>
+    </form>
+    <div class="toggle">Neu hier? <a onclick="showRegister()">Registrieren</a></div>
+  </div>
+
+  <script src="api-client.js"></script>
+  <script>
+    if (auth.getToken()) {
+      const user = auth.getUser();
+      if (user?.role === 'founder') location.href = 'founder-dashboard.html';
+      else if (user?.role?.includes('provider')) location.href = 'provider-dashboard.html';
+      else if (user?.role === 'admin') location.href = 'admin.html';
+    }
+
+    function showLogin() {
+      document.getElementById('register-section').style.display = 'none';
+      document.getElementById('login-section').style.display = 'block';
+    }
+    function showRegister() {
+      document.getElementById('register-section').style.display = 'block';
+      document.getElementById('login-section').style.display = 'none';
+    }
+
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const err = document.getElementById('reg-error');
+      err.style.display = 'none';
+      try {
+        const data = await AuthAPI.register(
+          document.getElementById('reg-email').value,
+          document.getElementById('reg-password').value,
+          document.getElementById('reg-role').value,
+          document.getElementById('reg-name').value
+        );
+        auth.setToken(data.access_token);
+        auth.setUser(data.user);
+        const role = data.user?.role;
+        if (role === 'founder') location.href = 'founder-dashboard.html';
+        else if (role?.includes('provider')) location.href = 'provider-dashboard.html';
+        else location.href = 'admin.html';
+      } catch(ex) { showError(err, ex.message); }
+    });
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const err = document.getElementById('login-error');
+      err.style.display = 'none';
+      try {
+        const data = await AuthAPI.login(
+          document.getElementById('login-email').value,
+          document.getElementById('login-password').value
+        );
+        auth.setToken(data.access_token);
+        auth.setUser(data.user);
+        const role = data.user?.role;
+        if (role === 'founder') location.href = 'founder-dashboard.html';
+        else if (role?.includes('provider')) location.href = 'provider-dashboard.html';
+        else location.href = 'admin.html';
+      } catch(ex) { showError(err, ex.message); }
+    });
+  </script>
+</body>
+</html>

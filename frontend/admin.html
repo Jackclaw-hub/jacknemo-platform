@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Startup Radar — Admin</title>
+  <style>
+    body { font-family: system-ui; max-width: 900px; margin: 0 auto; padding: 20px; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 2px solid #dc2626; margin-bottom: 24px; }
+    nav h1 { margin: 0; color: #dc2626; }
+    nav button { background: none; border: 1px solid #ddd; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+    .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 12px 0; }
+    .listing-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .meta { font-size: 13px; color: #6b7280; margin: 8px 0; }
+    .tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px; }
+    .actions { display: flex; gap: 8px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
+    .btn-approve { background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+    .btn-reject { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+    .btn-approve:hover { background: #059669; }
+    .btn-reject:hover { background: #dc2626; }
+    input.reason { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-width: 200px; }
+    .empty { text-align: center; color: #9ca3af; padding: 40px; }
+    .status-ok { color: green; margin: 4px 0; font-size: 13px; }
+    .status-err { color: red; margin: 4px 0; font-size: 13px; }
+    #summary { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>🛡 Admin Dashboard</h1>
+    <div><span id="user-name"></span> <button onclick="logout()">Logout</button></div>
+  </nav>
+
+  <div id="summary">Lade ausstehende Inserate...</div>
+  <div id="listings"></div>
+
+  <script src="api-client.js"></script>
+  <script>
+    redirectIfNotLoggedIn();
+    const user = auth.getUser();
+    if (user?.role !== 'admin') {
+      document.body.innerHTML = '<p style="color:red;padding:40px">Kein Zugriff. Nur Admins.</p>';
+    }
+    document.getElementById('user-name').textContent = user?.name || user?.email || '';
+
+    function logout() { AuthAPI.logout(); location.href = 'auth.html'; }
+
+    function renderListing(l) {
+      return `<div class="card" id="card-${l.id}">
+        <div class="listing-header">
+          <h3 style="margin:0">${l.title}</h3>
+          <span style="font-size:12px;background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:12px">${l.status}</span>
+        </div>
+        <div class="meta">
+          Typ: <strong>${l.type}</strong> · Geo: <strong>${l.geo}</strong>
+          ${l.city ? '· Stadt: <strong>' + l.city + '</strong>' : ''}
+          · Provider ID: ${l.provider_id}
+        </div>
+        <div>${(l.tags||[]).map(t => `<span class="tag">${t}</span>`).join('')}</div>
+        <div class="actions">
+          <button class="btn-approve" onclick="approve(${l.id})">✓ Genehmigen</button>
+          <input class="reason" type="text" id="reason-${l.id}" placeholder="Ablehnungsgrund (optional)">
+          <button class="btn-reject" onclick="reject(${l.id})">✗ Ablehnen</button>
+        </div>
+        <div id="msg-${l.id}"></div>
+      </div>`;
+    }
+
+    async function approve(id) {
+      try {
+        await AdminAPI.approve(id);
+        const msg = document.getElementById('msg-' + id);
+        msg.innerHTML = '<div class="status-ok">✓ Genehmigt</div>';
+        document.querySelector('#card-' + id + ' .btn-approve').disabled = true;
+        document.querySelector('#card-' + id + ' .btn-reject').disabled = true;
+        loadPending();
+      } catch(ex) {
+        document.getElementById('msg-' + id).innerHTML = '<div class="status-err">Fehler: ' + ex.message + '</div>';
+      }
+    }
+
+    async function reject(id) {
+      const reason = document.getElementById('reason-' + id)?.value || '';
+      try {
+        await AdminAPI.reject(id, reason);
+        const msg = document.getElementById('msg-' + id);
+        msg.innerHTML = '<div class="status-err">✗ Abgelehnt</div>';
+        document.querySelector('#card-' + id + ' .btn-approve').disabled = true;
+        document.querySelector('#card-' + id + ' .btn-reject').disabled = true;
+        loadPending();
+      } catch(ex) {
+        document.getElementById('msg-' + id).innerHTML = '<div class="status-err">Fehler: ' + ex.message + '</div>';
+      }
+    }
+
+    async function loadPending() {
+      try {
+        const data = await AdminAPI.getPending();
+        const listings = data.listings || data;
+        const el = document.getElementById('listings');
+        document.getElementById('summary').textContent = listings.length + ' ausstehende Inserate';
+        if (!listings.length) {
+          el.innerHTML = '<div class="empty">Keine ausstehenden Inserate 🎉</div>';
+        } else {
+          el.innerHTML = listings.map(renderListing).join('');
+        }
+      } catch(ex) {
+        document.getElementById('summary').textContent = 'Fehler beim Laden: ' + ex.message;
+      }
+    }
+
+    loadPending();
+  </script>
+</body>
+</html>

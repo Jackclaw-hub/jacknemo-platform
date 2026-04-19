@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Startup Radar — Founder Dashboard</title>
+  <style>
+    body { font-family: system-ui; max-width: 900px; margin: 0 auto; padding: 20px; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 2px solid #4f46e5; margin-bottom: 24px; }
+    nav h1 { margin: 0; color: #4f46e5; }
+    nav button { background: none; border: 1px solid #ddd; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+    .filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .filters select, .filters input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+    .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 12px 0; position: relative; }
+    .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+    .score-badge { position: absolute; top: 16px; right: 16px; background: #4f46e5; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+    .score-badge.high { background: #10b981; }
+    .score-badge.mid { background: #f59e0b; }
+    .score-badge.low { background: #6b7280; }
+    .tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px; }
+    .contact-btn { background: #4f46e5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+    .contact-btn.contacted { background: #10b981; cursor: default; }
+    .empty { text-align: center; color: #9ca3af; padding: 40px; }
+    #status { color: green; margin: 8px 0; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>🚀 Startup Radar</h1>
+    <div>
+      <span id="user-name"></span>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <h2>Dein Radar</h2>
+  <div class="filters">
+    <select id="f-stage">
+      <option value="">Alle Stages</option>
+      <option value="pre-seed">Pre-Seed</option>
+      <option value="seed">Seed</option>
+      <option value="series-a">Series A</option>
+    </select>
+    <select id="f-geo">
+      <option value="">Alle Regionen</option>
+      <option value="local">Lokal</option>
+      <option value="regional">Regional</option>
+      <option value="national">National</option>
+    </select>
+    <input type="text" id="f-city" placeholder="Stadt..." style="width:140px">
+    <button onclick="loadRadar()" style="background:#4f46e5;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer">Aktualisieren</button>
+  </div>
+
+  <div id="status"></div>
+  <div id="results"><div class="empty">Lade Radar-Ergebnisse...</div></div>
+
+  <script src="api-client.js"></script>
+  <script>
+    redirectIfNotLoggedIn();
+    const user = auth.getUser();
+    document.getElementById('user-name').textContent = user?.name || user?.email || '';
+
+    function logout() { AuthAPI.logout(); location.href = 'auth.html'; }
+
+    function scoreClass(pct) {
+      if (pct >= 70) return 'high';
+      if (pct >= 40) return 'mid';
+      return 'low';
+    }
+
+    function renderListing(l) {
+      const pct = Math.round((l.score || 0) * 100);
+      const contacted = localStorage.getItem('contacted_' + l.id);
+      return `<div class="card" id="card-${l.id}">
+        <div class="score-badge ${scoreClass(pct)}">${pct}% Match</div>
+        <h3>${l.title}</h3>
+        <p><strong>Typ:</strong> ${l.type} | <strong>Geo:</strong> ${l.geo} | <strong>Stadt:</strong> ${l.city || '—'}</p>
+        <p>${(l.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}</p>
+        <button class="contact-btn ${contacted ? 'contacted' : ''}"
+          onclick="markContacted(${l.id})" ${contacted ? 'disabled' : ''}>
+          ${contacted ? '✓ Kontaktiert' : 'Kontaktieren'}
+        </button>
+      </div>`;
+    }
+
+    function markContacted(id) {
+      localStorage.setItem('contacted_' + id, '1');
+      const btn = document.querySelector(`#card-${id} .contact-btn`);
+      if (btn) { btn.textContent = '✓ Kontaktiert'; btn.className = 'contact-btn contacted'; btn.disabled = true; }
+    }
+
+    async function loadRadar() {
+      const params = {};
+      const stage = document.getElementById('f-stage').value;
+      const geo = document.getElementById('f-geo').value;
+      const city = document.getElementById('f-city').value;
+      if (stage) params.stage = stage;
+      if (geo) params.geo = geo;
+      if (city) params.city = city;
+
+      try {
+        const data = await RadarAPI.getResults(params);
+        const el = document.getElementById('results');
+        if (!data.listings || data.listings.length === 0) {
+          el.innerHTML = '<div class="empty">Keine Matches gefunden. Passe deine Filter an.</div>';
+        } else {
+          el.innerHTML = data.listings.map(renderListing).join('');
+          document.getElementById('status').textContent = data.total + ' Matches gefunden';
+        }
+      } catch(ex) {
+        document.getElementById('results').innerHTML = '<div class="empty">Fehler: ' + ex.message + '</div>';
+      }
+    }
+
+    loadRadar();
+  </script>
+</body>
+</html>
