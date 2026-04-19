@@ -80,3 +80,12 @@ class Listing {
 }
 
 module.exports = Listing;
+
+  static async updateStatus(id, status, rejectionReason = null) {
+    const query = rejectionReason
+      ? 'UPDATE listings SET status = $1, description = description || $2, updated_at = NOW() WHERE id = $3 RETURNING *'
+      : 'UPDATE listings SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *';
+    const values = rejectionReason ? [status, ` [REJECTED: ${rejectionReason}]`, id] : [status, id];
+    const result = await pool.query(query, values);
+    return result.rows[0] || null;
+  }
