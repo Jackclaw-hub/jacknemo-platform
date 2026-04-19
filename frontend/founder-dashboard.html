@@ -10,30 +10,55 @@
     nav button { background: none; border: 1px solid #ddd; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
     .filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
     .filters select, .filters input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+    .search-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+    .search-bar input { flex: 1; padding: 10px 14px; border: 2px solid #4f46e5; border-radius: 6px; font-size: 15px; }
+    .search-bar button { background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 15px; }
+    .search-bar button:hover { background: #4338ca; }
+    .back-btn { display: inline-block; margin-bottom: 12px; background: none; border: 1px solid #4f46e5; color: #4f46e5; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
     .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 12px 0; position: relative; }
     .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.1); }
-    .score-badge { position: absolute; top: 16px; right: 16px; background: #4f46e5; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+    .score-badge { position: absolute; top: 16px; right: 16px; background: #4f46e5; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; user-select: none; }
+    .score-badge:hover { opacity: 0.85; }
     .score-badge.high { background: #10b981; }
     .score-badge.mid { background: #f59e0b; }
     .score-badge.low { background: #6b7280; }
+    .explanation-panel { display: none; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px 16px; margin-top: 10px; }
+    .explanation-panel.open { display: block; }
+    .exp-item { font-size: 13px; padding: 3px 0; }
+    .exp-item.match { color: #059669; }
+    .exp-item.nomatch { color: #dc2626; }
+    .exp-item.partial { color: #d97706; }
     .tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px; }
-    .contact-btn { background: #4f46e5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+    .type-badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .contact-btn { background: #4f46e5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 8px; }
     .contact-btn.contacted { background: #10b981; cursor: default; }
     .empty { text-align: center; color: #9ca3af; padding: 40px; }
-    #status { color: green; margin: 8px 0; }
+    .spinner { text-align: center; color: #6b7280; padding: 32px; font-size: 18px; }
+    #status { color: #4f46e5; margin: 8px 0; font-size: 13px; font-weight: 600; }
+    .mode-label { font-size: 12px; color: #9ca3af; margin-bottom: 4px; }
   </style>
 </head>
 <body>
   <nav>
-    <h1>🚀 Startup Radar</h1>
+    <h1>&#x1F680; Startup Radar</h1>
     <div>
       <span id="user-name"></span>
       <button onclick="logout()">Logout</button>
     </div>
   </nav>
 
-  <h2>Dein Radar</h2>
-  <div class="filters">
+  <div class="search-bar">
+    <input type="text" id="search-input" placeholder="Search listings&#8230; (equipment, services, city)" onkeydown="if(event.key==='Enter') runSearch()">
+    <button onclick="runSearch()">&#x1F50D; Search</button>
+  </div>
+
+  <div id="back-wrap" style="display:none">
+    <button class="back-btn" onclick="exitSearch()">&#8592; Back to Radar Results</button>
+  </div>
+
+  <div id="mode-label" class="mode-label">Radar Results</div>
+
+  <div class="filters" id="radar-filters">
     <select id="f-stage">
       <option value="">Alle Stages</option>
       <option value="pre-seed">Pre-Seed</option>
@@ -59,6 +84,8 @@
     const user = auth.getUser();
     document.getElementById('user-name').textContent = user?.name || user?.email || '';
 
+    let radarCache = null;
+
     function logout() { AuthAPI.logout(); location.href = 'auth.html'; }
 
     function scoreClass(pct) {
@@ -67,25 +94,80 @@
       return 'low';
     }
 
+    function toggleExplanation(id) {
+      const panel = document.getElementById('exp-' + id);
+      if (panel) panel.classList.toggle('open');
+    }
+
+    function expClass(item) {
+      if (item.startsWith('\u2713')) return 'match';
+      if (item.startsWith('\u2717')) return 'nomatch';
+      return 'partial';
+    }
+
     function renderListing(l) {
-      const pct = Math.round((l.score || 0) * 100);
+      const pct = Math.round(l.scorePercent !== undefined ? l.scorePercent : (l.score || 0) * 100);
       const contacted = localStorage.getItem('contacted_' + l.id);
-      return `<div class="card" id="card-${l.id}">
-        <div class="score-badge ${scoreClass(pct)}">${pct}% Match</div>
-        <h3>${l.title}</h3>
-        <p><strong>Typ:</strong> ${l.type} | <strong>Geo:</strong> ${l.geo} | <strong>Stadt:</strong> ${l.city || '—'}</p>
-        <p>${(l.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}</p>
-        <button class="contact-btn ${contacted ? 'contacted' : ''}"
-          onclick="markContacted(${l.id})" ${contacted ? 'disabled' : ''}>
-          ${contacted ? '✓ Kontaktiert' : 'Kontaktieren'}
-        </button>
-      </div>`;
+      const explanations = l.explanation || [];
+      const expHtml = explanations.length
+        ? '<div class="explanation-panel" id="exp-' + l.id + '">' +
+            explanations.map(e => '<div class="exp-item ' + expClass(e) + '">' + e + '</div>').join('') +
+          '</div>'
+        : '';
+      return '<div class="card" id="card-' + l.id + '">' +
+        '<div class="score-badge ' + scoreClass(pct) + '" onclick="toggleExplanation(' + l.id + ')" title="Click for match details">' +
+          pct + '% Match &#9660;' +
+        '</div>' +
+        '<span class="type-badge">' + (l.type || '&mdash;') + '</span>' +
+        '<h3 style="margin:8px 0 4px">' + l.title + '</h3>' +
+        '<p style="margin:4px 0;color:#6b7280;font-size:13px"><strong>Geo:</strong> ' + (l.geo || '&mdash;') + ' | <strong>Stadt:</strong> ' + (l.city || '&mdash;') + '</p>' +
+        '<p>' + (l.tags || []).map(t => '<span class="tag">' + t + '</span>').join('') + '</p>' +
+        expHtml +
+        '<button class="contact-btn ' + (contacted ? 'contacted' : '') + '" onclick="markContacted(' + l.id + ')" ' + (contacted ? 'disabled' : '') + '>' +
+          (contacted ? '&#10003; Kontaktiert' : 'Kontaktieren') +
+        '</button></div>';
     }
 
     function markContacted(id) {
       localStorage.setItem('contacted_' + id, '1');
-      const btn = document.querySelector(`#card-${id} .contact-btn`);
-      if (btn) { btn.textContent = '✓ Kontaktiert'; btn.className = 'contact-btn contacted'; btn.disabled = true; }
+      const btn = document.querySelector('#card-' + id + ' .contact-btn');
+      if (btn) { btn.textContent = '\u2713 Kontaktiert'; btn.className = 'contact-btn contacted'; btn.disabled = true; }
+    }
+
+    async function runSearch() {
+      const q = document.getElementById('search-input').value.trim();
+      if (!q) return;
+      document.getElementById('back-wrap').style.display = 'block';
+      document.getElementById('radar-filters').style.display = 'none';
+      document.getElementById('mode-label').textContent = 'Search results for "' + q + '"';
+      document.getElementById('status').textContent = '';
+      document.getElementById('results').innerHTML = '<div class="spinner">&#x1F50D; Suche...</div>';
+      try {
+        const data = await ListingsAPI.search(q);
+        const listings = data.listings || data || [];
+        const el = document.getElementById('results');
+        if (!listings.length) {
+          el.innerHTML = '<div class="empty">No listings found for &ldquo;' + q + '&rdquo;</div>';
+        } else {
+          el.innerHTML = listings.map(renderListing).join('');
+          document.getElementById('status').textContent = listings.length + ' result(s) found';
+        }
+      } catch(ex) {
+        document.getElementById('results').innerHTML = '<div class="empty">Error: ' + ex.message + '</div>';
+      }
+    }
+
+    function exitSearch() {
+      document.getElementById('search-input').value = '';
+      document.getElementById('back-wrap').style.display = 'none';
+      document.getElementById('radar-filters').style.display = 'flex';
+      document.getElementById('mode-label').textContent = 'Radar Results';
+      document.getElementById('status').textContent = '';
+      if (radarCache) {
+        document.getElementById('results').innerHTML = radarCache;
+      } else {
+        loadRadar();
+      }
     }
 
     async function loadRadar() {
@@ -96,7 +178,7 @@
       if (stage) params.stage = stage;
       if (geo) params.geo = geo;
       if (city) params.city = city;
-
+      document.getElementById('results').innerHTML = '<div class="spinner">&#x26A1; Lade Radar...</div>';
       try {
         const data = await RadarAPI.getResults(params);
         const el = document.getElementById('results');
@@ -104,6 +186,7 @@
           el.innerHTML = '<div class="empty">Keine Matches gefunden. Passe deine Filter an.</div>';
         } else {
           el.innerHTML = data.listings.map(renderListing).join('');
+          radarCache = el.innerHTML;
           document.getElementById('status').textContent = data.total + ' Matches gefunden';
         }
       } catch(ex) {
