@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS founder_profiles (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER UNIQUE REFERENCES users(id),
+  user_id UUID UNIQUE REFERENCES users(id),
   company_name VARCHAR(255),
   stage VARCHAR(50),
   sector VARCHAR(50),
