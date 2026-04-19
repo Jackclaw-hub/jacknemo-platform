@@ -25,6 +25,7 @@ app.use('/api/listings', require('./routes/listings'));
 app.use('/api/radar', require('./routes/radar'));
 app.use('/api/founders', require('./routes/founders'));
 app.use('/api/providers', require('./routes/providers'));
+app.use('/api/messages', require('./routes/messages'));
 
 // Weekly digest cron
 require('./jobs/weeklyDigest');

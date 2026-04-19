@@ -74,6 +74,14 @@ const SavedSearchAPI = {
   list: () => api('GET', '/founders/saved-searches', null, auth.getToken()),
   delete: (id) => api('DELETE', '/founders/saved-searches/' + id, null, auth.getToken()),
 };
+// Messages (KAN-023)
+const MessagesAPI = {
+  send: (recipientId, body, listingId) => api('POST', '/messages', { recipient_id: recipientId, body, listing_id: listingId }, auth.getToken()),
+  getThreads: () => api('GET', '/messages', null, auth.getToken()),
+  getThread: (otherUserId, listingId) => api('GET', '/messages/thread?otherUserId=' + otherUserId + (listingId ? '&listingId=' + listingId : ''), null, auth.getToken()),
+  getUnread: () => api('GET', '/messages/unread', null, auth.getToken()),
+};
+
 // Helpers
 function showError(el, msg) {
   el.textContent = msg;

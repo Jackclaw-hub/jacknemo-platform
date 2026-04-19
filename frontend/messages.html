@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Startup Radar — Messages</title>
+  <style>
+    body { font-family: system-ui; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 2px solid #4f46e5; background: white; }
+    nav h1 { margin: 0; color: #4f46e5; font-size: 18px; }
+    nav a { color: #4f46e5; text-decoration: none; font-size: 13px; }
+    .layout { display: flex; flex: 1; overflow: hidden; }
+    .threads { width: 280px; border-right: 1px solid #e5e7eb; overflow-y: auto; background: #f9fafb; }
+    .thread-item { padding: 14px 16px; cursor: pointer; border-bottom: 1px solid #e5e7eb; }
+    .thread-item:hover, .thread-item.active { background: #ede9fe; }
+    .thread-item .name { font-weight: 600; font-size: 14px; }
+    .thread-item .preview { font-size: 12px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .thread-item .listing { font-size: 11px; color: #9ca3af; }
+    .unread-dot { display: inline-block; width: 8px; height: 8px; background: #4f46e5; border-radius: 50%; margin-left: 6px; }
+    .chat { flex: 1; display: flex; flex-direction: column; }
+    .chat-header { padding: 14px 20px; border-bottom: 1px solid #e5e7eb; background: white; font-weight: 600; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .msg { max-width: 60%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; }
+    .msg.mine { background: #4f46e5; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .msg.theirs { background: #f3f4f6; color: #111827; align-self: flex-start; border-bottom-left-radius: 4px; }
+    .msg .meta { font-size: 11px; opacity: 0.7; margin-top: 4px; }
+    .chat-input { display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid #e5e7eb; background: white; }
+    .chat-input input { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 20px; font-size: 14px; outline: none; }
+    .chat-input input:focus { border-color: #4f46e5; }
+    .chat-input button { background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 14px; }
+    .empty { text-align: center; color: #9ca3af; padding: 40px; }
+    .no-thread { display: flex; align-items: center; justify-content: center; flex: 1; color: #9ca3af; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>&#x1F4AC; Messages</h1>
+    <div style="display:flex;gap:16px;align-items:center">
+      <a href="founder-dashboard.html">&#x2190; Founder Dashboard</a>
+      <a href="provider-dashboard.html">Provider Dashboard</a>
+    </div>
+  </nav>
+
+  <div class="layout">
+    <div class="threads" id="threads">
+      <div class="empty">Loading threads...</div>
+    </div>
+
+    <div class="chat" id="chat">
+      <div class="no-thread">Select a conversation</div>
+    </div>
+  </div>
+
+  <script src="api-client.js"></script>
+  <script>
+    redirectIfNotLoggedIn();
+    const user = auth.getUser();
+    let activeThread = null;
+    let pollInterval = null;
+
+    // Check URL params for direct thread open
+    const params = new URLSearchParams(location.search);
+    const paramTo = params.get('to');
+    const paramListing = params.get('listing');
+
+    async function loadThreads() {
+      try {
+        const data = await api('GET', '/messages', null, auth.getToken());
+        const threads = data.threads || [];
+        const el = document.getElementById('threads');
+        if (!threads.length) {
+          el.innerHTML = '<div class="empty">No conversations yet.</div>';
+          return;
+        }
+        el.innerHTML = threads.map(t => `
+          <div class="thread-item ${activeThread?.other_id === t.other_id && activeThread?.listing_id == t.listing_id ? 'active' : ''}"
+               onclick="openThread(${JSON.stringify(t).replace(/"/g,'&quot;')})">
+            <div class="name">${t.other_name || t.other_email}${t.unread_count > 0 ? '<span class="unread-dot"></span>' : ''}</div>
+            <div class="listing">${t.listing_title ? '&#x1F4CB; ' + t.listing_title : ''}</div>
+            <div class="preview">${t.last_body}</div>
+          </div>`).join('');
+
+        // Auto-open if URL param
+        if (paramTo && !activeThread) {
+          const match = threads.find(t => t.other_id === paramTo);
+          if (match) openThread(match);
+        }
+      } catch(ex) {
+        document.getElementById('threads').innerHTML = '<div class="empty">Error: ' + ex.message + '</div>';
+      }
+    }
+
+    async function openThread(thread) {
+      activeThread = thread;
+      const chat = document.getElementById('chat');
+
+      chat.innerHTML = `
+        <div class="chat-header">
+          ${thread.other_name || thread.other_email}
+          ${thread.listing_title ? ' &mdash; <span style="color:#6b7280;font-size:13px">' + thread.listing_title + '</span>' : ''}
+        </div>
+        <div class="chat-messages" id="chat-messages">Loading...</div>
+        <div class="chat-input">
+          <input type="text" id="msg-input" placeholder="Nachricht schreiben..." onkeydown="if(event.key==='Enter') sendMsg()">
+          <button onclick="sendMsg()">&#x27A4;</button>
+        </div>`;
+
+      loadMessages(thread);
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(() => loadMessages(thread), 5000);
+      loadThreads(); // refresh unread dots
+    }
+
+    async function loadMessages(thread) {
+      try {
+        const url = '/messages/thread?otherUserId=' + thread.other_id +
+          (thread.listing_id ? '&listingId=' + thread.listing_id : '');
+        const data = await api('GET', url, null, auth.getToken());
+        const msgs = data.messages || [];
+        const el = document.getElementById('chat-messages');
+        if (!el) return;
+        if (!msgs.length) { el.innerHTML = '<div class="empty">No messages yet. Say hi!</div>'; return; }
+        const wasAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+        el.innerHTML = msgs.map(m => {
+          const mine = m.sender_id === user?.id;
+          const time = new Date(m.created_at).toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'});
+          return `<div class="msg ${mine ? 'mine' : 'theirs'}">
+            ${m.body}
+            <div class="meta">${mine ? 'Du' : (m.sender_name || 'Provider')} &middot; ${time}</div>
+          </div>`;
+        }).join('');
+        if (wasAtBottom) el.scrollTop = el.scrollHeight;
+      } catch(ex) { /* polling — ignore errors */ }
+    }
+
+    async function sendMsg() {
+      if (!activeThread) return;
+      const input = document.getElementById('msg-input');
+      const body = input?.value.trim();
+      if (!body) return;
+      input.value = '';
+      try {
+        await api('POST', '/messages', {
+          listing_id: activeThread.listing_id,
+          recipient_id: activeThread.other_id,
+          body,
+        }, auth.getToken());
+        loadMessages(activeThread);
+        loadThreads();
+      } catch(ex) {
+        alert('Error: ' + ex.message);
+        input.value = body;
+      }
+    }
+
+    // SSE for real-time new messages
+    function connectSSE() {
+      const token = auth.getToken();
+      if (!token) return;
+      const es = new EventSource('/api/listings/events?token=' + encodeURIComponent(token));
+      es.addEventListener('new_message', () => {
+        loadThreads();
+        if (activeThread) loadMessages(activeThread);
+      });
+      es.onerror = () => { es.close(); setTimeout(connectSSE, 5000); };
+    }
+
+    loadThreads();
+    connectSSE();
+
+    // If URL has a target to message (from "Message Provider" button)
+    if (paramTo && !paramListing) {
+      // Create a synthetic thread object for new conversations
+      setTimeout(() => {
+        if (!activeThread) {
+          activeThread = { other_id: paramTo, listing_id: paramListing ? parseInt(paramListing) : null, other_name: 'Provider', listing_title: '' };
+          openThread(activeThread);
+        }
+      }, 800);
+    }
+  </script>
+</body>
+</html>
