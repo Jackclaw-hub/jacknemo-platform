@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Startup Radar — Profil einrichten</title>
+  <style>
+    body { font-family: system-ui; max-width: 520px; margin: 40px auto; padding: 0 20px; }
+    h1 { color: #4f46e5; }
+    .step { display: none; }
+    .step.active { display: block; }
+    .card { background: #f8f9fa; border-radius: 8px; padding: 24px; }
+    .progress { display: flex; gap: 8px; margin-bottom: 24px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; background: #ddd; }
+    .dot.done { background: #4f46e5; }
+    .dot.current { background: #818cf8; }
+    label { display: block; margin: 12px 0 4px; font-weight: 500; }
+    input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+    .nav { display: flex; gap: 12px; margin-top: 20px; }
+    button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 15px; }
+    .btn-next { background: #4f46e5; color: white; flex: 1; }
+    .btn-back { background: #e5e7eb; flex: 1; }
+    .btn-next:hover { background: #4338ca; }
+    .error { color: red; display: none; margin: 8px 0; }
+    .summary p { margin: 6px 0; }
+  </style>
+</head>
+<body>
+  <h1>🚀 Startup Radar</h1>
+  <p>Richte dein Founder-Profil ein, damit wir die besten Matches für dich finden.</p>
+
+  <div class="progress">
+    <div class="dot current" id="dot-0"></div>
+    <div class="dot" id="dot-1"></div>
+    <div class="dot" id="dot-2"></div>
+    <div class="dot" id="dot-3"></div>
+  </div>
+
+  <div class="card">
+    <!-- Step 1: Company -->
+    <div class="step active" id="step-0">
+      <h2>1. Dein Startup</h2>
+      <label>Startup-Name</label>
+      <input type="text" id="company_name" placeholder="z.B. FinNext GmbH" required>
+      <label>Stage</label>
+      <select id="stage">
+        <option value="pre-seed">Pre-Seed (Idee / MVP)</option>
+        <option value="seed">Seed (Erste Kunden)</option>
+        <option value="series-a">Series A (Skalierung)</option>
+        <option value="series-b">Series B+</option>
+      </select>
+      <div class="error" id="err-0"></div>
+      <div class="nav">
+        <button class="btn-next" onclick="next(0)">Weiter →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Sector + Team -->
+    <div class="step" id="step-1">
+      <h2>2. Branche & Team</h2>
+      <label>Sektor</label>
+      <select id="sector">
+        <option value="fintech">Fintech</option>
+        <option value="healthtech">Healthtech</option>
+        <option value="edtech">Edtech</option>
+        <option value="ecommerce">E-Commerce</option>
+        <option value="saas">SaaS / B2B Software</option>
+        <option value="deeptech">Deeptech / Hardware</option>
+        <option value="other">Sonstiges</option>
+      </select>
+      <label>Teamgröße</label>
+      <input type="number" id="team_size" min="1" max="500" placeholder="z.B. 4">
+      <div class="error" id="err-1"></div>
+      <div class="nav">
+        <button class="btn-back" onclick="back(1)">← Zurück</button>
+        <button class="btn-next" onclick="next(1)">Weiter →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Location -->
+    <div class="step" id="step-2">
+      <h2>3. Standort</h2>
+      <label>Stadt</label>
+      <input type="text" id="city" placeholder="Berlin">
+      <label>Suchradius</label>
+      <select id="geo">
+        <option value="local">Lokal (&lt; 50 km)</option>
+        <option value="regional">Regional (&lt; 200 km)</option>
+        <option value="national">National (DE)</option>
+      </select>
+      <div class="error" id="err-2"></div>
+      <div class="nav">
+        <button class="btn-back" onclick="back(2)">← Zurück</button>
+        <button class="btn-next" onclick="next(2)">Weiter →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Summary + Submit -->
+    <div class="step" id="step-3">
+      <h2>4. Zusammenfassung</h2>
+      <div class="summary" id="summary"></div>
+      <label>Kurzbeschreibung (optional)</label>
+      <textarea id="description" rows="3" placeholder="Was macht euer Startup?"></textarea>
+      <div class="error" id="err-3"></div>
+      <div class="nav">
+        <button class="btn-back" onclick="back(3)">← Zurück</button>
+        <button class="btn-next" onclick="submit()">Profil speichern ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="api-client.js"></script>
+  <script>
+    redirectIfNotLoggedIn();
+    let current = 0;
+
+    function updateDots(step) {
+      for (let i = 0; i < 4; i++) {
+        const d = document.getElementById('dot-' + i);
+        d.className = 'dot' + (i < step ? ' done' : i === step ? ' current' : '');
+      }
+    }
+
+    function next(step) {
+      const err = document.getElementById('err-' + step);
+      err.style.display = 'none';
+      if (step === 0 && !document.getElementById('company_name').value.trim()) {
+        showError(err, 'Bitte Startup-Namen eingeben.'); return;
+      }
+      document.getElementById('step-' + step).classList.remove('active');
+      current = step + 1;
+      document.getElementById('step-' + current).classList.add('active');
+      updateDots(current);
+      if (current === 3) buildSummary();
+    }
+
+    function back(step) {
+      document.getElementById('step-' + step).classList.remove('active');
+      current = step - 1;
+      document.getElementById('step-' + current).classList.add('active');
+      updateDots(current);
+    }
+
+    function buildSummary() {
+      const s = document.getElementById('summary');
+      s.innerHTML = `
+        <p><strong>Startup:</strong> ${document.getElementById('company_name').value}</p>
+        <p><strong>Stage:</strong> ${document.getElementById('stage').value}</p>
+        <p><strong>Sektor:</strong> ${document.getElementById('sector').value}</p>
+        <p><strong>Team:</strong> ${document.getElementById('team_size').value || '—'} Personen</p>
+        <p><strong>Stadt:</strong> ${document.getElementById('city').value || '—'}</p>
+        <p><strong>Radius:</strong> ${document.getElementById('geo').value}</p>
+      `;
+    }
+
+    async function submit() {
+      const err = document.getElementById('err-3');
+      err.style.display = 'none';
+      try {
+        await api('POST', '/founders/profile', {
+          company_name: document.getElementById('company_name').value,
+          stage: document.getElementById('stage').value,
+          sector: document.getElementById('sector').value,
+          team_size: parseInt(document.getElementById('team_size').value) || null,
+          city: document.getElementById('city').value,
+          geo: document.getElementById('geo').value,
+          description: document.getElementById('description').value,
+        }, auth.getToken());
+        location.href = 'founder-dashboard.html';
+      } catch(ex) { showError(err, ex.message); }
+    }
+  </script>
+</body>
+</html>
