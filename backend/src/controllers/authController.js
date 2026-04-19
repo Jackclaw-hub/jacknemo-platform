@@ -57,6 +57,30 @@ const register = async (req, res) => {
       updated_at: new Date()
     });
 
+    // Process referral code if provided (KAN-026)
+    const { referral_code } = req.body;
+    if (referral_code) {
+      try {
+        const db = require('../config/database');
+        const refResult = await db.query(
+          'SELECT user_id FROM referral_codes WHERE code=$1',
+          [referral_code.toUpperCase()]
+        );
+        if (refResult.rows.length && refResult.rows[0].user_id !== user.id) {
+          const referrerId = refResult.rows[0].user_id;
+          await db.query(
+            'INSERT INTO referral_uses (referrer_id, referee_id) VALUES ($1,$2) ON CONFLICT (referee_id) DO NOTHING',
+            [referrerId, user.id]
+          );
+          await db.query(
+            'UPDATE referral_codes SET uses=uses+1 WHERE user_id=$1',
+            [referrerId]
+          );
+          console.log('[Referral] User', user.email, 'credited to referrer', referrerId);
+        }
+      } catch(e) { console.error('[Referral] Error:', e.message); }
+    }
+
     // Generate tokens
     const tokens = generateTokens(user);
 

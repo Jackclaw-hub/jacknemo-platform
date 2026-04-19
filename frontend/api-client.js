@@ -24,8 +24,8 @@ async function api(method, path, body, token) {
 
 // Auth
 const AuthAPI = {
-  register: (email, password, role, name) =>
-    api('POST', '/auth/register', { email, password, role, name }),
+  register: (email, password, role, name, referral_code) =>
+    api('POST', '/auth/register', { email, password, role, name, ...(referral_code ? { referral_code } : {}) }),
   login: (email, password) =>
     api('POST', '/auth/login', { email, password }),
   logout: () => { auth.clearToken(); auth.setUser(null); },

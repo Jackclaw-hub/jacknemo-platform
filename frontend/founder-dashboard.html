@@ -34,6 +34,10 @@
     .contact-btn.contacted { background: #10b981; cursor: default; }
     .empty { text-align: center; color: #9ca3af; padding: 40px; }
     .spinner { text-align: center; color: #6b7280; padding: 32px; font-size: 18px; }
+    .invite-section { background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 20px; margin-top: 24px; }
+    .invite-link { font-family: monospace; background: white; border: 1px solid #ddd; border-radius: 4px; padding: 8px 12px; font-size: 13px; flex: 1; }
+    .copy-btn { background: #4f46e5; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+    .early-badge { display: inline-block; background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 8px; }
     .featured-card { border: 2px solid #f59e0b; box-shadow: 0 0 0 2px #fef3c7; }
     .featured-chip { display: inline-block; background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; margin-left: 6px; }
     #status { color: #4f46e5; margin: 8px 0; font-size: 13px; font-weight: 600; }
@@ -204,6 +208,7 @@
       try {
         await SavedSearchAPI.save(name || 'My Search', filters);
         loadSavedSearches();
+    loadInviteSection();
       } catch(e) { alert('Could not save: ' + e.message); }
     }
 
@@ -222,7 +227,33 @@
       if (filters.stage) document.getElementById('f-stage').value = filters.stage;
       if (filters.geo) document.getElementById('f-geo').value = filters.geo;
       if (filters.city) document.getElementById('f-city').value = filters.city || '';
-      loadRadar();
+      async function loadInviteSection() {
+      if (user?.role !== 'founder') return;
+      try {
+        const data = await api('GET', '/founders/referral-code', null, auth.getToken());
+        const code = data.code?.code;
+        const stats = data.stats || {};
+        if (!code) return;
+        document.getElementById('invite-section').style.display = 'block';
+        const baseUrl = location.origin || 'http://localhost';
+        document.getElementById('invite-link').value = baseUrl + '/auth.html?ref=' + code;
+        document.getElementById('invite-count').textContent = stats.uses + ' erfolgreiche Einladungen';
+        if (stats.earlyAdopter) {
+          document.getElementById('early-badge').innerHTML = '<span class="early-badge">&#x1F3C5; Early Adopter</span>';
+        }
+      } catch(e) { /* invite section optional */ }
+    }
+
+    function copyInviteLink() {
+      const el = document.getElementById('invite-link');
+      el.select();
+      navigator.clipboard?.writeText(el.value).catch(() => document.execCommand('copy'));
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = '\u2713 Kopiert!';
+      setTimeout(() => { btn.textContent = '\uD83D\uDCCB Kopieren'; }, 2000);
+    }
+
+    loadRadar();
     loadSavedSearches();
     }
 

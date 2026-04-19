@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { upsertProfile, getProfile } = require('../controllers/founderController');
 const { saveSearch, getSavedSearches, deleteSavedSearch } = require('../controllers/savedSearchController');
+const { getReferralCode, getReferralStatsEndpoint } = require('../controllers/referralController');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 // Founder profile
@@ -12,5 +13,9 @@ router.get('/profile', authenticateToken, requireRole(['founder']), getProfile);
 router.post('/saved-searches', authenticateToken, requireRole(['founder']), saveSearch);
 router.get('/saved-searches', authenticateToken, requireRole(['founder']), getSavedSearches);
 router.delete('/saved-searches/:id', authenticateToken, requireRole(['founder']), deleteSavedSearch);
+
+// Referral system (KAN-026)
+router.get('/referral-code', authenticateToken, requireRole(['founder']), getReferralCode);
+router.get('/referral-stats', authenticateToken, requireRole(['founder']), getReferralStatsEndpoint);
 
 module.exports = router;
