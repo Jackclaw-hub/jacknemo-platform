@@ -116,8 +116,14 @@ function scoreListingsForFounder(founder, listings, threshold = 0.2) {
       else if (rawScore >= 0.4) reasons.push('👍 Guter Match (' + pct + '%)');
       else reasons.push('👀 Möglicher Match (' + pct + '%)');
 
+      // Featured bonus: +10% for featured listings still in their window
+      const isFeaturedActive = listing.is_featured &&
+        listing.featured_until &&
+        new Date(listing.featured_until) > new Date();
+
       // Reputation bonus: +5% if avg rating >= 4.0
-      let finalScore = rawScore;
+      let finalScore = isFeaturedActive ? Math.min(1, rawScore + 0.10) : rawScore;
+      if (isFeaturedActive) reasons.push('⭐ Featured Inserat');
       if (listing.avgRating && listing.avgRating >= 4.0) {
         finalScore = Math.min(1, rawScore + 0.05);
         reasons.push('⭐ Top-bewerteter Anbieter (' + listing.avgRating + '/5, ' + (listing.ratingCount || 0) + ' Bewertungen)');

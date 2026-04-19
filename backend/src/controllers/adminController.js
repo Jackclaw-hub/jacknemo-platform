@@ -68,4 +68,34 @@ const rejectListing = async (req, res) => {
   }
 };
 
-module.exports = { getPendingListings, approveListing, rejectListing };
+
+const featureListing = async (req, res) => {
+  try {
+    const featuredUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    const result = await db.query(
+      'UPDATE listings SET is_featured=TRUE, featured_until=$1 WHERE id=$2 RETURNING *',
+      [featuredUntil, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Listing not found' });
+    res.json({ listing: result.rows[0], message: 'Listing featured until ' + featuredUntil.toDateString() });
+  } catch (err) {
+    console.error('featureListing error:', err);
+    res.status(500).json({ error: 'Failed to feature listing' });
+  }
+};
+
+const unfeatureListing = async (req, res) => {
+  try {
+    const result = await db.query(
+      'UPDATE listings SET is_featured=FALSE, featured_until=NULL WHERE id=$1 RETURNING *',
+      [req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Listing not found' });
+    res.json({ listing: result.rows[0], message: 'Listing unfeatured' });
+  } catch (err) {
+    console.error('unfeatureListing error:', err);
+    res.status(500).json({ error: 'Failed to unfeature listing' });
+  }
+};
+
+module.exports = { getPendingListings, approveListing, rejectListing, featureListing, unfeatureListing };

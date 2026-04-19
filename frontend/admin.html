@@ -21,6 +21,9 @@
     .empty { text-align: center; color: #9ca3af; padding: 40px; }
     .status-ok { color: green; margin: 4px 0; font-size: 13px; }
     .status-err { color: red; margin: 4px 0; font-size: 13px; }
+    .btn-feature { background: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+    .btn-feature:hover { background: #d97706; }
+    .btn-feature.unfeatured { background: #6b7280; }
     #summary { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; margin-bottom: 16px; }
   </style>
 </head>
@@ -60,6 +63,7 @@
           <button class="btn-approve" onclick="approve(${l.id})">✓ Genehmigen</button>
           <input class="reason" type="text" id="reason-${l.id}" placeholder="Ablehnungsgrund (optional)">
           <button class="btn-reject" onclick="reject(${l.id})">✗ Ablehnen</button>
+          <button class="btn-feature ${l.is_featured ? '' : 'unfeatured'}" onclick="toggleFeature(${l.id}, ${l.is_featured ? 1 : 0})">${l.is_featured ? '\u2B50 Unfeature' : '\u2606 Feature'}</button>
         </div>
         <div id="msg-${l.id}"></div>
       </div>`;
@@ -90,6 +94,14 @@
       } catch(ex) {
         document.getElementById('msg-' + id).innerHTML = '<div class="status-err">Fehler: ' + ex.message + '</div>';
       }
+    }
+
+    async function toggleFeature(id, isFeatured) {
+      try {
+        const endpoint = isFeatured ? '/admin/listings/' + id + '/unfeature' : '/admin/listings/' + id + '/feature';
+        await api('PUT', endpoint, {}, auth.getToken());
+        loadPending();
+      } catch(ex) { alert('Error: ' + ex.message); }
     }
 
     async function loadPending() {
