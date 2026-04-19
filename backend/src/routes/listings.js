@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { searchListings } = require('../controllers/searchController');
 const { authenticateToken } = require('../middleware/auth');
 const { apiRateLimiter } = require('../middleware/security');
 const {
@@ -8,12 +9,15 @@ const {
   trackView, trackContact
 } = require('../controllers/listingsController');
 
-// Public routes
+// Search (must come before /:id)
+router.get('/search', searchListings);
+
+// Public
 router.get('/', apiRateLimiter, getListings);
 router.get('/:id', apiRateLimiter, getListing);
 router.post('/:id/view', apiRateLimiter, trackView);
 
-// Protected routes
+// Protected
 router.post('/', authenticateToken, createListing);
 router.put('/:id', authenticateToken, updateListing);
 router.delete('/:id', authenticateToken, deleteListing);
