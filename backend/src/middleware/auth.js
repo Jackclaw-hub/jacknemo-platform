@@ -1,9 +1,1 @@
-const jwt = require("jsonwebtoken");
-function requireAuth(req, res, next) {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith("Bearer ")) return res.status(401).json({ error: "Missing or invalid token" });
-  const token = header.slice(7);
-  try { req.user = jwt.verify(token, process.env.JWT_SECRET); next(); }
-  catch { return res.status(401).json({ error: "Token expired or invalid" }); }
-}
-module.exports = { requireAuth };
+const NativeAuth = require('../auth-native'); const auth = new NativeAuth(); const authenticateToken = (req, res, next) => { const authHeader = req.headers['authorization']; const token = authHeader && authHeader.split(' ')[1]; if (!token) { return res.status(401).json({ error: 'Access token required' }); } const result = auth.verifyToken(token); if (!result.valid) { return res.status(403).json({ error: result.error }); } req.user = result.user; next(); }; const requireRole = (roles) => { return (req, res, next) => { if (!req.user) { return res.status(401).json({ error: 'Authentication required' }); } if (!roles.includes(req.user.role)) { return res.status(403).json({ error: 'Insufficient permissions' }); } next(); }; }; module.exports = { authenticateToken, requireRole };
