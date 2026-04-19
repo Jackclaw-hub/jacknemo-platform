@@ -1,10 +1,11 @@
 const Listing = require('../models/Listing');
+const FounderProfile = require('../models/FounderProfile');
 const { scoreListingsForFounder } = require('../services/radarScoring');
 
 /**
  * GET /api/radar
  * Returns personalized scored listings for the authenticated founder.
- * Query params: type (equipment|service|all), threshold (0-1)
+ * Loads founder profile from DB; query params override profile values.
  */
 const getRadar = async (req, res) => {
   try {
@@ -15,24 +16,33 @@ const getRadar = async (req, res) => {
     const { type, threshold } = req.query;
     const minScore = parseFloat(threshold) || 0.2;
 
-    // Build founder profile from user record + query params
+    // Load saved founder profile (if exists)
+    let savedProfile = null;
+    try { savedProfile = await FounderProfile.findByUserId(req.user.id); } catch(e) {}
+
+    // Query params override profile (allows filter UI to work)
     const founder = {
-      stage:  req.query.stage  || req.user.stage  || 'seed',
-      sector: req.query.sector || req.user.sector || '',
-      geo:    req.query.geo    || req.user.geo    || 'remote',
-      city:   req.query.city   || req.user.city   || null,
+      stage:  req.query.stage  || savedProfile?.stage  || 'seed',
+      sector: req.query.sector || savedProfile?.sector || '',
+      geo:    req.query.geo    || savedProfile?.geo    || 'national',
+      city:   req.query.city   || savedProfile?.city   || null,
     };
 
-    // Fetch active listings
-    const filters = { status: 'active' };
+    // Fetch approved/active listings
+    const filters = { status: 'approved' };
     if (type && type !== 'all') filters.type = type;
-    const listings = await Listing.findAll(filters);
+    let listings = await Listing.findAll(filters);
+    // Also include active status listings
+    if (!listings.length) {
+      listings = await Listing.findAll({ status: 'active' });
+    }
 
     // Score and rank
     const radarResults = scoreListingsForFounder(founder, listings, minScore);
 
     res.json({
       founder,
+      has_profile: !!savedProfile,
       threshold: minScore,
       total: radarResults.length,
       listings: radarResults
