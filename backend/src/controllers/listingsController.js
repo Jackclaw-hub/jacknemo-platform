@@ -1,3 +1,4 @@
+const db = require('../config/database');
 const Listing = require('../models/Listing');
 
 const PROVIDER_ROLES = ['equipment_provider', 'service_provider'];
@@ -118,4 +119,31 @@ const getMyListings = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, updateListing, deleteListing, getMyListings };
+
+
+// Track listing view (no auth)
+const trackView = async (req, res) => {
+  try {
+    const result = await db.query(
+      'UPDATE listings SET view_count = COALESCE(view_count,0)+1 WHERE id=$1 RETURNING id, view_count',
+      [req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Listing not found' });
+    res.json({ id: req.params.id, view_count: result.rows[0].view_count });
+  } catch(err) { res.status(500).json({ error: 'Failed to track view' }); }
+};
+
+// Track contact click (founder auth)
+const trackContact = async (req, res) => {
+  try {
+    const result = await db.query(
+      'UPDATE listings SET contact_count = COALESCE(contact_count,0)+1 WHERE id=$1 RETURNING id, contact_count',
+      [req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Listing not found' });
+    res.json({ id: req.params.id, contact_count: result.rows[0].contact_count });
+  } catch(err) { res.status(500).json({ error: 'Failed to track contact' }); }
+};
+
+// Provider: get own listings with analytics
+module.exports = { trackView, trackContact, getMyListings, createListing, getListings, getListing, updateListing, deleteListing, getMyListings };
