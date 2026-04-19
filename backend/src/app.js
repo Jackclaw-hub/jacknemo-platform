@@ -21,6 +21,7 @@ app.use('/api', apiRateLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/listings', require('./routes/listings'));
 app.use('/api/scoring', require('./services/scoring_api'));
 
 // Health check endpoint
