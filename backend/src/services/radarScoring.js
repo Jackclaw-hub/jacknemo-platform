@@ -98,9 +98,30 @@ function scoreListingsForFounder(founder, listings, threshold = 0.2) {
       const rawScore = listing.type === 'equipment'
         ? scoreEquipmentListing(listing, founder)
         : scoreServiceListing(listing, founder);
+      const pct = Math.round(rawScore * 100);
+      const reasons = [];
+      if (listing.type === 'service') {
+        const sStages = safeArray(listing.stages);
+        const sSectors = safeArray(listing.sectors);
+        if (sStages.includes(founder.stage)) reasons.push('✓ Stage passt (' + founder.stage + ')');
+        else reasons.push('✗ Stage passt nicht (du: ' + founder.stage + ', listing: ' + sStages.join('/') + ')');
+        if (sSectors.includes(founder.sector)) reasons.push('✓ Sektor Match (' + founder.sector + ')');
+        else reasons.push('~ Kein Sektor-Match');
+      }
+      if (listing.geo === founder.geo) reasons.push('✓ Gleicher Geo-Radius (' + listing.geo + ')');
+      else if (listing.geo === 'national') reasons.push('~ National verfügbar');
+      else reasons.push('✗ Anderer Radius');
+      if (listing.city && founder.city && listing.city.toLowerCase() === founder.city?.toLowerCase()) reasons.push('✓ Gleiche Stadt');
+      if (rawScore >= 0.7) reasons.push('⭐ Top Match (' + pct + '%)');
+      else if (rawScore >= 0.4) reasons.push('👍 Guter Match (' + pct + '%)');
+      else reasons.push('👀 Möglicher Match (' + pct + '%)');
+
       return {
         ...listing,
+        score: rawScore,
         radarScore: rawScore,
+        scorePercent: pct,
+        explanation: reasons,
         scoreBreakdown: {
           stageMatch: listing.type === 'service' ? (safeArray(listing.stages).includes(founder.stage) ? 'yes' : 'no') : 'n/a',
           sectorMatch: listing.type === 'service' ? (safeArray(listing.sectors).includes(founder.sector) ? 'yes' : 'no') : 'n/a',

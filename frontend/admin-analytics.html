@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Startup Radar — Admin Analytics</title>
+  <style>
+    body { font-family: system-ui; max-width: 1000px; margin: 0 auto; padding: 20px; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 2px solid #dc2626; margin-bottom: 24px; }
+    nav h1 { margin: 0; color: #dc2626; font-size: 20px; }
+    nav a { color: #4f46e5; text-decoration: none; margin-right: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .kpi { background: #f8f9fa; border-radius: 8px; padding: 20px; text-align: center; border: 1px solid #e5e7eb; }
+    .kpi .number { font-size: 40px; font-weight: bold; color: #4f46e5; }
+    .kpi .label { color: #6b7280; font-size: 14px; margin-top: 4px; }
+    .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+    h2 { color: #1f2937; margin-bottom: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { background: #f3f4f6; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #f3f4f6; }
+    tr:hover td { background: #f9fafb; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+    .badge-pending { background: #fef3c7; color: #92400e; }
+    .badge-approved { background: #d1fae5; color: #065f46; }
+    .badge-rejected { background: #fee2e2; color: #991b1b; }
+    #loading { text-align: center; padding: 40px; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>🛡 Admin Analytics</h1>
+    <div>
+      <a href="admin.html">← Moderation</a>
+      <button onclick="logout()" style="background:none;border:1px solid #ddd;padding:6px 12px;border-radius:4px;cursor:pointer">Logout</button>
+    </div>
+  </nav>
+
+  <div id="loading">Lade Analytics...</div>
+  <div id="content" style="display:none">
+    <div class="grid" id="kpis"></div>
+    <div class="grid">
+      <div class="card">
+        <h2>Inserate nach Status</h2>
+        <table id="listing-status"><thead><tr><th>Status</th><th>Anzahl</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="card">
+        <h2>Nutzer nach Rolle</h2>
+        <table id="user-roles"><thead><tr><th>Rolle</th><th>Anzahl</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Top Provider (nach Engagement)</h2>
+      <table id="top-providers">
+        <thead><tr><th>Name</th><th>Inserate</th><th>Views</th><th>Kontakte</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Aktivität (letzte 7 Tage)</h2>
+      <table id="activity"><thead><tr><th>Datum</th><th>Neue Inserate</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Benachrichtigungen</h2>
+      <table id="notifs"><thead><tr><th>Typ</th><th>Anzahl</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <script src="api-client.js"></script>
+  <script>
+    redirectIfNotLoggedIn();
+    function logout() { AuthAPI.logout(); location.href = 'auth.html'; }
+
+    function tb(id, rows, cols) {
+      document.querySelector('#' + id + ' tbody').innerHTML =
+        rows.map(r => '<tr>' + cols.map(c => '<td>' + (r[c] ?? '—') + '</td>').join('') + '</tr>').join('') || '<tr><td colspan="10">Keine Daten</td></tr>';
+    }
+
+    async function load() {
+      try {
+        const data = await AdminAPI.getPending().catch(() => null);
+        const resp = await api('GET', '/admin/analytics', null, auth.getToken());
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+
+        // KPIs
+        document.getElementById('kpis').innerHTML = `
+          <div class="kpi"><div class="number">${resp.listings.total}</div><div class="label">Inserate gesamt</div></div>
+          <div class="kpi"><div class="number">${resp.listings.pending}</div><div class="label">Ausstehend</div></div>
+          <div class="kpi"><div class="number">${resp.listings.approvalRate}</div><div class="label">Approval Rate</div></div>
+          <div class="kpi"><div class="number">${resp.users.total}</div><div class="label">Nutzer gesamt</div></div>
+        `;
+
+        tb('listing-status', resp.listings.byStatus, ['status', 'count']);
+        tb('user-roles', resp.users.byRole, ['role', 'count']);
+        tb('top-providers', resp.topProviders, ['name', 'listing_count', 'total_views', 'total_contacts']);
+        tb('activity', resp.recentActivity, ['date', 'new_listings']);
+        tb('notifs', resp.notifications, ['type', 'count']);
+      } catch(ex) {
+        document.getElementById('loading').textContent = 'Fehler: ' + ex.message;
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>
