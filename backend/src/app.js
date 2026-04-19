@@ -25,8 +25,19 @@ app.use('/api/listings', require('./routes/listings'));
 app.use('/api/radar', require('./routes/radar'));
 app.use('/api/founders', require('./routes/founders'));
 app.use('/api/providers', require('./routes/providers'));
+
+// Weekly digest cron
+require('./jobs/weeklyDigest');
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/scoring', require('./services/scoring_api'));
+
+// Admin: manual digest trigger (for testing)
+app.post('/api/admin/send-digest', require('./middleware/auth').authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  const { sendWeeklyDigest } = require('./services/digestService');
+  sendWeeklyDigest().catch(console.error);
+  res.json({ message: 'Digest triggered — check logs' });
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
