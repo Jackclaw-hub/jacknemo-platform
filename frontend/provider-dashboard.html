@@ -15,17 +15,27 @@
     button.primary:hover { background: #4338ca; }
     .error { color: red; margin: 6px 0; display: none; }
     .success { color: green; margin: 6px 0; display: none; }
-    .listing-item { border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; margin: 8px 0; }
-    .status-badge { font-size: 12px; padding: 2px 8px; border-radius: 12px; }
+    .listing-item { border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; margin: 8px 0; transition: border-color .3s; }
+    .listing-item.flash { border-color: #10b981; background: #f0fdf4; }
+    .listing-item.flash-reject { border-color: #ef4444; background: #fef2f2; }
+    .status-badge { font-size: 12px; padding: 2px 8px; border-radius: 12px; margin-left: 6px; }
     .status-pending { background: #fef3c7; color: #92400e; }
     .status-approved { background: #d1fae5; color: #065f46; }
     .status-rejected { background: #fee2e2; color: #991b1b; }
     .tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px; }
+    .toast { position: fixed; top: 20px; right: 20px; padding: 14px 20px; border-radius: 8px; color: white; font-weight: 600; z-index: 9999; display: none; animation: fadeIn .3s; }
+    .toast.show { display: block; }
+    .toast.approved { background: #10b981; }
+    .toast.rejected { background: #ef4444; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .sse-status { font-size: 12px; color: #9ca3af; margin-bottom: 6px; }
+    .sse-status.live { color: #10b981; }
   </style>
 </head>
 <body>
+  <div class="toast" id="toast"></div>
   <nav>
-    <h1>🚀 Startup Radar</h1>
+    <h1>&#x1F680; Startup Radar</h1>
     <div><span id="user-name"></span> <button onclick="logout()">Logout</button></div>
   </nav>
 
@@ -35,7 +45,7 @@
         <h2>Inserat erstellen</h2>
         <form id="listing-form">
           <label>Titel</label>
-          <input type="text" id="l-title" placeholder="z.B. 3D-Drucker verfügbar" required>
+          <input type="text" id="l-title" placeholder="z.B. 3D-Drucker verf&#xFC;gbar" required>
           <label>Typ</label>
           <select id="l-type">
             <option value="equipment">Equipment</option>
@@ -64,6 +74,7 @@
     <div>
       <div class="card">
         <h2>Meine Inserate</h2>
+        <div class="sse-status" id="sse-status">&#x25CB; Connecting for live updates...</div>
         <div id="my-listings"><em>Lade...</em></div>
       </div>
     </div>
@@ -77,16 +88,87 @@
 
     function logout() { AuthAPI.logout(); location.href = 'auth.html'; }
 
+    function showToast(message, type) {
+      const el = document.getElementById('toast');
+      el.textContent = message;
+      el.className = 'toast show ' + type;
+      setTimeout(() => { el.className = 'toast'; }, 5000);
+    }
+
+    function flashCard(listingId, type) {
+      const el = document.getElementById('listing-' + listingId);
+      if (!el) return;
+      el.classList.add(type === 'approved' ? 'flash' : 'flash-reject');
+      setTimeout(() => el.classList.remove('flash', 'flash-reject'), 3000);
+    }
+
+    function updateCardStatus(listingId, status, reason) {
+      const el = document.getElementById('listing-' + listingId);
+      if (!el) return;
+      const badge = el.querySelector('.status-badge');
+      if (badge) {
+        badge.className = 'status-badge status-' + status;
+        badge.textContent = status;
+      }
+      if (reason) {
+        let reasonEl = el.querySelector('.reject-reason');
+        if (!reasonEl) {
+          reasonEl = document.createElement('p');
+          reasonEl.className = 'reject-reason';
+          reasonEl.style.cssText = 'color:#dc2626;font-size:12px;margin:4px 0';
+          el.appendChild(reasonEl);
+        }
+        reasonEl.textContent = 'Grund: ' + reason;
+      }
+    }
+
+    // SSE — real-time listing status updates
+    function connectSSE() {
+      const token = auth.getToken ? auth.getToken() : localStorage.getItem('token');
+      if (!token) return;
+
+      // Use fetch-based approach since EventSource doesn't support headers
+      // Instead, pass token as query param (safe for SSE)
+      const url = '/api/listings/events?token=' + encodeURIComponent(token);
+      const es = new EventSource(url);
+
+      es.addEventListener('connected', () => {
+        document.getElementById('sse-status').textContent = '&#x25CF; Live updates active';
+        document.getElementById('sse-status').className = 'sse-status live';
+      });
+
+      es.addEventListener('listing_approved', (e) => {
+        const data = JSON.parse(e.data);
+        showToast('&#x2713; "' + data.title + '" wurde genehmigt!', 'approved');
+        flashCard(data.listingId, 'approved');
+        updateCardStatus(data.listingId, 'approved');
+      });
+
+      es.addEventListener('listing_rejected', (e) => {
+        const data = JSON.parse(e.data);
+        showToast('&#x2717; "' + data.title + '" wurde abgelehnt.', 'rejected');
+        flashCard(data.listingId, 'rejected');
+        updateCardStatus(data.listingId, 'rejected', data.reason);
+      });
+
+      es.onerror = () => {
+        document.getElementById('sse-status').textContent = '&#x25CB; Reconnecting...';
+        document.getElementById('sse-status').className = 'sse-status';
+        es.close();
+        setTimeout(connectSSE, 5000);
+      };
+    }
+
     async function loadMyListings() {
       try {
         const data = await ListingsAPI.getAll();
         const el = document.getElementById('my-listings');
         if (!data.listings?.length) { el.innerHTML = '<em>Noch keine Inserate.</em>'; return; }
         el.innerHTML = data.listings.map(l => `
-          <div class="listing-item">
+          <div class="listing-item" id="listing-${l.id}">
             <strong>${l.title}</strong>
             <span class="status-badge status-${l.status}">${l.status}</span>
-            <p style="margin:4px 0;font-size:13px">${l.type} · ${l.geo} · ${l.city || ''}</p>
+            <p style="margin:4px 0;font-size:13px">${l.type} &middot; ${l.geo} &middot; ${l.city || ''}</p>
             <div>${(l.tags||[]).map(t => `<span class="tag">${t}</span>`).join('')}</div>
           </div>
         `).join('');
@@ -110,13 +192,18 @@
           tags,
           description: document.getElementById('l-desc').value,
         });
-        showSuccess(ok, 'Inserat eingereicht! Wird nach Prüfung freigeschaltet.');
+        ok.style.display = 'block';
+        ok.textContent = 'Inserat eingereicht! Wird nach Pr&#xFC;fung freigeschaltet.';
         e.target.reset();
         loadMyListings();
-      } catch(ex) { showError(err, ex.message); }
+      } catch(ex) {
+        err.style.display = 'block';
+        err.textContent = ex.message;
+      }
     });
 
     loadMyListings();
+    connectSSE();
   </script>
 </body>
 </html>

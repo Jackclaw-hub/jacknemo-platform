@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { searchListings } = require('../controllers/searchController');
+const { streamEvents } = require('../controllers/sseController');
 const { authenticateToken } = require('../middleware/auth');
 const { apiRateLimiter } = require('../middleware/security');
 const {
@@ -9,8 +10,9 @@ const {
   trackView, trackContact
 } = require('../controllers/listingsController');
 
-// Search (must come before /:id)
+// Search + SSE (must come before /:id)
 router.get('/search', searchListings);
+router.get('/events', authenticateToken, streamEvents);
 
 // Public
 router.get('/', apiRateLimiter, getListings);

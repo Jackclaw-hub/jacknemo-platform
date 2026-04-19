@@ -1,6 +1,7 @@
 const Listing = require('../models/Listing');
 const db = require('../config/database');
 const { notifyListingApproved, notifyListingRejected } = require('../services/notificationService');
+const sseService = require('../services/sseService');
 
 async function getProviderEmail(providerId) {
   try {
@@ -23,10 +24,18 @@ const approveListing = async (req, res) => {
   try {
     const listing = await Listing.updateStatus(req.params.id, 'approved');
     if (!listing) return res.status(404).json({ error: 'Listing not found' });
-    // Fire-and-forget notification
+
+    // Emit SSE to provider in real-time
+    sseService.emitToProvider(listing.provider_id, 'listing_approved', {
+      listingId: listing.id,
+      title: listing.title,
+      status: 'approved',
+    });
+
     getProviderEmail(listing.provider_id).then(email => {
       if (email) notifyListingApproved(listing, email).catch(console.error);
     });
+
     res.json({ listing, message: 'Listing approved' });
   } catch (err) {
     console.error('approveListing error:', err);
@@ -39,9 +48,19 @@ const rejectListing = async (req, res) => {
     const { reason } = req.body;
     const listing = await Listing.updateStatus(req.params.id, 'rejected', reason);
     if (!listing) return res.status(404).json({ error: 'Listing not found' });
+
+    // Emit SSE to provider in real-time
+    sseService.emitToProvider(listing.provider_id, 'listing_rejected', {
+      listingId: listing.id,
+      title: listing.title,
+      status: 'rejected',
+      reason: reason || '',
+    });
+
     getProviderEmail(listing.provider_id).then(email => {
       if (email) notifyListingRejected(listing, email, reason).catch(console.error);
     });
+
     res.json({ listing, message: 'Listing rejected' });
   } catch (err) {
     console.error('rejectListing error:', err);
