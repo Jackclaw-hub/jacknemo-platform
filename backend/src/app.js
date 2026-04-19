@@ -9,6 +9,7 @@ const foundersRouter = require("./routes/founders");
 const listingsRouter = require("./routes/listings");
 const radarRouter = require("./routes/radar");
 const adminRouter = require("./routes/admin");
+const providersRouter = require("./routes/providers");
 const { authenticateToken } = require("./middleware/auth");
 
 const app = express();
@@ -32,6 +33,7 @@ app.use("/api/founders", authenticateToken, foundersRouter);
 app.use("/api/listings", listingsRouter);
 app.use("/api/radar", radarRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/providers", providersRouter);
 
 // 404 handler
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
