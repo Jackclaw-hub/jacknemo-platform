@@ -1,4 +1,5 @@
 const Listing = require('../models/Listing');
+const db = require('../config/database');
 const FounderProfile = require('../models/FounderProfile');
 const { scoreListingsForFounder } = require('../services/radarScoring');
 
@@ -36,6 +37,27 @@ const getRadar = async (req, res) => {
     if (!listings.length) {
       listings = await Listing.findAll({ status: 'active' });
     }
+
+    // Attach provider avg ratings (for KAN-022 reputation bonus)
+    try {
+      const providerIds = [...new Set(listings.map(l => l.provider_id).filter(Boolean))];
+      if (providerIds.length) {
+        const ratingsRes = await db.query(
+          `SELECT provider_id, ROUND(AVG(rating)::numeric,1) as avg_rating, COUNT(*) as rating_count
+           FROM provider_ratings WHERE provider_id = ANY($1::uuid[]) GROUP BY provider_id`,
+          [providerIds]
+        );
+        const ratingsMap = {};
+        for (const row of ratingsRes.rows) {
+          ratingsMap[row.provider_id] = { avg: parseFloat(row.avg_rating), count: parseInt(row.rating_count) };
+        }
+        listings = listings.map(l => ({
+          ...l,
+          avgRating: ratingsMap[l.provider_id]?.avg || 0,
+          ratingCount: ratingsMap[l.provider_id]?.count || 0,
+        }));
+      }
+    } catch(e) { /* ratings optional */ }
 
     // Score and rank
     const radarResults = scoreListingsForFounder(founder, listings, minScore);

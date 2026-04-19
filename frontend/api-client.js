@@ -58,6 +58,22 @@ const AdminAPI = {
   reject: (id, reason) => api('PUT', '/admin/listings/' + id + '/reject', { reason }, auth.getToken()),
 };
 
+
+// Providers & Ratings (KAN-021, KAN-022)
+const ProvidersAPI = {
+  getProfile: (userId) => api('GET', '/providers/' + userId + '/profile'),
+  getListings: (userId) => api('GET', '/providers/' + userId + '/listings'),
+  getRating: (userId) => api('GET', '/providers/' + userId + '/rating'),
+  submitRating: (userId, rating, listingId) =>
+    api('POST', '/providers/' + userId + '/rate', { rating, listing_id: listingId }, auth.getToken()),
+};
+
+// Saved Searches (KAN-020)
+const SavedSearchAPI = {
+  save: (name, filters) => api('POST', '/founders/saved-searches', { name, filters }, auth.getToken()),
+  list: () => api('GET', '/founders/saved-searches', null, auth.getToken()),
+  delete: (id) => api('DELETE', '/founders/saved-searches/' + id, null, auth.getToken()),
+};
 // Helpers
 function showError(el, msg) {
   el.textContent = msg;

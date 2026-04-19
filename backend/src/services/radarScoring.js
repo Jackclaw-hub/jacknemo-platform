@@ -116,11 +116,20 @@ function scoreListingsForFounder(founder, listings, threshold = 0.2) {
       else if (rawScore >= 0.4) reasons.push('👍 Guter Match (' + pct + '%)');
       else reasons.push('👀 Möglicher Match (' + pct + '%)');
 
+      // Reputation bonus: +5% if avg rating >= 4.0
+      let finalScore = rawScore;
+      if (listing.avgRating && listing.avgRating >= 4.0) {
+        finalScore = Math.min(1, rawScore + 0.05);
+        reasons.push('⭐ Top-bewerteter Anbieter (' + listing.avgRating + '/5, ' + (listing.ratingCount || 0) + ' Bewertungen)');
+      } else if (listing.avgRating && listing.avgRating > 0) {
+        reasons.push('★ ' + listing.avgRating + '/5 (' + (listing.ratingCount || 0) + ' Bewertungen)');
+      }
+
       return {
         ...listing,
-        score: rawScore,
-        radarScore: rawScore,
-        scorePercent: pct,
+        score: finalScore,
+        radarScore: finalScore,
+        scorePercent: Math.round(finalScore * 100),
         explanation: reasons,
         scoreBreakdown: {
           stageMatch: listing.type === 'service' ? (safeArray(listing.stages).includes(founder.stage) ? 'yes' : 'no') : 'n/a',
