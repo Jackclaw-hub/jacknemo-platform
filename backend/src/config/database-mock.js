@@ -2,7 +2,7 @@
 class MockDatabase {
   constructor() {
     this.users = [];
-    this.nextId = 1;
+    this.nextId = 1; this.listings = []; this.nextListingId = 0;
   }
 
   async query(sql, params = []) {
@@ -76,3 +76,50 @@ class MockDatabase {
 }
 
 module.exports = new MockDatabase();
+    // Mock listings queries
+    if (sql.includes('FROM listings')) {
+      if (sql.includes('WHERE id')) {
+        const id = params[0];
+        const l = this.listings.find(x => x.id == id);
+        return { rows: l ? [l] : [] };
+      }
+      if (sql.includes('provider_id')) {
+        const pid = params[0];
+        return { rows: this.listings.filter(x => x.provider_id === pid) };
+      }
+      // findAll with filters
+      let rows = this.listings.filter(x => x.status === params[0]);
+      for (let i = 1; i < params.length; i++) {
+        if (sql.includes('type')) rows = rows.filter(x => x.type === params[i]);
+        if (sql.includes('geo')) rows = rows.filter(x => x.geo === params[i]);
+        if (sql.includes('starter_friendly')) rows = rows.filter(x => x.starter_friendly === params[i]);
+      }
+      return { rows };
+    }
+    if (sql.includes('INTO listings')) {
+      const id = ++this.nextListingId;
+      const listing = {
+        id, type: params[0], title: params[1], description: params[2],
+        provider_id: params[3], provider_role: params[4], geo: params[5], city: params[6],
+        tags: params[7], stages: params[8], sectors: params[9],
+        starter_friendly: params[10], hourly_rate: params[11], daily_rate: params[12],
+        from_price: params[13], status: params[14],
+        created_at: new Date().toISOString(), updated_at: new Date().toISOString()
+      };
+      this.listings.push(listing);
+      return { rows: [listing] };
+    }
+    if (sql.includes('UPDATE listings')) {
+      const idIdx = params.length - 2;
+      const pidIdx = params.length - 1;
+      const idx = this.listings.findIndex(x => x.id == params[idIdx] && x.provider_id === params[pidIdx]);
+      if (idx < 0) return { rows: [] };
+      Object.assign(this.listings[idx], { updated_at: new Date().toISOString() });
+      return { rows: [this.listings[idx]] };
+    }
+    if (sql.includes('DELETE FROM listings')) {
+      const idx = this.listings.findIndex(x => x.id == params[0] && x.provider_id === params[1]);
+      if (idx < 0) return { rows: [] };
+      const [removed] = this.listings.splice(idx, 1);
+      return { rows: [{ id: removed.id }] };
+    }

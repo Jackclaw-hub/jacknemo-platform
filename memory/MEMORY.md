@@ -1,0 +1,1 @@
+[MEMORY UPDATE] Date: 2026-04-18 Topic: Fixed Scoring v2 Backend Fact: Implemented Scoring v2 Backend. Includes: scoring logic, database integration, and testing. Verification script confirms all features are working as expected. Source: Jack

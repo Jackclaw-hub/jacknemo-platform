@@ -1,1 +1,6 @@
-# Startup Radar — Backlog Last synced: 2026-04-14 ## SPRINT 0 — Prototype polish (Jack leads, Alisia accepts) | ID | Title | Owner | Status | |----|-------|-------|--------| | SR-001 | Implement React + TypeScript frontend foundation | Jack | ✅ COMPLETED | | SR-002 | Push frontend foundation to GitHub repo | Jack | ✅ COMPLETED
+## Backlog
+
+### Implement Scoring v2 Backend
+- [ ] Implement scoring v2 backend logic
+- [ ] Test scoring v2 backend logic
+- [ ] Deploy scoring v2 backend logic

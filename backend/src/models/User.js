@@ -1,6 +1,4 @@
-// Use mock database for testing
-console.log('⚠️ Using mock database for testing');
-var pool = require('../config/database-mock');
+var pool = require("../config/database");
 
 class User {
   static async create(userData) {
