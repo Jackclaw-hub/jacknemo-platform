@@ -1,5 +1,5 @@
 // Use mock database (PG credentials pending from Ahmad)
-const pool = require('../config/database-mock');
+const pool = require("../config/database");
 
 class Listing {
   static async create(data) {
