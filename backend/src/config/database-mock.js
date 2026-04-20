@@ -209,9 +209,24 @@ class MockDatabase {
           this.listings[idx].updated_at = new Date().toISOString();
           return { rows: [this.listings[idx]] };
         }
+        // General field update — parse SET clause to apply changes
         const id = params[params.length - 2]; const pid = params[params.length - 1];
         const idx = this.listings.findIndex(x => x.id == id && x.provider_id == pid);
         if (idx < 0) return { rows: [] };
+        // Extract field=value pairs from "SET field1 = $1, field2 = $2, ..."
+        const setMatch = sql.match(/SET\s+(.+?)\s+WHERE/i);
+        if (setMatch) {
+          const pairs = setMatch[1].split(',');
+          pairs.forEach((pair, i) => {
+            const colMatch = pair.trim().match(/^(\w+)\s*=/);
+            if (colMatch) {
+              const col = colMatch[1].toLowerCase().trim();
+              if (col !== 'updated_at' && i < params.length - 2) {
+                this.listings[idx][col] = params[i];
+              }
+            }
+          });
+        }
         this.listings[idx].updated_at = new Date().toISOString();
         return { rows: [this.listings[idx]] };
       }
