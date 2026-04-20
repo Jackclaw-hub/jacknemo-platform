@@ -98,13 +98,16 @@ function scoreListingsForFounder(founder, listings, threshold = 0.2) {
       const rawScore = listing.type === 'equipment'
         ? scoreEquipmentListing(listing, founder)
         : scoreServiceListing(listing, founder);
+      // Featured listings get a +0.05 boost (capped at 1.0)
+      const boostedScore = listing.featured ? Math.min(rawScore + 0.05, 1.0) : rawScore;
       return {
         ...listing,
-        radarScore: rawScore,
+        radarScore: Math.round(boostedScore * 100) / 100,
         scoreBreakdown: {
           stageMatch: listing.type === 'service' ? (safeArray(listing.stages).includes(founder.stage) ? 'yes' : 'no') : 'n/a',
           sectorMatch: listing.type === 'service' ? (safeArray(listing.sectors).includes(founder.sector) ? 'yes' : 'no') : 'n/a',
-          geoMode: listing.geo
+          geoMode: listing.geo,
+          featured: !!listing.featured
         }
       };
     })
