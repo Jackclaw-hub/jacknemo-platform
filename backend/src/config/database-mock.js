@@ -6,9 +6,11 @@ class MockDatabase {
     this.providerProfiles = [];
     this.founderProfiles = [];
     this.messages = [];
+    this.ratings = [];
     this.nextUserId = 1;
     this.nextListingId = 1;
     this.nextMessageId = 1;
+    this.nextRatingId = 1;
   }
 
   async query(sql, params = []) {
@@ -235,6 +237,43 @@ class MockDatabase {
         if (idx < 0) return { rows: [] };
         const [removed] = this.listings.splice(idx, 1);
         return { rows: [{ id: removed.id }] };
+      }
+    }
+
+    // ---- PROVIDER RATINGS ----
+    if (sl.includes('provider_ratings')) {
+      if (s.startsWith('INSERT')) {
+        // params: provider_id, rater_id, listing_id, rating, comment
+        const r = {
+          id: this.nextRatingId++,
+          provider_id: params[0],
+          rater_id: params[1],
+          listing_id: params[2] || null,
+          rating: params[3],
+          comment: params[4] || null,
+          created_at: new Date().toISOString()
+        };
+        // Upsert: one rating per rater per provider
+        const existing = this.ratings.findIndex(x => x.provider_id == params[0] && x.rater_id == params[1]);
+        if (existing >= 0) this.ratings[existing] = { ...this.ratings[existing], rating: params[3], comment: params[4] || null };
+        else this.ratings.push(r);
+        return { rows: [r] };
+      }
+      if (s.startsWith('SELECT')) {
+        if (sql.includes('AVG') || sql.includes('avg')) {
+          const pid = params[0];
+          const rs = this.ratings.filter(x => x.provider_id == pid);
+          const avg = rs.length ? rs.reduce((s, x) => s + Number(x.rating), 0) / rs.length : null;
+          return { rows: [{ avg_rating: avg ? avg.toFixed(2) : null, count: String(rs.length) }] };
+        }
+        const pid = params[0];
+        const rs = this.ratings.filter(x => x.provider_id == pid);
+        return {
+          rows: rs.map(r => {
+            const rater = this.users.find(u => u.id == r.rater_id);
+            return { ...r, rater_name: rater ? rater.name : null };
+          })
+        };
       }
     }
 
