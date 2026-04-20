@@ -21,11 +21,14 @@
     .btn-back { background: #e5e7eb; flex: 1; }
     .btn-next:hover { background: #4338ca; }
     .error { color: red; display: none; margin: 8px 0; }
+    .success { color: #065f46; background: #d1fae5; padding: 10px 14px; border-radius: 6px; margin: 10px 0; display: none; }
     .summary p { margin: 6px 0; }
+    .referral-box { background: #ede9fe; border-radius: 6px; padding: 12px 16px; margin-top: 16px; font-size: 14px; }
+    .referral-box code { font-size: 18px; font-weight: 700; letter-spacing: 2px; color: #4338ca; }
   </style>
 </head>
 <body>
-  <h1>🚀 Startup Radar</h1>
+  <h1>&#x1F680; Startup Radar</h1>
   <p>Richte dein Founder-Profil ein, damit wir die besten Matches für dich finden.</p>
 
   <div class="progress">
@@ -50,13 +53,13 @@
       </select>
       <div class="error" id="err-0"></div>
       <div class="nav">
-        <button class="btn-next" onclick="next(0)">Weiter →</button>
+        <button class="btn-next" onclick="next(0)">Weiter &#x2192;</button>
       </div>
     </div>
 
     <!-- Step 2: Sector + Team -->
     <div class="step" id="step-1">
-      <h2>2. Branche & Team</h2>
+      <h2>2. Branche &amp; Team</h2>
       <label>Sektor</label>
       <select id="sector">
         <option value="fintech">Fintech</option>
@@ -71,8 +74,8 @@
       <input type="number" id="team_size" min="1" max="500" placeholder="z.B. 4">
       <div class="error" id="err-1"></div>
       <div class="nav">
-        <button class="btn-back" onclick="back(1)">← Zurück</button>
-        <button class="btn-next" onclick="next(1)">Weiter →</button>
+        <button class="btn-back" onclick="back(1)">&#x2190; Zurück</button>
+        <button class="btn-next" onclick="next(1)">Weiter &#x2192;</button>
       </div>
     </div>
 
@@ -89,8 +92,8 @@
       </select>
       <div class="error" id="err-2"></div>
       <div class="nav">
-        <button class="btn-back" onclick="back(2)">← Zurück</button>
-        <button class="btn-next" onclick="next(2)">Weiter →</button>
+        <button class="btn-back" onclick="back(2)">&#x2190; Zurück</button>
+        <button class="btn-next" onclick="next(2)">Weiter &#x2192;</button>
       </div>
     </div>
 
@@ -101,9 +104,26 @@
       <label>Kurzbeschreibung (optional)</label>
       <textarea id="description" rows="3" placeholder="Was macht euer Startup?"></textarea>
       <div class="error" id="err-3"></div>
+      <div class="success" id="success-3"></div>
       <div class="nav">
-        <button class="btn-back" onclick="back(3)">← Zurück</button>
-        <button class="btn-next" onclick="submit()">Profil speichern ✓</button>
+        <button class="btn-back" onclick="back(3)">&#x2190; Zurück</button>
+        <button class="btn-next" id="submit-btn" onclick="submitProfile()">Profil speichern &#x2713;</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Done + Referral -->
+    <div class="step" id="step-4">
+      <h2>&#x1F389; Profil gespeichert!</h2>
+      <p>Willkommen bei Startup Radar. Dein Profil ist jetzt aktiv.</p>
+      <div class="referral-box">
+        <strong>Dein Referral-Code:</strong><br>
+        <code id="my-referral-code">—</code>
+        <p style="margin:8px 0 0;color:#374151;font-size:13px">
+          Teile diesen Code mit anderen Foundern — wenn sie sich registrieren, werdet ihr beide priorisiert.
+        </p>
+      </div>
+      <div class="nav" style="margin-top:20px">
+        <button class="btn-next" onclick="location.href='founder-dashboard.html'">Zum Dashboard &#x2192;</button>
       </div>
     </div>
   </div>
@@ -111,11 +131,17 @@
   <script src="api-client.js"></script>
   <script>
     redirectIfNotLoggedIn();
+    const STEPS = 4; // 0-3 are form steps
     let current = 0;
 
+    // Pre-fill referral code from URL if coming from a referral link
+    const urlParams = new URLSearchParams(location.search);
+    const urlReferral = urlParams.get('ref');
+
     function updateDots(step) {
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < STEPS; i++) {
         const d = document.getElementById('dot-' + i);
+        if (!d) continue;
         d.className = 'dot' + (i < step ? ' done' : i === step ? ' current' : '');
       }
     }
@@ -141,8 +167,7 @@
     }
 
     function buildSummary() {
-      const s = document.getElementById('summary');
-      s.innerHTML = `
+      document.getElementById('summary').innerHTML = `
         <p><strong>Startup:</strong> ${document.getElementById('company_name').value}</p>
         <p><strong>Stage:</strong> ${document.getElementById('stage').value}</p>
         <p><strong>Sektor:</strong> ${document.getElementById('sector').value}</p>
@@ -152,11 +177,15 @@
       `;
     }
 
-    async function submit() {
+    async function submitProfile() {
+      const btn = document.getElementById('submit-btn');
       const err = document.getElementById('err-3');
       err.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Speichern...';
+
       try {
-        await api('POST', '/founders/profile', {
+        await FoundersAPI.saveProfile({
           company_name: document.getElementById('company_name').value,
           stage: document.getElementById('stage').value,
           sector: document.getElementById('sector').value,
@@ -164,9 +193,29 @@
           city: document.getElementById('city').value,
           geo: document.getElementById('geo').value,
           description: document.getElementById('description').value,
-        }, auth.getToken());
-        location.href = 'founder-dashboard.html';
-      } catch(ex) { showError(err, ex.message); }
+        });
+
+        // Fetch referral code from user profile
+        try {
+          const profileData = await api('GET', '/auth/profile', null, auth.getToken());
+          const code = profileData.user && profileData.user.referral_code;
+          if (code) document.getElementById('my-referral-code').textContent = code;
+        } catch (_) {}
+
+        // Show done step
+        document.getElementById('step-3').classList.remove('active');
+        document.getElementById('step-4').classList.add('active');
+        // Update dots: all done
+        for (let i = 0; i < STEPS; i++) {
+          const d = document.getElementById('dot-' + i);
+          if (d) d.className = 'dot done';
+        }
+
+      } catch(ex) {
+        showError(err, ex.message);
+        btn.disabled = false;
+        btn.textContent = 'Profil speichern ✓';
+      }
     }
   </script>
 </body>
