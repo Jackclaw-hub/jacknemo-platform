@@ -1,6 +1,8 @@
 const Listing = require('../models/Listing');
 
 const PROVIDER_ROLES = ['equipment_provider', 'service_provider'];
+const VALID_GEO = ['local', 'regional', 'national', 'remote', 'global'];
+const VALID_TYPES = ['equipment', 'service'];
 
 const createListing = async (req, res) => {
   try {
@@ -14,23 +16,11 @@ const createListing = async (req, res) => {
     if (!type || !title || !geo) {
       return res.status(400).json({ error: 'Missing required fields: type, title, geo' });
     }
-
-    const validTypes = ['equipment', 'service'];
-    if (!validTypes.includes(type)) {
+    if (!VALID_TYPES.includes(type)) {
       return res.status(400).json({ error: 'type must be equipment or service' });
     }
-
-    const validGeo = ['regional', 'remote', 'global'];
-    if (!validGeo.includes(geo)) {
-      return res.status(400).json({ error: 'geo must be regional, remote, or global' });
-    }
-
-    // Role-type consistency check
-    if (type === 'equipment' && req.user.role !== 'equipment_provider') {
-      return res.status(403).json({ error: 'Only equipment_providers can create equipment listings' });
-    }
-    if (type === 'service' && req.user.role !== 'service_provider') {
-      return res.status(403).json({ error: 'Only service_providers can create service listings' });
+    if (!VALID_GEO.includes(geo)) {
+      return res.status(400).json({ error: `geo must be one of: ${VALID_GEO.join(', ')}` });
     }
 
     const listing = await Listing.create({
@@ -52,8 +42,15 @@ const createListing = async (req, res) => {
 
 const getListings = async (req, res) => {
   try {
-    const { type, geo, starterFriendly } = req.query;
-    const filters = {};
+    const { type, geo, starterFriendly, search, status } = req.query;
+
+    // Text search shortcut
+    if (search && search.trim()) {
+      const listings = await Listing.search(search.trim());
+      return res.json({ listings, count: listings.length });
+    }
+
+    const filters = { status: status || 'active' };
     if (type) filters.type = type;
     if (geo) filters.geo = geo;
     if (starterFriendly === 'true') filters.starterFriendly = true;
