@@ -1,1 +1,37 @@
-# WORKING.md – Aktiver Task Updated: 2026-04-14 ## Aktueller Task **TASK:** Scheduled Reminder System Fix **PHASE:** System Diagnostics and Repair **PRIORITY:** Critical **Status:** ✅ COMPLETED - ✅ Diagnosed root cause: Path and tool dependency issues - ✅ Created simplified queue check system (simple_queue_check.js) - ✅ Eliminated external tool dependencies (composio, git) - ✅ Verified new system works reliably - ✅ Tested and confirmed fix resolves the failure - ✅ Updated WORKING.md with completion status ## Zuletzt abgeschlossen - Scheduled reminder system self-fix (2026-04-14) - Cron job timeout fix (2026-04-14) - Scheduled reminder system final fix (2026-04-14) - Scheduled reminder system fix (2026-04-14) - System status diagnosis and false failure resolution (2026-04-13) - JWT authentication system self-fix (2026-04-13) - Zero-dependency implementation (2026-04-13) - Comprehensive validation testing (2026-04-13) - PostgreSQL database schema (2026-04-12) - Backend project structure setup (2026-04-12) - Startup Radar Frontend Foundation (2026-04-13)
+# WORKING.md – Aktiver Task
+Updated: 2026-04-20
+
+## Aktueller Task
+**TASK:** K-13 — Provider dashboard: show view/contact stats per listing
+**PHASE:** Implementation
+**PRIORITY:** High
+**Status:** 🔄 IN PROGRESS
+
+### Was zu tun ist:
+- File: `/sandbox/.openclaw-data/workspace/github/jacknemo-platform/src/public/provider-dashboard.html`
+- Die `getMine()` API gibt bereits `view_count` und `contact_count` zurück.
+- In der Listings-Tabelle eine neue Spalte "Stats" hinzufügen: 👁 {view_count} | 📞 {contact_count}
+- Branch: DEV
+- Test: backend muss laufen (check via curl localhost:3001/api/listings/mine)
+- Commit + push nach erfolgreichem Test
+
+### Acceptance Criteria:
+1. Provider dashboard zeigt Stats-Spalte mit view_count und contact_count
+2. Keine Console-Errors
+3. Responsive auf Mobile (flex/grid)
+
+## Task Queue
+1. [K-13] Provider dashboard stats — IN PROGRESS
+2. [K-1] PostgreSQL real DB — BLOCKED (waiting for Ahmad credentials)
+3. Neue Features: auf ACs von Alisia warten
+
+## Zuletzt abgeschlossen
+- K-12: Listing view/contact count increment
+- K-11: Admin listing feature/unfeature
+- K-10: Provider ratings system
+- K-9: Persist backend startup on pod restart
+- K-8: SSE / live notifications stub
+- K-7: Listing update endpoint full field support
+- K-6: Frontend dashboards rewritten
+- K-5: Backend routes integrated
+- K-2: Onboarding referral codes

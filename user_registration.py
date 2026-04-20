@@ -1,0 +1,1 @@
+Email verification and password confirmation have been implemented for the user registration feature.
