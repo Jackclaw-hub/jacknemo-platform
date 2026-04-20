@@ -193,6 +193,9 @@
             <span class="status-badge status-${l.status}">${l.status}</span>
             <p style="margin:4px 0;font-size:13px">${l.type} &middot; ${l.geo} &middot; ${l.city || ''}</p>
             <div>${(l.tags||[]).map(t => `<span class="tag">${t}</span>`).join('')}</div>
+            <p style="margin:6px 0 0;font-size:12px;color:#6b7280">
+              &#x1F441; ${l.view_count||0} Aufrufe &nbsp;&bull;&nbsp; &#x1F4AC; ${l.contact_count||0} Kontakte
+            </p>
           </div>
         `).join('');
       } catch(ex) {
