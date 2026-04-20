@@ -202,6 +202,18 @@ class MockDatabase {
         return { rows: [l] };
       }
       if (s.startsWith('UPDATE')) {
+        if (sql.includes('SET view_count')) {
+          const id = params[0];
+          const idx = this.listings.findIndex(x => x.id == id);
+          if (idx >= 0) this.listings[idx].view_count = (this.listings[idx].view_count || 0) + 1;
+          return { rows: [] };
+        }
+        if (sql.includes('SET contact_count')) {
+          const id = params[0];
+          const idx = this.listings.findIndex(x => x.id == id);
+          if (idx >= 0) this.listings[idx].contact_count = (this.listings[idx].contact_count || 0) + 1;
+          return { rows: [] };
+        }
         if (sql.includes('SET featured')) {
           const featured = params[0];
           const id = params[1];

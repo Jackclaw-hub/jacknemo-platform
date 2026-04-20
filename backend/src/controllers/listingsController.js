@@ -44,7 +44,6 @@ const getListings = async (req, res) => {
   try {
     const { type, geo, starterFriendly, search, status } = req.query;
 
-    // Text search shortcut
     if (search && search.trim()) {
       const listings = await Listing.search(search.trim());
       return res.json({ listings, count: listings.length });
@@ -67,10 +66,24 @@ const getListing = async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id);
     if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    // Increment view count (fire-and-forget, don't block response)
+    Listing.incrementView(req.params.id).catch(() => {});
     res.json({ listing });
   } catch (err) {
     console.error('getListing error:', err);
     res.status(500).json({ error: 'Failed to fetch listing' });
+  }
+};
+
+const contactListing = async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    Listing.incrementContact(req.params.id).catch(() => {});
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('contactListing error:', err);
+    res.status(500).json({ error: 'Failed to record contact' });
   }
 };
 
@@ -115,4 +128,4 @@ const getMyListings = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, updateListing, deleteListing, getMyListings };
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings };

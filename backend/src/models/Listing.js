@@ -104,6 +104,20 @@ class Listing {
     );
     return result.rows[0] || null;
   }
+
+  static async incrementView(id) {
+    await pool.query(
+      "UPDATE listings SET view_count = COALESCE(view_count,0) + 1 WHERE id = $1",
+      [id]
+    );
+  }
+
+  static async incrementContact(id) {
+    await pool.query(
+      "UPDATE listings SET contact_count = COALESCE(contact_count,0) + 1 WHERE id = $1",
+      [id]
+    );
+  }
 }
 
 module.exports = Listing;

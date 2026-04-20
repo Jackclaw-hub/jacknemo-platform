@@ -3,7 +3,7 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const { apiRateLimiter } = require('../middleware/security');
 const {
-  createListing, getListings, getListing,
+  createListing, getListings, getListing, contactListing,
   updateListing, deleteListing, getMyListings
 } = require('../controllers/listingsController');
 
@@ -21,7 +21,7 @@ router.emitToUser = (userId, event, data) => {
 // GET /api/listings/events?token=xxx  — SSE stream for real-time notifications
 router.get('/events', (req, res) => {
   // Auth via query token (EventSource cannot set headers)
-  const token = (req.query.token || "").replace(/ /g, "+");
+  const token = req.query.token;
   if (!token) return res.status(401).end();
 
   let userId = null;
@@ -69,6 +69,7 @@ router.get('/me/listings', authenticateToken, getMyListings);
 // Public routes
 router.get('/', apiRateLimiter, getListings);
 router.get('/:id', apiRateLimiter, getListing);
+router.post('/:id/contact', authenticateToken, contactListing);
 
 // Protected routes (provider only)
 router.post('/', authenticateToken, createListing);
