@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-04-19T16:40:15.158Z",
+  "summary": "Queue Status: 0 queued, 22 completed, 16 failed",
+  "details": {
+    "workspace": "writable",
+    "disk_space": "available: 0MB",
+    "git": "unknown"
+  },
+  "recommendations": [
+    "Focus on fixing the 16 failed tasks first",
+    "Verify workspace permissions and paths",
+    "Check available disk space for operations"
+  ]
+}

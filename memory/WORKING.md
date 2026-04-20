@@ -1,41 +1,59 @@
-# WORKING.md — Jack (Dev Agent)
-Last updated: 2026-04-19
+# Jack — Active Work Log
 
-## Status: ACTIVE — Sprint 3 starting
+## ACTIVE TASK
+**Epic 001 Phase 3: Express Backend Structure**
+Priority: High | Jira: KAN project
 
-## Completed ✅
-### Sprint 1 — Backend
-- KAN-001: Auth (JWT, role-based routes)
-- KAN-002: Listings CRUD API
-- KAN-003: Radar Scoring (weighted engine)
-- KAN-004: PostgreSQL real DB integration (172.18.0.3)
-- KAN-005: Moderation API (admin approve/reject)
+Steps:
+- [ ] Verify /sandbox/.openclaw-data/workspace/backend/src/ exists
+- [ ] Ensure all dependencies installed (express pg bcrypt jsonwebtoken dotenv cors)
+- [ ] Complete src/app.js with Express setup + error handling
+- [ ] Complete src/routes/auth.js (POST /register, POST /login)
+- [ ] Complete src/middleware/auth.js (JWT verify)
+- [ ] Write tests for auth routes
+- [ ] Push to GitHub DEV branch: feature/backend-auth-structure
+- [ ] Open PR: feature → DEV
+- [ ] Update Jira ticket to Done
 
-### Sprint 2 — Frontend + Profile
-- KAN-006: Frontend API layer (auth/listings/radar/admin HTML pages)
-- KAN-007: Founder profile API (POST/GET /api/founders/profile)
-- KAN-008: Founder onboarding UI (4-step form)
-- KAN-009: Radar uses saved profile — personalized scoring
-- KAN-010: Notification service (logs + DB, fires on approve/reject)
+## TASK QUEUE (pick next when done)
+1. Express backend + auth routes (CURRENT)
+2. Role assignment endpoint (POST /api/roles/assign)
+3. Permission middleware (per-route role check)
+4. User management CRUD (Admin only)
+5. API documentation (Swagger/JSDoc)
+6. Frontend: React scaffold + login page
+7. Docker Compose for local DEV environment
 
-## Infrastructure
-- DB: PostgreSQL @ 172.18.0.3:5432 (jacknemo_dev)
-- DB tables: users(uuid), listings, founder_profiles, notifications
-- Backend .env: DB_HOST=172.18.0.3 (ALWAYS needed — dotenv overrides pod env)
-- Gateway: OpenRouter primary (deepseek/deepseek-chat-v3-0324), NVIDIA fallback
-- Repo: github.com/Jackclaw-hub/jacknemo-platform (main branch is up to date)
-- Frontend: /frontend/ directory with auth/onboarding/founder/provider/admin HTML
+## ENVIRONMENT
+- Workspace: /sandbox/.openclaw-data/workspace/
+- Backend: /sandbox/.openclaw-data/workspace/backend/
+- GitHub: gh CLI at /sandbox/.openclaw-data/bin/gh (authenticated as Jackclaw-hub)
+- PATH includes: /sandbox/.openclaw-data/bin/
+- Jira: https://jackclaw.atlassian.net, project KAN
+- Branches: feature/* → DEV → INT → main (never push directly to main)
 
-## Sprint 3 — TODO
-- KAN-011: Real-time listing approval feed (polling or SSE)
-- KAN-012: Provider analytics (view count, contact count per listing)
-- KAN-013: Founder match history (track radar sessions, viewed listings)
-- KAN-014: SMTP email integration (nodemailer via env vars)
-- KAN-015: Search + filter improvements (full-text search on listings)
+## HOW TO RUN JIRA API
+```javascript
+const token = Buffer.from(process.env.JIRA_EMAIL + ":" + process.env.JIRA_API_TOKEN).toString("base64");
+// GET tickets: GET /rest/api/3/search?jql=project=KAN+AND+status!="Done"+ORDER+BY+priority+DESC
+// Transition: POST /rest/api/3/issue/{key}/transitions  body: {"transition":{"id":"..."}}
+// Comment: POST /rest/api/3/issue/{key}/comment  body: {"body":{"type":"doc","version":1,"content":[{"type":"paragraph","content":[{"type":"text","text":"..."}]}]}}
+```
 
-## Key facts for next session
-- All routes require JWT token except GET /api/listings and GET /api/health
-- Admin routes at /api/admin/ require role=admin
-- Radar at /api/radar auto-loads founder profile by user_id
-- Notifications currently log to console; SMTP not yet configured
-- Frontend pages in /frontend/ use api-client.js (fetch wrappers)
+## DECISIONS LOG
+- 2026-04-13: exec-approvals full — no approval needed for bash
+- 2026-04-13: timeout 1800s, elevated:full, subagents enabled
+- 2026-04-13: DB schema confirmed done (schema.sql, users/roles/permissions)
+- 2026-04-09: Stack confirmed: PostgreSQL + Node.js/Express + React + JWT
+- 2026-04-08: GitHub repo: Jackclaw-hub/jacknemo-platform (private)
+
+## BLOCKERS
+None. PostgreSQL at 145.223.81.163 may be unreachable — use mock DB for tests if needed.
+
+## COMPLETED
+- 2026-04-13: Gateway auto-pair (permanent fix)
+- 2026-04-13: Heartbeat cron (30m)
+- 2026-04-13: exec-approvals full access
+- 2026-04-08: GitHub repo + DEV/INT branches
+- 2026-04-08: Jira KAN project connected
+- Earlier: schema.sql (users, roles, permissions tables)

@@ -6,63 +6,49 @@ const securityHeaders = (req, res, next) => {
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-  
-  // CSP header for production
+
   if (process.env.NODE_ENV === 'production') {
     res.setHeader(
       'Content-Security-Policy',
       "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
     );
   }
-  
   next();
 };
 
-// Simple rate limiting middleware (basic implementation without express-rate-limit)
+const isProd = process.env.NODE_ENV === 'production';
+
+// Simple rate limiting middleware
 const createRateLimiter = (windowMs, max) => {
   const requests = new Map();
-  
   return (req, res, next) => {
-    const ip = req.ip || req.connection.remoteAddress;
+    // Skip rate limiting in non-production for localhost
+    const ip = req.ip || req.connection.remoteAddress || '';
+    if (!isProd && (ip === '::1' || ip === '127.0.0.1' || ip.includes('::ffff:127.'))) {
+      return next();
+    }
+
     const now = Date.now();
-    
     if (!requests.has(ip)) {
       requests.set(ip, { count: 1, resetTime: now + windowMs });
       return next();
     }
-    
     const record = requests.get(ip);
-    
     if (now > record.resetTime) {
       record.count = 1;
       record.resetTime = now + windowMs;
       return next();
     }
-    
     if (record.count >= max) {
-      return res.status(429).json({
-        error: 'Too many requests',
-        message: 'Please try again later'
-      });
+      return res.status(429).json({ error: 'Too many requests', message: 'Please try again later' });
     }
-    
     record.count++;
     next();
   };
 };
 
-// Rate limiting for auth endpoints
-const authRateLimiter = createRateLimiter(15 * 60 * 1000, 5);
+const authRateLimiter = createRateLimiter(15 * 60 * 1000, isProd ? 5 : 100);
+const apiRateLimiter = createRateLimiter(60 * 1000, isProd ? 100 : 1000);
+const registrationRateLimiter = createRateLimiter(60 * 60 * 1000, isProd ? 3 : 50);
 
-// Rate limiting for general API endpoints
-const apiRateLimiter = createRateLimiter(60 * 1000, 100);
-
-// Rate limiting for registration endpoint
-const registrationRateLimiter = createRateLimiter(60 * 60 * 1000, 3);
-
-module.exports = {
-  securityHeaders,
-  authRateLimiter,
-  apiRateLimiter,
-  registrationRateLimiter
-};
+module.exports = { securityHeaders, authRateLimiter, apiRateLimiter, registrationRateLimiter };
