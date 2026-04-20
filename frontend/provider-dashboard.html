@@ -184,7 +184,7 @@
 
     async function loadMyListings() {
       try {
-        const data = await ListingsAPI.getAll();
+        const data = await ListingsAPI.getMine();
         const el = document.getElementById('my-listings');
         if (!data.listings?.length) { el.innerHTML = '<em>Noch keine Inserate.</em>'; return; }
         el.innerHTML = data.listings.map(l => `

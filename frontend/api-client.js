@@ -74,6 +74,7 @@ const ProvidersAPI = {
   // Public provider view (no auth)
   getProfile: (userId) => api('GET', '/providers/' + userId + '/profile'),
   getListings: (userId) => api('GET', '/providers/' + userId + '/listings'),
+  submitRating: (userId, rating, listingId) => api('POST', '/providers/' + userId + '/rate', { rating, listing_id: listingId }, auth.getToken()).catch(() => null),
 };
 
 // Messages

@@ -76,7 +76,6 @@
 
     async function load() {
       try {
-        const data = await AdminAPI.getPending().catch(() => null);
         const resp = await api('GET', '/admin/analytics', null, auth.getToken());
         document.getElementById('loading').style.display = 'none';
         document.getElementById('content').style.display = 'block';
