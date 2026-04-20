@@ -197,11 +197,20 @@ class MockDatabase {
         return { rows };
       }
       if (s.startsWith('INSERT')) {
-        const l = { id: this.nextListingId++, type: params[0], title: params[1], description: params[2], provider_id: params[3], provider_role: params[4], geo: params[5], city: params[6], tags: params[7], stages: params[8], sectors: params[9], starter_friendly: params[10], hourly_rate: params[11], daily_rate: params[12], from_price: params[13], status: params[14], view_count: 0, contact_count: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        const l = { id: this.nextListingId++, type: params[0], title: params[1], description: params[2], provider_id: params[3], provider_role: params[4], geo: params[5], city: params[6], tags: params[7], stages: params[8], sectors: params[9], starter_friendly: params[10], hourly_rate: params[11], daily_rate: params[12], from_price: params[13], status: params[14], featured: false, view_count: 0, contact_count: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
         this.listings.push(l);
         return { rows: [l] };
       }
       if (s.startsWith('UPDATE')) {
+        if (sql.includes('SET featured')) {
+          const featured = params[0];
+          const id = params[1];
+          const idx = this.listings.findIndex(x => x.id == id);
+          if (idx < 0) return { rows: [] };
+          this.listings[idx].featured = featured;
+          this.listings[idx].updated_at = new Date().toISOString();
+          return { rows: [this.listings[idx]] };
+        }
         if (sql.includes('SET status')) {
           const id = params[params.length - 1];
           const idx = this.listings.findIndex(x => x.id == id);

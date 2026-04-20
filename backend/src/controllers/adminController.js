@@ -40,14 +40,34 @@ const rejectListing = async (req, res) => {
   }
 };
 
+const featureListing = async (req, res) => {
+  try {
+    const listing = await Listing.setFeatured(req.params.id, true);
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    res.json({ listing, message: 'Listing featured' });
+  } catch (err) {
+    console.error('featureListing error:', err);
+    res.status(500).json({ error: 'Failed to feature listing' });
+  }
+};
+
+const unfeatureListing = async (req, res) => {
+  try {
+    const listing = await Listing.setFeatured(req.params.id, false);
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    res.json({ listing, message: 'Listing unfeatured' });
+  } catch (err) {
+    console.error('unfeatureListing error:', err);
+    res.status(500).json({ error: 'Failed to unfeature listing' });
+  }
+};
+
 const getAnalytics = async (req, res) => {
   try {
-    // Use mock DB analytics helper if available, else compute from queries
     if (typeof pool.getAnalytics === 'function') {
       return res.json(pool.getAnalytics());
     }
 
-    // Fallback for real PostgreSQL
     const [listingsRes, usersRes] = await Promise.all([
       pool.query('SELECT status, COUNT(*) FROM listings GROUP BY status'),
       pool.query('SELECT role, COUNT(*) FROM users GROUP BY role')
@@ -94,4 +114,4 @@ const getAnalytics = async (req, res) => {
   }
 };
 
-module.exports = { getPendingListings, approveListing, rejectListing, getAnalytics };
+module.exports = { getPendingListings, approveListing, rejectListing, featureListing, unfeatureListing, getAnalytics };

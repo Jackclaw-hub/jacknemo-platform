@@ -96,6 +96,14 @@ class Listing {
     const result = await pool.query(query, values);
     return result.rows[0] || null;
   }
+
+  static async setFeatured(id, featured) {
+    const result = await pool.query(
+      "UPDATE listings SET featured = $1, updated_at = NOW() WHERE id = $2 RETURNING *",
+      [featured, id]
+    );
+    return result.rows[0] || null;
+  }
 }
 
 module.exports = Listing;
