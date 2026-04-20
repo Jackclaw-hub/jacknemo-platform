@@ -4,8 +4,11 @@ class MockDatabase {
     this.users = [];
     this.listings = [];
     this.providerProfiles = [];
+    this.founderProfiles = [];
+    this.messages = [];
     this.nextUserId = 1;
     this.nextListingId = 1;
+    this.nextMessageId = 1;
   }
 
   async query(sql, params = []) {
@@ -17,11 +20,25 @@ class MockDatabase {
       if (s.startsWith('SELECT')) {
         if (sql.includes('email = $1')) { const u = this.users.find(u => u.email === params[0]); return { rows: u ? [u] : [] }; }
         if (sql.includes('verification_token = $1')) { const u = this.users.find(u => u.verification_token === params[0]); return { rows: u ? [u] : [] }; }
+        if (sql.includes('referral_code = $1')) { const u = this.users.find(u => u.referral_code === params[0]); return { rows: u ? [u] : [] }; }
         if (sql.includes('id = $1')) { const u = this.users.find(u => u.id === params[0]); return { rows: u ? [u] : [] }; }
         return { rows: this.users };
       }
       if (s.startsWith('INSERT')) {
-        const user = { id: this.nextUserId++, email: params[0], password_hash: params[1], role: params[2], name: params[3], email_verified: params[4], verification_token: params[5], created_at: new Date(), updated_at: new Date() };
+        // params: email, password_hash, role, name, email_verified, verification_token, referral_code, referred_by
+        const user = {
+          id: this.nextUserId++,
+          email: params[0],
+          password_hash: params[1],
+          role: params[2],
+          name: params[3],
+          email_verified: params[4],
+          verification_token: params[5],
+          referral_code: params[6] || null,
+          referred_by: params[7] || null,
+          created_at: new Date(),
+          updated_at: new Date()
+        };
         this.users.push(user);
         return { rows: [user] };
       }
@@ -32,6 +49,8 @@ class MockDatabase {
         const u = { ...this.users[idx] };
         if (params.includes(true)) u.email_verified = true;
         if (params.includes(null)) u.verification_token = null;
+        // Handle name update
+        if (sql.includes('name =') && typeof params[0] === 'string' && !params[0].includes('@')) u.name = params[0];
         u.updated_at = new Date();
         this.users[idx] = u;
         return { rows: [u] };
@@ -41,14 +60,108 @@ class MockDatabase {
     // ---- PROVIDER PROFILES ----
     if (sl.includes('provider_profiles')) {
       if (s.startsWith('SELECT')) {
-        const p = this.providerProfiles.find(x => x.user_id === params[0]);
-        return { rows: p ? [p] : [] };
+        // Public profile lookup by user_id (numeric param)
+        const uid = params[0];
+        if (uid !== undefined) {
+          const p = this.providerProfiles.find(x => x.user_id === uid || x.user_id == uid);
+          return { rows: p ? [p] : [] };
+        }
+        return { rows: this.providerProfiles };
       }
-      const entry = { user_id: params[0], company_name: params[1] || null, description: params[2] || null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      const entry = {
+        user_id: params[0],
+        company_name: params[1] || null,
+        description: params[2] || null,
+        website: params[3] || null,
+        contact_email: params[4] || null,
+        logo_url: params[5] || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
       const idx = this.providerProfiles.findIndex(x => x.user_id === params[0]);
       if (idx >= 0) this.providerProfiles[idx] = entry;
       else this.providerProfiles.push(entry);
       return { rows: [entry] };
+    }
+
+    // ---- FOUNDER PROFILES ----
+    if (sl.includes('founder_profiles')) {
+      if (s.startsWith('SELECT')) {
+        const uid = params[0];
+        const p = this.founderProfiles.find(x => x.user_id === uid || x.user_id == uid);
+        return { rows: p ? [p] : [] };
+      }
+      const entry = {
+        user_id: params[0],
+        company_name: params[1] || null,
+        stage: params[2] || null,
+        sector: params[3] || null,
+        city: params[4] || null,
+        geo: params[5] || null,
+        team_size: params[6] || null,
+        description: params[7] || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      const idx = this.founderProfiles.findIndex(x => x.user_id === params[0]);
+      if (idx >= 0) this.founderProfiles[idx] = entry;
+      else this.founderProfiles.push(entry);
+      return { rows: [entry] };
+    }
+
+    // ---- MESSAGES ----
+    if (sl.includes('messages')) {
+      if (s.startsWith('INSERT')) {
+        const msg = {
+          id: this.nextMessageId++,
+          sender_id: params[0],
+          recipient_id: params[1],
+          listing_id: params[2] || null,
+          body: params[3],
+          read: false,
+          created_at: new Date().toISOString()
+        };
+        this.messages.push(msg);
+        return { rows: [msg] };
+      }
+      if (s.startsWith('SELECT')) {
+        // Thread query: messages between two users for a listing
+        if (sql.includes('sender_id') && sql.includes('recipient_id') && sql.includes('ORDER')) {
+          const uid1 = params[0], uid2 = params[1];
+          const listingId = params[2];
+          let msgs = this.messages.filter(m =>
+            ((m.sender_id == uid1 && m.recipient_id == uid2) ||
+             (m.sender_id == uid2 && m.recipient_id == uid1)) &&
+            (listingId == null || m.listing_id == listingId)
+          );
+          msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+          // Enrich with sender name
+          return {
+            rows: msgs.map(m => {
+              const sender = this.users.find(u => u.id == m.sender_id);
+              return { ...m, sender_name: sender ? sender.name : null };
+            })
+          };
+        }
+        // Unread count for a user
+        if (sql.includes('count') || sql.includes('COUNT')) {
+          const uid = params[0];
+          const count = this.messages.filter(m => m.recipient_id == uid && !m.read).length;
+          return { rows: [{ count: String(count) }] };
+        }
+        // All messages for a user (for threads list)
+        const uid = params[0];
+        const msgs = this.messages.filter(m => m.sender_id == uid || m.recipient_id == uid);
+        return { rows: msgs };
+      }
+      if (s.startsWith('UPDATE')) {
+        // Mark read
+        const uid = params[0], otherId = params[1];
+        this.messages.forEach(m => {
+          if (m.recipient_id == uid && m.sender_id == otherId) m.read = true;
+        });
+        return { rows: [] };
+      }
     }
 
     // ---- LISTINGS (text search) ----
@@ -68,7 +181,11 @@ class MockDatabase {
     if (sl.includes('from listings') || sl.includes('into listings') || (s.startsWith('UPDATE') && sl.includes('listings ')) || (s.startsWith('DELETE') && sl.includes('listings '))) {
       if (s.startsWith('SELECT')) {
         if (sql.includes('WHERE id = $1')) { const l = this.listings.find(x => x.id == params[0]); return { rows: l ? [l] : [] }; }
-        if (sql.includes('provider_id = $1') && !sql.includes('status')) { return { rows: this.listings.filter(x => x.provider_id === params[0]) }; }
+        if (sql.includes('provider_id = $1') && !sql.includes('status')) { return { rows: this.listings.filter(x => x.provider_id == params[0]) }; }
+        // Public listings by provider (active only)
+        if (sql.includes('provider_id = $1') && sql.includes('status = $2')) {
+          return { rows: this.listings.filter(x => x.provider_id == params[0] && x.status === params[1]) };
+        }
         let rows = this.listings.filter(x => x.status === params[0]);
         let pi = 1;
         if (sql.includes('type =')) rows = rows.filter(x => x.type === params[pi++]);
@@ -78,7 +195,7 @@ class MockDatabase {
         return { rows };
       }
       if (s.startsWith('INSERT')) {
-        const l = { id: this.nextListingId++, type: params[0], title: params[1], description: params[2], provider_id: params[3], provider_role: params[4], geo: params[5], city: params[6], tags: params[7], stages: params[8], sectors: params[9], starter_friendly: params[10], hourly_rate: params[11], daily_rate: params[12], from_price: params[13], status: params[14], created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        const l = { id: this.nextListingId++, type: params[0], title: params[1], description: params[2], provider_id: params[3], provider_role: params[4], geo: params[5], city: params[6], tags: params[7], stages: params[8], sectors: params[9], starter_friendly: params[10], hourly_rate: params[11], daily_rate: params[12], from_price: params[13], status: params[14], view_count: 0, contact_count: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
         this.listings.push(l);
         return { rows: [l] };
       }
@@ -93,13 +210,13 @@ class MockDatabase {
           return { rows: [this.listings[idx]] };
         }
         const id = params[params.length - 2]; const pid = params[params.length - 1];
-        const idx = this.listings.findIndex(x => x.id == id && x.provider_id === pid);
+        const idx = this.listings.findIndex(x => x.id == id && x.provider_id == pid);
         if (idx < 0) return { rows: [] };
         this.listings[idx].updated_at = new Date().toISOString();
         return { rows: [this.listings[idx]] };
       }
       if (s.startsWith('DELETE')) {
-        const idx = this.listings.findIndex(x => x.id == params[0] && x.provider_id === params[1]);
+        const idx = this.listings.findIndex(x => x.id == params[0] && x.provider_id == params[1]);
         if (idx < 0) return { rows: [] };
         const [removed] = this.listings.splice(idx, 1);
         return { rows: [{ id: removed.id }] };
@@ -107,6 +224,62 @@ class MockDatabase {
     }
 
     return { rows: [] };
+  }
+
+  // Analytics helper (used by adminController)
+  getAnalytics() {
+    const byStatus = {};
+    const byRole = {};
+    this.listings.forEach(l => { byStatus[l.status] = (byStatus[l.status] || 0) + 1; });
+    this.users.forEach(u => { byRole[u.role] = (byRole[u.role] || 0) + 1; });
+
+    // Top providers by listing count
+    const providerMap = {};
+    this.listings.filter(l => l.status === 'active').forEach(l => {
+      if (!providerMap[l.provider_id]) {
+        const u = this.users.find(x => x.id == l.provider_id);
+        providerMap[l.provider_id] = { name: u ? u.name : 'Unknown', listing_count: 0, total_views: 0, total_contacts: 0 };
+      }
+      providerMap[l.provider_id].listing_count++;
+      providerMap[l.provider_id].total_views += (l.view_count || 0);
+      providerMap[l.provider_id].total_contacts += (l.contact_count || 0);
+    });
+
+    // Recent activity: new listings last 7 days
+    const actMap = {};
+    const now = Date.now();
+    this.listings.forEach(l => {
+      const d = new Date(l.created_at);
+      if (now - d.getTime() < 7 * 86400000) {
+        const key = d.toISOString().slice(0, 10);
+        actMap[key] = (actMap[key] || 0) + 1;
+      }
+    });
+
+    return {
+      listings: {
+        total: this.listings.length,
+        pending: byStatus['pending'] || 0,
+        approvalRate: this.listings.length
+          ? Math.round(((byStatus['active'] || 0) / this.listings.length) * 100) + '%'
+          : '0%',
+        byStatus: Object.entries(byStatus).map(([status, count]) => ({ status, count }))
+      },
+      users: {
+        total: this.users.length,
+        byRole: Object.entries(byRole).map(([role, count]) => ({ role, count }))
+      },
+      topProviders: Object.values(providerMap)
+        .sort((a, b) => b.listing_count - a.listing_count)
+        .slice(0, 10),
+      recentActivity: Object.entries(actMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, new_listings]) => ({ date, new_listings })),
+      notifications: [
+        { type: 'pending_listings', count: byStatus['pending'] || 0 },
+        { type: 'unread_messages', count: this.messages.filter(m => !m.read).length }
+      ]
+    };
   }
 }
 
