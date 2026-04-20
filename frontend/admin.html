@@ -98,8 +98,8 @@
 
     async function toggleFeature(id, isFeatured) {
       try {
-        const endpoint = isFeatured ? '/admin/listings/' + id + '/unfeature' : '/admin/listings/' + id + '/feature';
-        await api('PUT', endpoint, {}, auth.getToken());
+        if (isFeatured) await AdminAPI.unfeature(id);
+        else await AdminAPI.feature(id);
         loadPending();
       } catch(ex) { alert('Error: ' + ex.message); }
     }
