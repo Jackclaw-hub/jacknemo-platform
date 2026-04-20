@@ -193,7 +193,7 @@
       localStorage.setItem('rating_' + listingId, rating);
       resetStars(listingId, rating);
       try {
-        await ProvidersAPI.submitRating(providerId, rating, listingId);
+        await ProvidersAPI.submitRating(providerId, rating, null, listingId);
       } catch(e) { /* rating failed silently */ }
     }
 
