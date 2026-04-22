@@ -1,0 +1,1 @@
+Investigation of unknown error complete. The error was caused by a recent change in the scoring system. The fix is to revert the change and implement a more robust scoring system.
