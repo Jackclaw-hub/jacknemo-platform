@@ -1,0 +1,1 @@
+Two-factor authentication has been implemented for the authentication mechanism. This includes a one-time password sent to the user's email or phone number, which must be entered in addition to their password.
