@@ -1,0 +1,13 @@
+Composio installation status: ✅ COMPLETE
+
+Location: /sandbox/.composio/composio
+Version: 0.2.22
+Wrapper: /sandbox/bin/composio
+
+Usage: export PATH=/sandbox/bin:$PATH && composio [command]
+Alternative: /sandbox/.composio/composio [command]
+
+Test command: composio --version
+Expected output: 0.2.22
+
+Last verified: Apr 22, 2026

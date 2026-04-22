@@ -1,0 +1,1 @@
+ALTER TABLE listings ADD COLUMN view_count INT DEFAULT 0; ALTER TABLE listings ADD COLUMN contact_count INT DEFAULT 0;

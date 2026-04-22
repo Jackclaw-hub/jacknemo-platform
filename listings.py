@@ -1,0 +1,1 @@
+import sqlite3\n\nconn = sqlite3.connect('listings.db')\nc = conn.cursor()\n\nc.execute("ALTER TABLE listings ADD COLUMN view_count INT DEFAULT 0;")\nc.execute("ALTER TABLE listings ADD COLUMN contact_count INT DEFAULT 0;")\nconn.commit()\nconn.close()
