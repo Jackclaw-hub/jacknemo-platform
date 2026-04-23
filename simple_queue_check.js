@@ -1,106 +1,96 @@
 #!/usr/bin/env node
 /**
- * Simple Queue Check Script
- * Basic system status check without external dependencies
+ * Simple Queue Check - Zero Dependencies
+ * Runs safely and reliably from anywhere
  */
 
 const fs = require('fs').promises;
 const path = require('path');
 
-class SimpleQueueCheck {
-    constructor() {
-        this.workspacePath = process.cwd();
-        this.logPath = path.join(this.workspacePath, 'logs');
-    }
+async function checkQueue() {
+    const report = {
+        timestamp: new Date().toISOString(),
+        success: true,
+        queuedTasks: 0,
+        completedTasks: 0,
+        failedTasks: 0,
+        pendingQueue: [],
+        failedTasksList: [],
+        recommendations: [],
+        scriptLocation: __dirname
+    };
 
-    async run() {
-        console.log('⏰ Running simple queue check...');
+    try {
+        // 1. Check WORKING.md in current workspace
+        const workingPath = path.join(__dirname, 'WORKING.md');
+        console.log(`Looking for WORKING.md at: ${workingPath}`);
         
         try {
-            const status = await this.checkSystemStatus();
-            const report = this.generateReport(status);
+            const content = await fs.readFile(workingPath, 'utf8');
             
-            console.log('✅ Queue check completed:');
-            console.log(report.summary);
+            // Simple parsing - no complex regex
+            const completedMatch = content.includes('✅ COMPLETED');
+            const failedMatch = content.match(/❌/g);
             
-            await this.saveReport(report);
-            return report;
+            report.completedTasks = completedMatch ? 1 : 0;
+            report.failedTasks = failedMatch ? failedMatch.length : 0;
             
-        } catch (error) {
-            console.error('❌ Queue check failed:', error.message);
-            return { error: error.message, timestamp: new Date().toISOString() };
+        } catch (err) {
+            console.log(`Could not read WORKING.md: ${err.message}`);
         }
-    }
 
-    async checkSystemStatus() {
-        const status = {
-            timestamp: new Date().toISOString(),
-            queuedTasks: 0,
-            completedTasks: 22,
-            failedTasks: 16,
-            gitStatus: 'unknown',
-            workspaceStatus: 'unknown',
-            diskSpace: 'unknown'
-        };
+        // 2. Check if we can access typical directories
+        const dirs = [
+            '/sandbox/.openclaw/workspace',
+            '/sandbox/.openclaw-data/workspace',
+            __dirname
+        ];
+        
+        for (const dir of dirs) {
+            try {
+                await fs.access(dir);
+                report.accessiblePaths = report.accessiblePaths || [];
+                report.accessiblePaths.push(dir);
+            } catch (err) {
+                // Ignore - just testing accessibility
+            }
+        }
 
-        // Check workspace existence
+        // 3. Check if there are any active tasks based on files
         try {
-            await fs.access(this.workspacePath);
-            status.workspaceStatus = 'exists';
-            
-            // Check if we can write to workspace
-            const testFile = path.join(this.workspacePath, '.test_write');
-            await fs.writeFile(testFile, 'test');
-            await fs.unlink(testFile);
-            status.workspaceStatus = 'writable';
-            
-        } catch (error) {
-            status.workspaceStatus = `error: ${error.message}`;
+            const files = await fs.readdir(__dirname);
+            const taskFiles = files.filter(f => f.includes('task') || f.includes('TODO') || f.includes('WORK'));
+            report.pendingQueue = taskFiles;
+        } catch (err) {
+            report.pendingQueue = ['Unable to read directory'];
         }
 
-        // Check disk space (simplified)
-        try {
-            const stats = await fs.stat(this.workspacePath);
-            status.diskSpace = `available: ${Math.round(stats.size / 1024 / 1024)}MB`;
-        } catch (error) {
-            status.diskSpace = `error: ${error.message}`;
+        // 4. Generate recommendations if needed
+        if (report.failedTasks > 0) {
+            report.recommendations.push(`Fix ${report.failedTasks} failed task(s)`);
+        }
+        if (!report.accessiblePaths || report.accessiblePaths.length === 0) {
+            report.recommendations.push('Check workspace directory permissions');
         }
 
-        return status;
+    } catch (error) {
+        report.success = false;
+        report.error = error.message;
+        report.errorStack = error.stack;
     }
 
-    generateReport(status) {
-        return {
-            timestamp: status.timestamp,
-            summary: `Queue Status: ${status.queuedTasks} queued, ${status.completedTasks} completed, ${status.failedTasks} failed`,
-            details: {
-                workspace: status.workspaceStatus,
-                disk_space: status.diskSpace,
-                git: status.gitStatus
-            },
-            recommendations: [
-                'Focus on fixing the 16 failed tasks first',
-                'Verify workspace permissions and paths',
-                'Check available disk space for operations'
-            ]
-        };
-    }
-
-    async saveReport(report) {
-        try {
-            await fs.mkdir(this.logPath, { recursive: true });
-            const reportFile = path.join(this.logPath, `queue_check_${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
-            await fs.writeFile(reportFile, JSON.stringify(report, null, 2));
-        } catch (error) {
-            console.log('⚠️ Could not save report:', error.message);
-        }
-    }
+    // Always return JSON - even on error
+    console.log(JSON.stringify(report, null, 2));
+    return report;
 }
 
-// Run if called directly
-if (require.main === module) {
-    const checker = new SimpleQueueCheck();
-    checker.run().catch(console.error);
-}
-
-module.exports = SimpleQueueCheck;
+// Self-executing wrapper
+(async () => {
+    try {
+        const result = await checkQueue();
+        process.exit(result.success ? 0 : 1);
+    } catch (finalError) {
+        console.error('FATAL:', finalError.message);
+        process.exit(1);
+    }
+})();

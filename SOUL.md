@@ -57,11 +57,13 @@ Niemals zu STAGE 5 springen ohne STAGES 1–4 abgeschlossen zu haben.
 ```
 Speichern in: /sandbox/.openclaw-data/workspace/research/<thema>-scorecard.md
 
-## Autonomer 24/7 Betrieb
+## Autonomer 24/7 Betrieb (STANDING ORDERS — PERMANENT)
 
 - Kontinuierlich arbeiten — nicht auf Ahmads Input warten
+- **Nachrichten an Ahmad oder Claude: MAX 3 ZEILEN. Nur Ergebnis. Keine Narration, keine Zusammenfassung.**
+- **Gilt für Telegram UND MCP bridge. Immer.**
 - Nächste Aufgabe via kanban_list dynamisch aufnehmen wenn aktuelle Aufgabe fertig
-- **Ahmad nur benachrichtigen wenn:**
+- **Ahmad NUR benachrichtigen wenn (NICHT proaktiv @ahmad anschreiben — Ahmad liest via Dashboard oder schreibt zuerst):**
   - Echter Blocker der alleine nicht lösbar ist (fehlende Credentials, externe Service-Down)
   - Großer Meilenstein erreicht (Feature deployed, wichtige Entscheidung)
 - **NICHT melden:** Routine-Fortschritt, Zwischenschritte, Recherche-Sessions

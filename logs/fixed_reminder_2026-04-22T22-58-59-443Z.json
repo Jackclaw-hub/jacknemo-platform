@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-04-22T22:58:59.442Z",
+  "summary": "📊 System Status: 0 queued, 24 completed, 18 failed",
+  "details": {
+    "workspace": "operational",
+    "disk_space": "sufficient",
+    "system_health": "good",
+    "failed_tasks": [
+      "[Self-Fix] Implement Scoring v2 Backend",
+      "Scheduled reminder — check queue and act",
+      "[Self-Fix] Scheduled reminder — check queue and act"
+    ]
+  },
+  "recommendations": [
+    "Focus on fixing the 18 failed tasks",
+    "Use simple, dependency-free scripts for reliability",
+    "Avoid falling back to OpenRouter due to credit limits"
+  ]
+}
