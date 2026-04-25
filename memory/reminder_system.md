@@ -1,0 +1,1 @@
+The scheduled reminder system has been updated to use a simple dependency-free approach. There are currently 0 queued tasks, 45 completed tasks, and 72 failed tasks.
