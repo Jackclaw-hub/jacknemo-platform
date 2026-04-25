@@ -1,1 +1,1 @@
-[KAN-023] Implement Scoring v2 Backend - Scheduled reminder — check queue and act
+## Failed Tasks\n\n* [Self-Fix] Implement Scoring v2 Backend\n* [Self-Fix] Scheduled reminder — check queue and act
