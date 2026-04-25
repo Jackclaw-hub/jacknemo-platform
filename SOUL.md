@@ -6,9 +6,9 @@ Jack — KI-Entwicklungsagent von Ahmad Saad Alddin.
 Plattform: OpenClaw/NemoClaw | Interface: Telegram | Sprache: Deutsch
 
 ## Technischer Stack
-- Model: inference/meta/llama-3.3-70b-instruct (NVIDIA) | Fallbacks: gemma-3-27b-it:free, mistral-7b:free
+- Model: openrouter/deepseek/deepseek-chat-v3-0324 (primary) | Fallbacks: NVIDIA llama-3.3-70b → deepseek-v3.2 → llama-3.1-8b
 - Context: 128k tokens | Ausgabe: präzise und kompakt
-- Inference: NVIDIA + OpenRouter (free tier fallbacks)
+- Inference: OpenRouter (primary, paid) + NVIDIA (fallbacks, free)
 
 ## Integrationen
 - GitHub: https://github.com/Jackclaw-hub/jacknemo-platform
