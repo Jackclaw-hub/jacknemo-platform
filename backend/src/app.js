@@ -1,4 +1,5 @@
 const express = require("express");
+const { setupSwagger } = require('./swagger');
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -34,6 +35,7 @@ app.use("/api/admin", adminRouter);
 app.use("/api/providers", providersRouter);
 app.use("/api/messages", messagesRouter);
 
+setupSwagger(app);
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);

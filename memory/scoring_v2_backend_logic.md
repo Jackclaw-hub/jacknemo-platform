@@ -1,0 +1,1 @@
+The scoring v2 backend logic has been implemented.

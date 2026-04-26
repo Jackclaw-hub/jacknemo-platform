@@ -118,3 +118,23 @@ const getUnread = async (req, res) => {
 };
 
 module.exports = { sendMessage, getThreads, getThread, getUnread };
+
+// PATCH /api/messages/:id/read
+const markAsRead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'UPDATE messages SET read = true WHERE id = $1 AND recipient_id = $2 RETURNING id, read',
+      [id, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Message not found or not authorized' });
+    }
+    res.json({ message: result.rows[0] });
+  } catch (err) {
+    console.error('markAsRead error:', err);
+    res.status(500).json({ error: 'Failed to mark message as read' });
+  }
+};
+
+module.exports = { sendMessage, getThreads, getThread, getUnread, markAsRead };
