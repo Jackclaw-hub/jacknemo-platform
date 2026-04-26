@@ -50,6 +50,24 @@
     .saved-searches { margin-top: 8px; }
     .saved-search-chip { display: inline-block; background: #ede9fe; color: #5b21b6; padding: 3px 10px; border-radius: 12px; font-size: 12px; margin: 2px; cursor: pointer; }
     .saved-search-chip:hover { background: #ddd6fe; }
+  
+    /* K-23: Mobile responsive */
+    @media (max-width: 640px) {
+      body { padding: 12px; }
+      nav { flex-direction: column; align-items: flex-start; gap: 8px; }
+      nav div { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      nav h1 { font-size: 16px; }
+      .filters, .search-bar { flex-direction: column; }
+      .filters select, .filters input { width: 100%; box-sizing: border-box; }
+      .search-bar input, .search-bar button { width: 100%; box-sizing: border-box; }
+      .card { padding: 14px; }
+      .score-badge { position: static; display: inline-block; margin-top: 8px; }
+      .contact-btn, .action-btn, button[type=submit] { width: 100%; padding: 12px; font-size: 15px; box-sizing: border-box; }
+      input[type=text], input[type=email], input[type=password], textarea, select { width: 100%; box-sizing: border-box; }
+      .grid, .kpi-grid { grid-template-columns: 1fr !important; }
+      table { font-size: 12px; }
+      th, td { padding: 6px 8px; }
+    }
   </style>
 </head>
 <body>
@@ -193,7 +211,7 @@
       localStorage.setItem('rating_' + listingId, rating);
       resetStars(listingId, rating);
       try {
-        await ProvidersAPI.submitRating(providerId, rating, listingId);
+        await ProvidersAPI.submitRating(providerId, rating, null, listingId);
       } catch(e) { /* rating failed silently */ }
     }
 

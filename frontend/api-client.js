@@ -1,6 +1,5 @@
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = window.location.origin + "/api";
 
-// Token management
 const auth = {
   getToken: () => localStorage.getItem('access_token'),
   setToken: (t) => localStorage.setItem('access_token', t),
@@ -31,6 +30,12 @@ const AuthAPI = {
   logout: () => { auth.clearToken(); auth.setUser(null); },
 };
 
+// Founders
+const FoundersAPI = {
+  saveProfile: (data) => api('POST', '/founders/profile', data, auth.getToken()),
+  getProfile: () => api('GET', '/founders/profile', null, auth.getToken()),
+};
+
 // Listings
 const ListingsAPI = {
   create: (data) => api('POST', '/listings', data, auth.getToken()),
@@ -38,6 +43,8 @@ const ListingsAPI = {
     const q = new URLSearchParams(filters).toString();
     return api('GET', '/listings' + (q ? '?' + q : ''));
   },
+  search: (q) => api('GET', '/listings?search=' + encodeURIComponent(q)),
+  getMine: () => api('GET', '/listings/me/listings', null, auth.getToken()),
   getById: (id) => api('GET', '/listings/' + id),
   update: (id, data) => api('PUT', '/listings/' + id, data, auth.getToken()),
   delete: (id) => api('DELETE', '/listings/' + id, null, auth.getToken()),
@@ -53,32 +60,34 @@ const RadarAPI = {
 
 // Admin
 const AdminAPI = {
-  getPending: () => api('GET', '/admin/listings/pending', null, auth.getToken()),
+  getPending: (status = 'pending') => api('GET', '/admin/listings?status=' + status, null, auth.getToken()),
   approve: (id) => api('PUT', '/admin/listings/' + id + '/approve', {}, auth.getToken()),
   reject: (id, reason) => api('PUT', '/admin/listings/' + id + '/reject', { reason }, auth.getToken()),
+  feature: (id) => api('PUT', '/admin/listings/' + id + '/feature', {}, auth.getToken()),
+  unfeature: (id) => api('PUT', '/admin/listings/' + id + '/unfeature', {}, auth.getToken()),
+  getAnalytics: () => api('GET', '/admin/analytics', null, auth.getToken()),
 };
 
-
-// Providers & Ratings (KAN-021, KAN-022)
+// Providers — own profile (authenticated) + public view
 const ProvidersAPI = {
+  // Own profile management
+  getMyProfile: () => api('GET', '/providers/profile', null, auth.getToken()),
+  saveMyProfile: (data) => api('POST', '/providers/profile', data, auth.getToken()),
+  // Public provider view (no auth)
   getProfile: (userId) => api('GET', '/providers/' + userId + '/profile'),
   getListings: (userId) => api('GET', '/providers/' + userId + '/listings'),
-  getRating: (userId) => api('GET', '/providers/' + userId + '/rating'),
-  submitRating: (userId, rating, listingId) =>
-    api('POST', '/providers/' + userId + '/rate', { rating, listing_id: listingId }, auth.getToken()),
+  getRatings: (userId) => api('GET', '/providers/' + userId + '/ratings'),
+  submitRating: (userId, rating, comment, listingId) =>
+    api('POST', '/providers/' + userId + '/rate', { rating, comment, listing_id: listingId }, auth.getToken()),
 };
 
-// Saved Searches (KAN-020)
-const SavedSearchAPI = {
-  save: (name, filters) => api('POST', '/founders/saved-searches', { name, filters }, auth.getToken()),
-  list: () => api('GET', '/founders/saved-searches', null, auth.getToken()),
-  delete: (id) => api('DELETE', '/founders/saved-searches/' + id, null, auth.getToken()),
-};
-// Messages (KAN-023)
+// Messages
 const MessagesAPI = {
-  send: (recipientId, body, listingId) => api('POST', '/messages', { recipient_id: recipientId, body, listing_id: listingId }, auth.getToken()),
+  send: (recipientId, body, listingId) =>
+    api('POST', '/messages', { recipient_id: recipientId, body, listing_id: listingId }, auth.getToken()),
   getThreads: () => api('GET', '/messages', null, auth.getToken()),
-  getThread: (otherUserId, listingId) => api('GET', '/messages/thread?otherUserId=' + otherUserId + (listingId ? '&listingId=' + listingId : ''), null, auth.getToken()),
+  getThread: (otherUserId, listingId) =>
+    api('GET', '/messages/thread?otherUserId=' + otherUserId + (listingId ? '&listingId=' + listingId : ''), null, auth.getToken()),
   getUnread: () => api('GET', '/messages/unread', null, auth.getToken()),
 };
 

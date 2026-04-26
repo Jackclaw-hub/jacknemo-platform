@@ -25,6 +25,24 @@
     .btn-feature:hover { background: #d97706; }
     .btn-feature.unfeatured { background: #6b7280; }
     #summary { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; margin-bottom: 16px; }
+  
+    /* K-23: Mobile responsive */
+    @media (max-width: 640px) {
+      body { padding: 12px; }
+      nav { flex-direction: column; align-items: flex-start; gap: 8px; }
+      nav div { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      nav h1 { font-size: 16px; }
+      .filters, .search-bar { flex-direction: column; }
+      .filters select, .filters input { width: 100%; box-sizing: border-box; }
+      .search-bar input, .search-bar button { width: 100%; box-sizing: border-box; }
+      .card { padding: 14px; }
+      .score-badge { position: static; display: inline-block; margin-top: 8px; }
+      .contact-btn, .action-btn, button[type=submit] { width: 100%; padding: 12px; font-size: 15px; box-sizing: border-box; }
+      input[type=text], input[type=email], input[type=password], textarea, select { width: 100%; box-sizing: border-box; }
+      .grid, .kpi-grid { grid-template-columns: 1fr !important; }
+      table { font-size: 12px; }
+      th, td { padding: 6px 8px; }
+    }
   </style>
 </head>
 <body>
@@ -98,8 +116,8 @@
 
     async function toggleFeature(id, isFeatured) {
       try {
-        const endpoint = isFeatured ? '/admin/listings/' + id + '/unfeature' : '/admin/listings/' + id + '/feature';
-        await api('PUT', endpoint, {}, auth.getToken());
+        if (isFeatured) await AdminAPI.unfeature(id);
+        else await AdminAPI.feature(id);
         loadPending();
       } catch(ex) { alert('Error: ' + ex.message); }
     }

@@ -13,23 +13,46 @@
     .error { color: red; display: none; margin: 8px 0; }
     .toggle { text-align: center; margin: 12px 0; color: #666; }
     .toggle a { color: #4f46e5; cursor: pointer; }
-    #login-form { display: none; }
+    .ref-badge { background: #ede9fe; color: #4338ca; padding: 6px 12px; border-radius: 6px; font-size: 13px; margin: 8px 0; display: none; }
+    .optional { color: #9ca3af; font-size: 12px; margin: -4px 0 4px 2px; }
+  
+    /* K-23: Mobile responsive */
+    @media (max-width: 640px) {
+      body { padding: 12px; }
+      nav { flex-direction: column; align-items: flex-start; gap: 8px; }
+      nav div { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      nav h1 { font-size: 16px; }
+      .filters, .search-bar { flex-direction: column; }
+      .filters select, .filters input { width: 100%; box-sizing: border-box; }
+      .search-bar input, .search-bar button { width: 100%; box-sizing: border-box; }
+      .card { padding: 14px; }
+      .score-badge { position: static; display: inline-block; margin-top: 8px; }
+      .contact-btn, .action-btn, button[type=submit] { width: 100%; padding: 12px; font-size: 15px; box-sizing: border-box; }
+      input[type=text], input[type=email], input[type=password], textarea, select { width: 100%; box-sizing: border-box; }
+      .grid, .kpi-grid { grid-template-columns: 1fr !important; }
+      table { font-size: 12px; }
+      th, td { padding: 6px 8px; }
+    }
   </style>
 </head>
 <body>
-  <h1>🚀 Startup Radar</h1>
+  <h1>&#x1F680; Startup Radar</h1>
 
   <div id="register-section" class="card">
     <h2>Registrieren</h2>
+    <div class="ref-badge" id="ref-badge"></div>
     <form id="register-form">
       <input type="text" id="reg-name" placeholder="Name" required>
       <input type="email" id="reg-email" placeholder="E-Mail" required>
-      <input type="password" id="reg-password" placeholder="Passwort" required>
+      <input type="password" id="reg-password" placeholder="Passwort (min. 8 Zeichen)" required>
       <select id="reg-role">
         <option value="founder">Founder / Startup</option>
         <option value="equipment_provider">Equipment Provider</option>
         <option value="service_provider">Service Provider</option>
+        <option value="investor">Investor</option>
       </select>
+      <div class="optional">Referral-Code (optional)</div>
+      <input type="text" id="reg-referral" placeholder="z.B. ABC1234" style="text-transform:uppercase">
       <div class="error" id="reg-error"></div>
       <button type="submit">Registrieren</button>
     </form>
@@ -49,11 +72,33 @@
 
   <script src="api-client.js"></script>
   <script>
+    // Redirect if already logged in
     if (auth.getToken()) {
       const user = auth.getUser();
-      if (user?.role === 'founder') location.href = 'founder-dashboard.html';
-      else if (user?.role?.includes('provider')) location.href = 'provider-dashboard.html';
-      else if (user?.role === 'admin') location.href = 'admin.html';
+      redirectByRole(user?.role);
+    }
+
+    // Pre-fill referral code from URL param
+    const urlParams = new URLSearchParams(location.search);
+    const refCode = urlParams.get('ref');
+    if (refCode) {
+      document.getElementById('reg-referral').value = refCode.toUpperCase();
+      const badge = document.getElementById('ref-badge');
+      badge.textContent = '&#x1F91D; Eingeladen mit Code: ' + refCode.toUpperCase();
+      badge.style.display = 'block';
+    }
+
+    // Show login tab if URL has ?tab=login
+    if (urlParams.get('tab') === 'login') showLogin();
+
+    function redirectByRole(role, isNewUser) {
+      if (role === 'founder') {
+        location.href = isNewUser ? 'onboarding.html' : 'founder-dashboard.html';
+      } else if (role === 'admin') {
+        location.href = 'admin.html';
+      } else {
+        location.href = 'provider-dashboard.html';
+      }
     }
 
     function showLogin() {
@@ -69,19 +114,18 @@
       e.preventDefault();
       const err = document.getElementById('reg-error');
       err.style.display = 'none';
+      const referral = document.getElementById('reg-referral').value.trim().toUpperCase() || null;
       try {
         const data = await AuthAPI.register(
           document.getElementById('reg-email').value,
           document.getElementById('reg-password').value,
           document.getElementById('reg-role').value,
-          document.getElementById('reg-name').value
+          document.getElementById('reg-name').value,
+          referral
         );
         auth.setToken(data.access_token);
         auth.setUser(data.user);
-        const role = data.user?.role;
-        if (role === 'founder') location.href = 'founder-dashboard.html';
-        else if (role?.includes('provider')) location.href = 'provider-dashboard.html';
-        else location.href = 'admin.html';
+        redirectByRole(data.user?.role, true); // true = new user
       } catch(ex) { showError(err, ex.message); }
     });
 
@@ -96,10 +140,7 @@
         );
         auth.setToken(data.access_token);
         auth.setUser(data.user);
-        const role = data.user?.role;
-        if (role === 'founder') location.href = 'founder-dashboard.html';
-        else if (role?.includes('provider')) location.href = 'provider-dashboard.html';
-        else location.href = 'admin.html';
+        redirectByRole(data.user?.role, false);
       } catch(ex) { showError(err, ex.message); }
     });
   </script>

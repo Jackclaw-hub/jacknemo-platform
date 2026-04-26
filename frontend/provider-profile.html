@@ -13,91 +13,214 @@
     .profile-meta h2 { margin: 0 0 6px; }
     .profile-meta p { margin: 4px 0; font-size: 14px; color: #6b7280; }
     .profile-meta a { color: #4f46e5; }
+    .rating-stars { font-size: 20px; color: #f59e0b; }
+    .rating-summary { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+    .rating-count { font-size: 13px; color: #6b7280; }
     .section-title { font-size: 18px; font-weight: 700; margin: 24px 0 12px; color: #111827; }
     .listing-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 10px 0; }
     .listing-card h3 { margin: 0 0 6px; }
     .tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px; }
     .type-badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
     .empty { text-align: center; color: #9ca3af; padding: 32px; }
+    .rating-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-top: 24px; }
+    .rating-box h3 { margin: 0 0 12px; font-size: 16px; }
+    .stars-input { display: flex; gap: 6px; margin: 8px 0; }
+    .stars-input button { background: none; border: none; font-size: 24px; cursor: pointer; padding: 0; color: #d1d5db; transition: color 0.1s; }
+    .stars-input button.active { color: #f59e0b; }
+    textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; resize: vertical; }
+    .btn { padding: 8px 18px; background: #4f46e5; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+    .btn:hover { background: #4338ca; }
+    .msg { font-size: 13px; margin: 6px 0; }
+    .review-card { border-left: 3px solid #e5e7eb; padding: 10px 14px; margin: 8px 0; }
+    .review-card .stars { color: #f59e0b; font-size: 15px; }
+    .review-card .meta { font-size: 12px; color: #9ca3af; margin: 2px 0 4px; }
+    .review-card p { margin: 0; font-size: 14px; }
+    .contact-btn { display: inline-block; padding: 8px 18px; background: #4f46e5; color: white; border-radius: 6px; text-decoration: none; font-size: 14px; margin-top: 8px; }
+  
+    /* K-23: Mobile responsive */
+    @media (max-width: 640px) {
+      body { padding: 12px; }
+      nav { flex-direction: column; align-items: flex-start; gap: 8px; }
+      nav div { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      nav h1 { font-size: 16px; }
+      .filters, .search-bar { flex-direction: column; }
+      .filters select, .filters input { width: 100%; box-sizing: border-box; }
+      .search-bar input, .search-bar button { width: 100%; box-sizing: border-box; }
+      .card { padding: 14px; }
+      .score-badge { position: static; display: inline-block; margin-top: 8px; }
+      .contact-btn, .action-btn, button[type=submit] { width: 100%; padding: 12px; font-size: 15px; box-sizing: border-box; }
+      input[type=text], input[type=email], input[type=password], textarea, select { width: 100%; box-sizing: border-box; }
+      .grid, .kpi-grid { grid-template-columns: 1fr !important; }
+      table { font-size: 12px; }
+      th, td { padding: 6px 8px; }
+    }
   </style>
 </head>
 <body>
   <nav>
     <h1>&#x1F680; Startup Radar</h1>
-    <a href="javascript:history.back()" class="back-link">&#8592; Back</a>
+    <a href="javascript:history.back()" class="back-link">&#8592; Zurück</a>
   </nav>
 
-  <div id="profile-wrap">
-    <div class="empty">Loading provider profile...</div>
+  <div id="profile-wrap"><div class="empty">Lade Provider-Profil...</div></div>
+  <div id="listings-section" style="display:none">
+    <div class="section-title">Aktive Listings</div>
+    <div id="listings-wrap"></div>
   </div>
-
-  <div class="section-title" id="listings-title" style="display:none">Approved Listings</div>
-  <div id="listings-wrap"></div>
+  <div id="ratings-section" style="display:none">
+    <div class="section-title">Bewertungen</div>
+    <div id="ratings-wrap"></div>
+    <div id="rate-box" class="rating-box" style="display:none">
+      <h3>Bewertung abgeben</h3>
+      <div class="stars-input" id="star-btns"></div>
+      <textarea id="rate-comment" rows="3" placeholder="Kommentar (optional)"></textarea>
+      <button class="btn" id="rate-submit" style="margin-top:8px">Absenden</button>
+      <div class="msg" id="rate-msg"></div>
+    </div>
+  </div>
 
   <script src="api-client.js"></script>
   <script>
     const params = new URLSearchParams(location.search);
     const userId = params.get('id');
+    let selectedRating = 0;
 
     if (!userId) {
-      document.getElementById('profile-wrap').innerHTML = '<div class="empty">No provider ID specified.</div>';
+      document.getElementById('profile-wrap').innerHTML = '<div class="empty">Kein Provider angegeben.</div>';
     } else {
-      loadProfile(userId);
-      loadListings(userId);
+      load();
     }
 
-    async function loadProfile(uid) {
+    async function load() {
       try {
-        const res = await fetch('/api/providers/' + uid + '/profile');
-        const data = await res.json();
-        const p = data.profile;
-        const wrap = document.getElementById('profile-wrap');
-        if (!p) {
-          wrap.innerHTML = '<div class="empty">Profile not found.</div>';
-          return;
-        }
-        const letter = (p.company_name || '?')[0].toUpperCase();
-        wrap.innerHTML = `
-          <div class="profile-header">
-            ${p.logo_url
-              ? '<img src="' + p.logo_url + '" style="width:72px;height:72px;border-radius:50%;object-fit:cover">'
-              : '<div class="avatar">' + letter + '</div>'}
-            <div class="profile-meta">
-              <h2>${p.company_name || 'Unknown Provider'}</h2>
-              ${p.description ? '<p>' + p.description + '</p>' : ''}
-              ${p.website ? '<p>&#x1F310; <a href="' + p.website + '" target="_blank" rel="noopener">' + p.website + '</a></p>' : ''}
-              ${p.contact_email ? '<p>&#x2709; <a href="mailto:' + p.contact_email + '">' + p.contact_email + '</a></p>' : ''}
-            </div>
-          </div>`;
+        const [profileData, listingsData, ratingsData] = await Promise.all([
+          ProvidersAPI.getProfile(userId),
+          ProvidersAPI.getListings(userId),
+          ProvidersAPI.getRatings(userId)
+        ]);
+        renderProfile(profileData);
+        renderListings(listingsData.listings || []);
+        renderRatings(ratingsData.ratings || []);
       } catch(ex) {
-        document.getElementById('profile-wrap').innerHTML = '<div class="empty">Error: ' + ex.message + '</div>';
+        document.getElementById('profile-wrap').innerHTML = '<div class="empty">Fehler: ' + ex.message + '</div>';
       }
     }
 
-    async function loadListings(uid) {
-      try {
-        const res = await fetch('/api/providers/' + uid + '/listings');
-        const data = await res.json();
-        const listings = data.listings || [];
-        const wrap = document.getElementById('listings-wrap');
-        if (!listings.length) {
-          document.getElementById('listings-title').style.display = 'block';
-          wrap.innerHTML = '<div class="empty">No approved listings yet.</div>';
-          return;
-        }
-        document.getElementById('listings-title').style.display = 'block';
-        wrap.innerHTML = listings.map(l => `
-          <div class="listing-card">
-            <span class="type-badge">${l.type}</span>
-            <h3>${l.title}</h3>
-            <p style="margin:4px 0;font-size:13px;color:#6b7280">
-              <strong>Geo:</strong> ${l.geo || '&mdash;'} | <strong>Stadt:</strong> ${l.city || '&mdash;'}
-            </p>
-            <div>${(l.tags||[]).map(t => '<span class="tag">' + t + '</span>').join('')}</div>
+    function starsHtml(rating) {
+      const r = parseFloat(rating) || 0;
+      const full = Math.floor(r);
+      let s = '';
+      for (let i = 1; i <= 5; i++) s += i <= full ? '&#9733;' : '&#9734;';
+      return s;
+    }
+
+    function renderProfile(data) {
+      const p = data.profile;
+      const wrap = document.getElementById('profile-wrap');
+      if (!p) { wrap.innerHTML = '<div class="empty">Profil nicht gefunden.</div>'; return; }
+      const letter = (p.company_name || '?')[0].toUpperCase();
+      const ratingHtml = data.avg_rating
+        ? `<div class="rating-summary"><span class="rating-stars">${starsHtml(data.avg_rating)}</span><span>${parseFloat(data.avg_rating).toFixed(1)}</span><span class="rating-count">(${data.rating_count} Bewertung${data.rating_count !== 1 ? 'en' : ''})</span></div>`
+        : '<div class="rating-count" style="margin:6px 0">Noch keine Bewertungen</div>';
+      wrap.innerHTML = `
+        <div class="profile-header">
+          ${p.logo_url
+            ? '<img src="' + escH(p.logo_url) + '" style="width:72px;height:72px;border-radius:50%;object-fit:cover">'
+            : '<div class="avatar">' + letter + '</div>'}
+          <div class="profile-meta">
+            <h2>${escH(p.company_name || 'Unbekannter Provider')}</h2>
+            ${ratingHtml}
+            ${p.description ? '<p>' + escH(p.description) + '</p>' : ''}
+            ${p.website ? '<p>&#x1F310; <a href="' + escH(p.website) + '" target="_blank" rel="noopener noreferrer">' + escH(p.website) + '</a></p>' : ''}
+            ${p.contact_email ? '<p>&#x2709; <a href="mailto:' + escH(p.contact_email) + '">' + escH(p.contact_email) + '</a></p>' : ''}
+            ${auth.getToken() ? '<a class="contact-btn" href="messages.html?to=' + encodeURIComponent(userId) + '">&#x1F4AC; Kontaktieren</a>' : ''}
+          </div>
+        </div>`;
+    }
+
+    function renderListings(listings) {
+      const section = document.getElementById('listings-section');
+      const wrap = document.getElementById('listings-wrap');
+      section.style.display = 'block';
+      if (!listings.length) { wrap.innerHTML = '<div class="empty">Keine aktiven Listings.</div>'; return; }
+      wrap.innerHTML = listings.map(l => `
+        <div class="listing-card">
+          <span class="type-badge">${escH(l.type)}</span>
+          <h3>${escH(l.title)}</h3>
+          <p style="margin:4px 0;font-size:13px;color:#6b7280">
+            <strong>Geo:</strong> ${escH(l.geo || '—')} | <strong>Stadt:</strong> ${escH(l.city || '—')}
+          </p>
+          <div>${parseTags(l.tags).map(t => '<span class="tag">' + escH(t) + '</span>').join('')}</div>
+        </div>`).join('');
+    }
+
+    function renderRatings(ratings) {
+      const section = document.getElementById('ratings-section');
+      const wrap = document.getElementById('ratings-wrap');
+      section.style.display = 'block';
+
+      if (!ratings.length) {
+        wrap.innerHTML = '<div class="empty">Noch keine Bewertungen.</div>';
+      } else {
+        wrap.innerHTML = ratings.map(r => `
+          <div class="review-card">
+            <span class="stars">${starsHtml(r.rating)}</span>
+            <div class="meta">${escH(r.rater_name || 'Anonym')} &bull; ${new Date(r.created_at).toLocaleDateString('de-DE')}</div>
+            ${r.comment ? '<p>' + escH(r.comment) + '</p>' : ''}
           </div>`).join('');
-      } catch(ex) {
-        document.getElementById('listings-wrap').innerHTML = '<div class="empty">Error loading listings: ' + ex.message + '</div>';
       }
+
+      // Show rating form for logged-in non-providers
+      const user = auth.getUser();
+      if (user && user.id != userId && user.role !== 'admin') {
+        setupRatingForm();
+      }
+    }
+
+    function setupRatingForm() {
+      document.getElementById('rate-box').style.display = 'block';
+      const container = document.getElementById('star-btns');
+      for (let i = 1; i <= 5; i++) {
+        const btn = document.createElement('button');
+        btn.innerHTML = '&#9733;';
+        btn.dataset.val = i;
+        btn.addEventListener('click', () => {
+          selectedRating = i;
+          container.querySelectorAll('button').forEach((b, idx) => {
+            b.classList.toggle('active', idx < i);
+          });
+        });
+        container.appendChild(btn);
+      }
+      document.getElementById('rate-submit').addEventListener('click', async () => {
+        const msgEl = document.getElementById('rate-msg');
+        if (!selectedRating) { msgEl.textContent = 'Bitte Sterne auswählen'; msgEl.style.color = 'red'; return; }
+        const comment = document.getElementById('rate-comment').value.trim();
+        try {
+          await ProvidersAPI.submitRating(userId, selectedRating, comment || null, null);
+          msgEl.textContent = 'Bewertung gespeichert!';
+          msgEl.style.color = 'green';
+          document.getElementById('rate-box').style.display = 'none';
+          // Reload ratings
+          const d = await ProvidersAPI.getRatings(userId);
+          renderRatings(d.ratings || []);
+          // Reload avg
+          const pd = await ProvidersAPI.getProfile(userId);
+          renderProfile(pd);
+        } catch(ex) {
+          msgEl.textContent = ex.message;
+          msgEl.style.color = 'red';
+        }
+      });
+    }
+
+    function parseTags(tags) {
+      if (!tags) return [];
+      if (Array.isArray(tags)) return tags;
+      try { return JSON.parse(tags); } catch { return []; }
+    }
+    function escH(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
   </script>
 </body>

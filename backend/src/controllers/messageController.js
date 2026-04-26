@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const sseService = require('../services/sseService');
+const { notifyContactReceived } = require("../services/notificationService");
 
 const sendMessage = async (req, res) => {
   try {
@@ -22,7 +23,14 @@ const sendMessage = async (req, res) => {
       preview: body.trim().slice(0, 80),
     });
 
-    res.status(201).json({ message: msg });
+    // K-21: Email notify provider of new contact
+    if (listing_id) {
+      db.query("SELECT * FROM listings WHERE id = \\", [listing_id]).then(lr=>{
+        const l = lr.rows[0];
+        if (l) notifyContactReceived(l, recipient_id, req.user.name||req.user.email, body.trim().slice(0,200)).catch(console.error);
+      }).catch(()=>{});
+    }
+        res.status(201).json({ message: msg });
   } catch (err) {
     console.error('sendMessage error:', err);
     res.status(500).json({ error: 'Failed to send message' });
@@ -96,5 +104,21 @@ const getUnreadCount = async (req, res) => {
     res.status(500).json({ error: 'Failed to get unread count' });
   }
 };
+const markAsRead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await db.query(
+      'UPDATE messages SET is_read=TRUE WHERE id=$1 AND recipient_id=$2 RETURNING id, is_read',
+      [id, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Message not found or not authorized' });
+    }
+    res.json({ message: result.rows[0] });
+  } catch (err) {
+    console.error('markAsRead error:', err);
+    res.status(500).json({ error: 'Failed to mark message as read' });
+  }
+};
 
-module.exports = { sendMessage, getThreads, getThread, getUnreadCount };
+module.exports = { sendMessage, getThreads, getThread, getUnreadCount, markAsRead };
