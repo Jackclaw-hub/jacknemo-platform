@@ -29,6 +29,7 @@ app.use(checkBlacklist);
 
 // K-26: Public landing page
 app.use(express.static(require('path').join(__dirname, '../public')));
+app.use(express.static(require('path').join(__dirname, '../../frontend')));
 
 app.get("/health", (req, res) => res.json({ status: "ok", ts: new Date().toISOString() }));
 
