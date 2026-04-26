@@ -5,6 +5,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const { securityHeaders, apiRateLimiter } = require('./middleware/security');
 
+const { setupSwagger } = require("./swagger");
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -48,6 +49,9 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// Swagger UI
+setupSwagger(app);
 
 // 404 handler
 app.use((req, res) => {
