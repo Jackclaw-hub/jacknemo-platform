@@ -96,5 +96,21 @@ const getUnreadCount = async (req, res) => {
     res.status(500).json({ error: 'Failed to get unread count' });
   }
 };
+const markAsRead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await db.query(
+      'UPDATE messages SET is_read=TRUE WHERE id=$1 AND recipient_id=$2 RETURNING id, is_read',
+      [id, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Message not found or not authorized' });
+    }
+    res.json({ message: result.rows[0] });
+  } catch (err) {
+    console.error('markAsRead error:', err);
+    res.status(500).json({ error: 'Failed to mark message as read' });
+  }
+};
 
-module.exports = { sendMessage, getThreads, getThread, getUnreadCount };
+module.exports = { sendMessage, getThreads, getThread, getUnreadCount, markAsRead };
