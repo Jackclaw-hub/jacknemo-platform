@@ -1,1 +1,1 @@
-Implemented scoring v2 backend logic
+Scoring v2 backend logic implemented

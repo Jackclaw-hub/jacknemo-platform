@@ -42,7 +42,7 @@ const createListing = async (req, res) => {
 
 const getListings = async (req, res) => {
   try {
-    const { type, geo, starterFriendly, search, status } = req.query;
+    const { type, geo, starterFriendly, search, status, premium } = req.query;
 
     if (search && search.trim()) {
       const listings = await Listing.search(search.trim());
@@ -53,6 +53,7 @@ const getListings = async (req, res) => {
     if (type) filters.type = type;
     if (geo) filters.geo = geo;
     if (starterFriendly === 'true') filters.starterFriendly = true;
+    if (premium === 'true') filters.is_premium = true;
 
     const listings = await Listing.findAll(filters);
     res.json({ listings, count: listings.length });
@@ -128,4 +129,31 @@ const getMyListings = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings };
+
+// K-20: Premium Listings — admin can promote/demote
+const promoteListing = async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    const duration_days = parseInt(req.body.duration_days) || 30;
+    const listing = await Listing.setPremium(req.params.id, true, duration_days);
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    res.json({ listing, message: `Promoted to premium for ${duration_days} days` });
+  } catch (err) {
+    console.error('promoteListing error:', err);
+    res.status(500).json({ error: 'Failed to promote listing' });
+  }
+};
+
+const demoteListing = async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    const listing = await Listing.setPremium(req.params.id, false, 0);
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    res.json({ listing, message: 'Premium status removed' });
+  } catch (err) {
+    console.error('demoteListing error:', err);
+    res.status(500).json({ error: 'Failed to demote listing' });
+  }
+};
+
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing };

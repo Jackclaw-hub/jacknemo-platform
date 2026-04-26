@@ -176,7 +176,48 @@ const refreshToken = async (req, res) => {
 };
 
 const logout = async (req, res) => {
+  // Blacklist the current token on logout
+  const { blacklistToken } = require('../middleware/security');
+  const auth = req.headers.authorization;
+  if (auth && auth.startsWith('Bearer ')) blacklistToken(auth.slice(7));
   res.json({ message: 'Logout successful' });
 };
 
-module.exports = { register, login, getProfile, updateProfile, verifyEmail, resendVerification, refreshToken, logout };
+// K-22: Password Reset — mock (kein echter Email-Service, zeigt Reset-Token im Response für dev)
+const requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    const user = await User.findByEmail(email);
+    if (!user) return res.json({ message: 'If that email exists, a reset link was sent' });
+    const token = require('crypto').randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 3600000).toISOString();
+    await User.setResetToken(user.id, token, expires);
+    const isDev = process.env.NODE_ENV !== 'production';
+    res.json({ message: 'If that email exists, a reset link was sent', ...(isDev && { dev_token: token, dev_expires: expires }) });
+  } catch (err) {
+    console.error('requestPasswordReset error:', err);
+    res.status(500).json({ error: 'Failed to process request' });
+  }
+};
+
+const confirmPasswordReset = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'token and password required' });
+    if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    const user = await User.findByResetToken(token);
+    if (!user) return res.status(400).json({ error: 'Invalid or expired reset token' });
+    const authInst = new NativeAuth();
+    const hash = await authInst.hashPassword(password);
+    await User.updatePassword(user.id, hash);
+    res.json({ message: 'Password reset successful' });
+  } catch (err) {
+    console.error('confirmPasswordReset error:', err);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+};
+
+module.exports = {
+  requestPasswordReset,
+  confirmPasswordReset, register, login, getProfile, updateProfile, verifyEmail, resendVerification, refreshToken, logout };

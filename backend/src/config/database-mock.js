@@ -1,13 +1,29 @@
 // Mock database for testing without PostgreSQL
 class MockDatabase {
   constructor() {
-    this.users = [];
+    // Seed admin user for development (password: admin2026!)
+    // bcrypt hash generated at startup to avoid hard-coding
+    const crypto = require('crypto');
+    const adminId = 9999;
+    this.users = [{
+      id: adminId,
+      email: 'admin@nemoclaw.dev',
+      password_hash: 'pbkdf2$100000$9955115f1bfbfd437a9ca43b98e1fad0$bdc7e1d66dcf26984b8d0c88a3f579b8ab7866626f6d46ada7bac352c2ff3a4c7e4dc9561dbaef43a3877e4595929dcd995635a28c21eb3cf86968f3370c041e', // admin2026!
+      role: 'admin',
+      name: 'NemoClaw Admin',
+      email_verified: true,
+      verification_token: null,
+      referral_code: 'ADMIN99',
+      referred_by: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }];
     this.listings = [];
     this.providerProfiles = [];
     this.founderProfiles = [];
     this.messages = [];
     this.ratings = [];
-    this.nextUserId = 1;
+    this.nextUserId = 10000;
     this.nextListingId = 1;
     this.nextMessageId = 1;
     this.nextRatingId = 1;
@@ -23,6 +39,11 @@ class MockDatabase {
         if (sql.includes('email = $1')) { const u = this.users.find(u => u.email === params[0]); return { rows: u ? [u] : [] }; }
         if (sql.includes('verification_token = $1')) { const u = this.users.find(u => u.verification_token === params[0]); return { rows: u ? [u] : [] }; }
         if (sql.includes('referral_code = $1')) { const u = this.users.find(u => u.referral_code === params[0]); return { rows: u ? [u] : [] }; }
+        if (sql.includes('reset_token = $1')) {
+          const now = new Date().toISOString();
+          const u = this.users.find(u => u.reset_token === params[0] && u.reset_expires > now);
+          return { rows: u ? [u] : [] };
+        }
         if (sql.includes('id = $1')) { const u = this.users.find(u => u.id === params[0]); return { rows: u ? [u] : [] }; }
         return { rows: this.users };
       }
@@ -45,13 +66,24 @@ class MockDatabase {
         return { rows: [user] };
       }
       if (s.startsWith('UPDATE')) {
+        if (sl.includes('reset_token') && sl.includes('reset_expires') && !sl.includes('password_hash')) {
+          const id = params[2];
+          const idx = this.users.findIndex(u => u.id === id || u.id == id);
+          if (idx >= 0) { this.users[idx].reset_token = params[0]; this.users[idx].reset_expires = params[1]; }
+          return { rows: [] };
+        }
+        if (sl.includes('password_hash') && sl.includes('reset_token')) {
+          const id = params[1];
+          const idx = this.users.findIndex(u => u.id === id || u.id == id);
+          if (idx >= 0) { this.users[idx].password_hash = params[0]; this.users[idx].reset_token = null; this.users[idx].reset_expires = null; }
+          return { rows: [] };
+        }
         const id = params[params.length - 1];
         const idx = this.users.findIndex(u => u.id === id);
         if (idx < 0) return { rows: [] };
         const u = { ...this.users[idx] };
         if (params.includes(true)) u.email_verified = true;
         if (params.includes(null)) u.verification_token = null;
-        // Handle name update
         if (sql.includes('name =') && typeof params[0] === 'string' && !params[0].includes('@')) u.name = params[0];
         u.updated_at = new Date();
         this.users[idx] = u;
@@ -193,11 +225,18 @@ class MockDatabase {
         if (sql.includes('type =')) rows = rows.filter(x => x.type === params[pi++]);
         if (sql.includes('geo =')) rows = rows.filter(x => x.geo === params[pi++]);
         if (sql.includes('starter_friendly =')) rows = rows.filter(x => x.starter_friendly === params[pi++]);
-        rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        if (sql.includes('is_premium =')) rows = rows.filter(x => x.is_premium === params[pi++]);
+        rows.sort((a, b) => {
+          const aPremium = a.is_premium && (!a.premium_expires_at || a.premium_expires_at > new Date().toISOString());
+          const bPremium = b.is_premium && (!b.premium_expires_at || b.premium_expires_at > new Date().toISOString());
+          if (aPremium && !bPremium) return -1;
+          if (!aPremium && bPremium) return 1;
+          return new Date(b.created_at) - new Date(a.created_at);
+        });
         return { rows };
       }
       if (s.startsWith('INSERT')) {
-        const l = { id: this.nextListingId++, type: params[0], title: params[1], description: params[2], provider_id: params[3], provider_role: params[4], geo: params[5], city: params[6], tags: params[7], stages: params[8], sectors: params[9], starter_friendly: params[10], hourly_rate: params[11], daily_rate: params[12], from_price: params[13], status: params[14], featured: false, view_count: 0, contact_count: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        const l = { id: this.nextListingId++, type: params[0], title: params[1], description: params[2], provider_id: params[3], provider_role: params[4], geo: params[5], city: params[6], tags: params[7], stages: params[8], sectors: params[9], starter_friendly: params[10], hourly_rate: params[11], daily_rate: params[12], from_price: params[13], status: params[14], featured: false, is_premium: false, premium_expires_at: null, view_count: 0, contact_count: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
         this.listings.push(l);
         return { rows: [l] };
       }
@@ -213,6 +252,15 @@ class MockDatabase {
           const idx = this.listings.findIndex(x => x.id == id);
           if (idx >= 0) this.listings[idx].contact_count = (this.listings[idx].contact_count || 0) + 1;
           return { rows: [] };
+        }
+        if (sql.includes('SET is_premium')) {
+          const id = params[2];
+          const idx = this.listings.findIndex(x => x.id == id);
+          if (idx < 0) return { rows: [] };
+          this.listings[idx].is_premium = params[0];
+          this.listings[idx].premium_expires_at = params[1];
+          this.listings[idx].updated_at = new Date().toISOString();
+          return { rows: [this.listings[idx]] };
         }
         if (sql.includes('SET featured')) {
           const featured = params[0];

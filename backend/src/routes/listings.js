@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
-const { apiRateLimiter } = require('../middleware/security');
+const { apiRateLimiter, validateListing } = require('../middleware/security');
 const {
   createListing, getListings, getListing, contactListing,
-  updateListing, deleteListing, getMyListings
+  updateListing, deleteListing, getMyListings, promoteListing, demoteListing
 } = require('../controllers/listingsController');
 
 // SSE clients registry (in-memory, resets on restart — sufficient for polling fallback)
@@ -71,9 +71,13 @@ router.get('/', apiRateLimiter, getListings);
 router.get('/:id', apiRateLimiter, getListing);
 router.post('/:id/contact', authenticateToken, contactListing);
 
+// Admin: premium management (K-20)
+router.patch('/:id/premium', authenticateToken, promoteListing);
+router.delete('/:id/premium', authenticateToken, demoteListing);
+
 // Protected routes (provider only)
-router.post('/', authenticateToken, createListing);
-router.put('/:id', authenticateToken, updateListing);
+router.post('/', authenticateToken, validateListing, createListing);
+router.put('/:id', authenticateToken, validateListing, updateListing);
 router.delete('/:id', authenticateToken, deleteListing);
 
 module.exports = router;

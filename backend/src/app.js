@@ -4,7 +4,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 
-const { securityHeaders } = require("./middleware/security");
+const { securityHeaders, sanitizeBody, checkBlacklist } = require("./middleware/security");
 const authRouter = require("./routes/auth");
 const foundersRouter = require("./routes/founders");
 const listingsRouter = require("./routes/listings");
@@ -24,6 +24,11 @@ app.use(cors({
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("combined"));
 app.use(securityHeaders);
+app.use(sanitizeBody);
+app.use(checkBlacklist);
+
+// K-26: Public landing page
+app.use(express.static(require('path').join(__dirname, '../public')));
 
 app.get("/health", (req, res) => res.json({ status: "ok", ts: new Date().toISOString() }));
 

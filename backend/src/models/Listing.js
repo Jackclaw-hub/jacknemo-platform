@@ -112,6 +112,17 @@ class Listing {
     );
   }
 
+
+  static async setPremium(id, isPremium, durationDays = 30) {
+    const expiresAt = isPremium
+      ? new Date(Date.now() + durationDays * 86400000).toISOString()
+      : null;
+    const result = await pool.query(
+      "UPDATE listings SET is_premium = $1, premium_expires_at = $2, updated_at = NOW() WHERE id = $3 RETURNING *",
+      [isPremium, expiresAt, id]
+    );
+    return result.rows[0] || null;
+  }
   static async incrementContact(id) {
     await pool.query(
       "UPDATE listings SET contact_count = COALESCE(contact_count,0) + 1 WHERE id = $1",
