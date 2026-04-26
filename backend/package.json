@@ -30,5 +30,11 @@
     "node": ">=18.0.0"
   },
   "author": "JackNemo Team",
-  "license": "MIT"
+  "license": "MIT",
+  "jest": {
+    "testRegex": "tests/.*\\.test\\.js$",
+    "testPathIgnorePatterns": [
+      "/node_modules/"
+    ]
+  }
 }
