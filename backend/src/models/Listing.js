@@ -1,15 +1,14 @@
-// Use mock database (PG credentials pending from Ahmad)
 const pool = require("../config/database");
 
 class Listing {
   static async create(data) {
-    const { 
+    const {
       type, title, description, providerId, providerRole, geo, city,
       tags, stages, sectors, starterFriendly, hourlyRate, dailyRate, fromPrice, status
     } = data;
 
     const query = `
-      INSERT INTO listings 
+      INSERT INTO listings
         (type, title, description, provider_id, provider_role, geo, city,
          tags, stages, sectors, starter_friendly, hourly_rate, daily_rate, from_price, status, created_at, updated_at)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, NOW(), NOW())
@@ -30,10 +29,21 @@ class Listing {
     const values = [status];
     let idx = 2;
     if (type) { query += ` AND type = $${idx++}`; values.push(type); }
-    if (geo) { query += ` AND geo = $${idx++}`; values.push(geo); }
+    if (geo)  { query += ` AND geo = $${idx++}`;  values.push(geo); }
     if (starterFriendly === true) { query += ` AND starter_friendly = $${idx++}`; values.push(true); }
     query += ' ORDER BY created_at DESC';
     const result = await pool.query(query, values);
+    return result.rows;
+  }
+
+  static async search(term) {
+    const like = `%${term.toLowerCase()}%`;
+    const result = await pool.query(
+      `SELECT * FROM listings WHERE status = 'active' AND (
+        LOWER(title) LIKE $1 OR LOWER(description) LIKE $1 OR LOWER(city) LIKE $1
+      ) ORDER BY created_at DESC`,
+      [like]
+    );
     return result.rows;
   }
 
@@ -65,7 +75,7 @@ class Listing {
     if (!sets.length) return null;
     sets.push(`updated_at = NOW()`);
     values.push(id, providerId);
-    const query = `UPDATE listings SET ${sets.join(', ')} 
+    const query = `UPDATE listings SET ${sets.join(', ')}
                    WHERE id = $${idx++} AND provider_id = $${idx++} RETURNING *`;
     const result = await pool.query(query, values);
     return result.rows[0] || null;
@@ -77,6 +87,7 @@ class Listing {
     );
     return result.rows[0] || null;
   }
+
   static async updateStatus(id, status, rejectionReason = null) {
     const query = rejectionReason
       ? "UPDATE listings SET status = $1, description = description || $2, updated_at = NOW() WHERE id = $3 RETURNING *"
@@ -86,6 +97,38 @@ class Listing {
     return result.rows[0] || null;
   }
 
+  static async setFeatured(id, featured) {
+    const result = await pool.query(
+      "UPDATE listings SET featured = $1, updated_at = NOW() WHERE id = $2 RETURNING *",
+      [featured, id]
+    );
+    return result.rows[0] || null;
+  }
+
+  static async incrementView(id) {
+    await pool.query(
+      "UPDATE listings SET view_count = COALESCE(view_count,0) + 1 WHERE id = $1",
+      [id]
+    );
+  }
+
+
+  static async setPremium(id, isPremium, durationDays = 30) {
+    const expiresAt = isPremium
+      ? new Date(Date.now() + durationDays * 86400000).toISOString()
+      : null;
+    const result = await pool.query(
+      "UPDATE listings SET is_premium = $1, premium_expires_at = $2, updated_at = NOW() WHERE id = $3 RETURNING *",
+      [isPremium, expiresAt, id]
+    );
+    return result.rows[0] || null;
+  }
+  static async incrementContact(id) {
+    await pool.query(
+      "UPDATE listings SET contact_count = COALESCE(contact_count,0) + 1 WHERE id = $1",
+      [id]
+    );
+  }
 }
 
 module.exports = Listing;

@@ -1,7 +1,8 @@
-const db = require('../config/database');
 const Listing = require('../models/Listing');
 
 const PROVIDER_ROLES = ['equipment_provider', 'service_provider'];
+const VALID_GEO = ['local', 'regional', 'national', 'remote', 'global'];
+const VALID_TYPES = ['equipment', 'service'];
 
 const createListing = async (req, res) => {
   try {
@@ -15,23 +16,11 @@ const createListing = async (req, res) => {
     if (!type || !title || !geo) {
       return res.status(400).json({ error: 'Missing required fields: type, title, geo' });
     }
-
-    const validTypes = ['equipment', 'service'];
-    if (!validTypes.includes(type)) {
+    if (!VALID_TYPES.includes(type)) {
       return res.status(400).json({ error: 'type must be equipment or service' });
     }
-
-    const validGeo = ['regional', 'remote', 'global'];
-    if (!validGeo.includes(geo)) {
-      return res.status(400).json({ error: 'geo must be regional, remote, or global' });
-    }
-
-    // Role-type consistency check
-    if (type === 'equipment' && req.user.role !== 'equipment_provider') {
-      return res.status(403).json({ error: 'Only equipment_providers can create equipment listings' });
-    }
-    if (type === 'service' && req.user.role !== 'service_provider') {
-      return res.status(403).json({ error: 'Only service_providers can create service listings' });
+    if (!VALID_GEO.includes(geo)) {
+      return res.status(400).json({ error: `geo must be one of: ${VALID_GEO.join(', ')}` });
     }
 
     const listing = await Listing.create({
@@ -53,11 +42,18 @@ const createListing = async (req, res) => {
 
 const getListings = async (req, res) => {
   try {
-    const { type, geo, starterFriendly } = req.query;
-    const filters = {};
+    const { type, geo, starterFriendly, search, status, premium } = req.query;
+
+    if (search && search.trim()) {
+      const listings = await Listing.search(search.trim());
+      return res.json({ listings, count: listings.length });
+    }
+
+    const filters = { status: status || 'active' };
     if (type) filters.type = type;
     if (geo) filters.geo = geo;
     if (starterFriendly === 'true') filters.starterFriendly = true;
+    if (premium === 'true') filters.is_premium = true;
 
     const listings = await Listing.findAll(filters);
     res.json({ listings, count: listings.length });
@@ -71,10 +67,24 @@ const getListing = async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id);
     if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    // Increment view count (fire-and-forget, don't block response)
+    Listing.incrementView(req.params.id).catch(() => {});
     res.json({ listing });
   } catch (err) {
     console.error('getListing error:', err);
     res.status(500).json({ error: 'Failed to fetch listing' });
+  }
+};
+
+const contactListing = async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    Listing.incrementContact(req.params.id).catch(() => {});
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('contactListing error:', err);
+    res.status(500).json({ error: 'Failed to record contact' });
   }
 };
 
@@ -120,30 +130,30 @@ const getMyListings = async (req, res) => {
 };
 
 
-
-// Track listing view (no auth)
-const trackView = async (req, res) => {
+// K-20: Premium Listings — admin can promote/demote
+const promoteListing = async (req, res) => {
   try {
-    const result = await db.query(
-      'UPDATE listings SET view_count = COALESCE(view_count,0)+1 WHERE id=$1 RETURNING id, view_count',
-      [req.params.id]
-    );
-    if (!result.rows.length) return res.status(404).json({ error: 'Listing not found' });
-    res.json({ id: req.params.id, view_count: result.rows[0].view_count });
-  } catch(err) { res.status(500).json({ error: 'Failed to track view' }); }
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    const duration_days = parseInt(req.body.duration_days) || 30;
+    const listing = await Listing.setPremium(req.params.id, true, duration_days);
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    res.json({ listing, message: `Promoted to premium for ${duration_days} days` });
+  } catch (err) {
+    console.error('promoteListing error:', err);
+    res.status(500).json({ error: 'Failed to promote listing' });
+  }
 };
 
-// Track contact click (founder auth)
-const trackContact = async (req, res) => {
+const demoteListing = async (req, res) => {
   try {
-    const result = await db.query(
-      'UPDATE listings SET contact_count = COALESCE(contact_count,0)+1 WHERE id=$1 RETURNING id, contact_count',
-      [req.params.id]
-    );
-    if (!result.rows.length) return res.status(404).json({ error: 'Listing not found' });
-    res.json({ id: req.params.id, contact_count: result.rows[0].contact_count });
-  } catch(err) { res.status(500).json({ error: 'Failed to track contact' }); }
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    const listing = await Listing.setPremium(req.params.id, false, 0);
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    res.json({ listing, message: 'Premium status removed' });
+  } catch (err) {
+    console.error('demoteListing error:', err);
+    res.status(500).json({ error: 'Failed to demote listing' });
+  }
 };
 
-// Provider: get own listings with analytics
-module.exports = { trackView, trackContact, getMyListings, createListing, getListings, getListing, updateListing, deleteListing, getMyListings };
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing };

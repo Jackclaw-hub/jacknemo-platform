@@ -8,7 +8,9 @@ const {
   verifyEmail,
   resendVerification,
   refreshToken,
-  logout
+  logout,
+  requestPasswordReset,
+  confirmPasswordReset
 } = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');
 const { authRateLimiter, registrationRateLimiter } = require('../middleware/security');
@@ -36,5 +38,11 @@ router.get('/verify/:token', verifyEmail);
 
 // POST /api/auth/resend-verification - Resend verification email (public)
 router.post('/resend-verification', resendVerification);
+
+// POST /api/auth/reset-password - Request reset (K-22)
+router.post('/reset-password', requestPasswordReset);
+
+// POST /api/auth/reset-password/confirm - Confirm reset (K-22)
+router.post('/reset-password/confirm', confirmPasswordReset);
 
 module.exports = router;
