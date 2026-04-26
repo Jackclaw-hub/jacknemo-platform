@@ -4,6 +4,7 @@
  */
 
 const express = require('express');
+const { setupSwagger } = require('./swagger');
 const cors = require('cors');
 const helmet = require('helmet');
 const dotenv = require('dotenv');
@@ -56,6 +57,7 @@ app.get('/', (req, res) => {
     });
 });
 
+setupSwagger(app);
 // 404 handler
 app.use((req, res) => {
     res.status(404).json({
