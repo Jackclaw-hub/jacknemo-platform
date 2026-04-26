@@ -176,6 +176,10 @@ const refreshToken = async (req, res) => {
 };
 
 const logout = async (req, res) => {
+  // Blacklist the current token on logout
+  const { blacklistToken } = require('../middleware/security');
+  const auth = req.headers.authorization;
+  if (auth && auth.startsWith('Bearer ')) blacklistToken(auth.slice(7));
   res.json({ message: 'Logout successful' });
 };
 
