@@ -27,6 +27,9 @@ app.use(securityHeaders);
 app.use(sanitizeBody);
 app.use(checkBlacklist);
 
+// K-26: Public landing page
+app.use(express.static(require('path').join(__dirname, '../public')));
+
 app.get("/health", (req, res) => res.json({ status: "ok", ts: new Date().toISOString() }));
 
 app.use("/api/auth", authRouter);
