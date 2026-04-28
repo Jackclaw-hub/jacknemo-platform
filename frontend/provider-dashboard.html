@@ -103,6 +103,15 @@
     </div>
   </div>
 
+  <!-- K-40: Analytics -->
+  <div class="profile-section">
+    <div class="card">
+      <h2>&#128202; Listing Analytics</h2>
+      <div id="analytics-totals" style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;font-size:14px"></div>
+      <div id="analytics-chart"></div>
+    </div>
+  </div>
+
   <div class="profile-section">
     <div class="card">
       <h2>&#x1F464; Mein Profil</h2>
@@ -304,6 +313,7 @@
 
     loadMyListings();
     loadProviderProfile();
+    loadAnalytics();
       } catch(ex) {
         err.style.display = 'block';
         err.textContent = ex.message;
@@ -312,6 +322,39 @@
 
     loadMyListings();
     connectSSE();
+
+    async function loadAnalytics() {
+      try {
+        const data = await api('GET', '/providers/analytics', null, auth.getToken());
+        const { listings, totals } = data;
+
+        // Totals row
+        document.getElementById('analytics-totals').innerHTML = [
+          ['Listings', totals.total_listings],
+          ['Total Views', totals.total_views],
+          ['Contacts', totals.total_contacts],
+          ['Premium Active', totals.premium_active]
+        ].map(([k,v]) => `<div style="background:#f3f4f6;border-radius:8px;padding:10px 16px;text-align:center"><div style="font-size:22px;font-weight:700;color:#4f46e5">${v}</div><div style="color:#6b7280;font-size:12px">${k}</div></div>`).join('');
+
+        // Bar chart (CSS bars, no library)
+        const chart = document.getElementById('analytics-chart');
+        if (!listings.length) { chart.innerHTML = '<p style="color:#9ca3af;font-size:13px">No listings yet.</p>'; return; }
+        const maxViews = Math.max(...listings.map(l => l.view_count || 0), 1);
+        chart.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+          '<tr style="color:#6b7280;font-size:11px;text-transform:uppercase"><th style="text-align:left;padding:4px 0">Listing</th><th style="text-align:right;padding:4px 8px">Views</th><th style="text-align:right;padding:4px 0">Contacts</th><th style="width:40%"></th></tr>' +
+          listings.slice(0, 10).map(l => {
+            const pct = Math.round(((l.view_count || 0) / maxViews) * 100);
+            const badge = l.is_premium ? ' <span style="background:#fef3c7;color:#92400e;font-size:10px;padding:1px 6px;border-radius:8px">Premium</span>' : '';
+            return `<tr>
+              <td style="padding:6px 0;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.title}${badge}</td>
+              <td style="text-align:right;padding:6px 8px;font-weight:600">${l.view_count || 0}</td>
+              <td style="text-align:right;padding:6px 0;color:#059669;font-weight:600">${l.contact_count || 0}</td>
+              <td style="padding:6px 0 6px 12px"><div style="background:#e5e7eb;border-radius:4px;height:10px"><div style="background:#4f46e5;border-radius:4px;height:10px;width:${pct}%"></div></div></td>
+            </tr>`;
+          }).join('') +
+          '</table>';
+      } catch(e) { /* analytics optional */ }
+    }
   </script>
 </body>
 </html>

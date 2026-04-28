@@ -79,4 +79,28 @@ async function adminVerifyProvider(req, res) {
     res.status(500).json({ error: 'Failed to update verification' });
   }
 }
-module.exports = { upsertProfile, getProfile, getProviderListings, requestVerification, adminVerifyProvider };
+
+// K-40: Provider analytics — per-listing stats for dashboard
+async function getProviderAnalytics(req, res) {
+  try {
+    const r = await db.query(
+      `SELECT id, title, type, status, view_count, contact_count, is_premium, premium_expires_at, created_at
+         FROM listings
+        WHERE provider_id = $1
+        ORDER BY created_at DESC`,
+      [req.user.id]
+    );
+    const listings = r.rows;
+    const totals = {
+      total_listings: listings.length,
+      total_views: listings.reduce((s, l) => s + (l.view_count || 0), 0),
+      total_contacts: listings.reduce((s, l) => s + (l.contact_count || 0), 0),
+      premium_active: listings.filter(l => l.is_premium).length
+    };
+    res.json({ listings, totals });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch analytics' });
+  }
+}
+
+module.exports = { upsertProfile, getProfile, getProviderListings, requestVerification, adminVerifyProvider, getProviderAnalytics };
