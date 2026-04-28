@@ -116,6 +116,17 @@
   <script>
     redirectIfNotLoggedIn();
     const user = auth.getUser();
+    // K-33: Gate dashboard — redirect to onboarding if profile not complete
+    (async () => {
+      try {
+        const r = await api('GET', '/founders/profile', null, auth.getToken());
+        if (!r.profile || !r.profile.company_name) throw new Error('incomplete');
+      } catch (_) {
+        if (location.pathname.indexOf('onboarding') === -1) {
+          location.replace('onboarding.html');
+        }
+      }
+    })();
     document.getElementById('user-name').textContent = user?.name || user?.email || '';
 
     let radarCache = null;
