@@ -14,6 +14,7 @@ const providersRouter = require("./routes/providers");
 const messagesRouter = require("./routes/messages");
 const { authenticateToken } = require("./middleware/auth");
 const paymentsRouter = require("./routes/payments");
+const { startPremiumExpiryCron } = require("./jobs/premiumExpiry");
 const { authLimiter, listingsWriteLimiter, messageLimiter, generalLimiter } = require("./middleware/rateLimiter");
 
 const app = express();
