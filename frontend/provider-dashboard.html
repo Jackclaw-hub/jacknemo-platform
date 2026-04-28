@@ -23,6 +23,14 @@
     .status-approved { background: #d1fae5; color: #065f46; }
     .status-rejected { background: #fee2e2; color: #991b1b; }
     .status-draft { background: #e0e7ff; color: #3730a3; }
+    .listing-actions { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-edit { padding: 4px 12px; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .btn-edit:hover { background: #e5e7eb; }
+    .btn-delete { padding: 4px 12px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .btn-delete:hover { background: #fecaca; }
+    .edit-form { display: none; margin-top: 10px; padding: 10px; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb; }
+    .edit-form input, .edit-form textarea, .edit-form select { width: 100%; box-sizing: border-box; padding: 6px 8px; margin-bottom: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px; }
+    .btn-save { padding: 5px 14px; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
     .tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px; }
     .toast { position: fixed; top: 20px; right: 20px; padding: 14px 20px; border-radius: 8px; color: white; font-weight: 600; z-index: 9999; display: none; animation: fadeIn .3s; }
     .toast.show { display: block; }
@@ -226,7 +234,22 @@
             <p style="margin:6px 0 0;font-size:12px;color:#6b7280">
               &#x1F441; ${l.view_count||0} Aufrufe &nbsp;&bull;&nbsp; &#x1F4AC; ${l.contact_count||0} Kontakte
             </p>
-            ${l.status === 'draft' ? `<button onclick="publishListing(${l.id})" style="margin-top:8px;padding:5px 14px;background:#4f46e5;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px">&#x1F4E4; Veröffentlichen</button>` : ''}
+            <div class="listing-actions">
+              ${l.status === 'draft' ? `<button onclick="publishListing(${l.id})" style="padding:4px 12px;background:#4f46e5;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px">&#x1F4E4; Veröffentlichen</button>` : ''}
+              <button class="btn-edit" onclick="toggleEdit(${l.id})">&#x270E; Bearbeiten</button>
+              <button class="btn-delete" onclick="deleteListing(${l.id}, '${(l.title||'').replace(/'/g,'')}')">&#x1F5D1; Löschen</button>
+            </div>
+            <div class="edit-form" id="edit-form-${l.id}">
+              <input type="text" id="edit-title-${l.id}" value="${(l.title||'').replace(/"/g,'&quot;')}" placeholder="Titel">
+              <select id="edit-geo-${l.id}">
+                ${['local','regional','national','remote','global'].map(g => `<option value="${g}" ${l.geo===g?'selected':''}>${g}</option>`).join('')}
+              </select>
+              <input type="text" id="edit-city-${l.id}" value="${l.city||''}" placeholder="Stadt">
+              <input type="text" id="edit-tags-${l.id}" value="${(l.tags||[]).join(', ')}" placeholder="Tags">
+              <textarea id="edit-desc-${l.id}" rows="2" placeholder="Beschreibung">${l.description||''}</textarea>
+              <button class="btn-save" onclick="saveEdit(${l.id})">Speichern</button>
+              <button class="btn-edit" onclick="toggleEdit(${l.id})" style="margin-left:6px">Abbrechen</button>
+            </div>
           </div>
         `).join('');
       } catch(ex) {
@@ -264,6 +287,50 @@
       } catch (ex) {
         err.textContent = ex.message;
         err.style.display = 'block';
+      }
+    }
+
+    function toggleEdit(id) {
+      const form = document.getElementById('edit-form-' + id);
+      form.style.display = form.style.display === 'block' ? 'none' : 'block';
+    }
+
+    async function saveEdit(id) {
+      const title = document.getElementById('edit-title-' + id).value.trim();
+      const geo = document.getElementById('edit-geo-' + id).value;
+      const city = document.getElementById('edit-city-' + id).value.trim();
+      const tags = document.getElementById('edit-tags-' + id).value.split(',').map(t => t.trim()).filter(Boolean);
+      const description = document.getElementById('edit-desc-' + id).value.trim();
+      if (!title) { alert('Titel darf nicht leer sein.'); return; }
+      try {
+        const res = await fetch('/api/listings/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+          body: JSON.stringify({ title, geo, city, tags, description })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Fehler');
+        toggleEdit(id);
+        loadMyListings();
+      } catch (ex) {
+        alert('Fehler: ' + ex.message);
+      }
+    }
+
+    async function deleteListing(id, title) {
+      if (!confirm('Inserat "' + title + '" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
+      try {
+        const res = await fetch('/api/listings/' + id, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Fehler');
+        // Remove card from DOM immediately
+        const card = document.getElementById('listing-' + id);
+        if (card) card.remove();
+      } catch (ex) {
+        alert('Fehler: ' + ex.message);
       }
     }
 
