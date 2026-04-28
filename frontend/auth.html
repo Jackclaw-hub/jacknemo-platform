@@ -68,6 +68,27 @@
       <button type="submit">Einloggen</button>
     </form>
     <div class="toggle">Neu hier? <a onclick="showRegister()">Registrieren</a></div>
+    <div class="toggle" style="margin-top:4px"><a onclick="showReset()" style="font-size:13px;color:#6b7280">Passwort vergessen?</a></div>
+  </div>
+
+  <!-- K-46: Password Reset -->
+  <div id="reset-section" class="card" style="display:none">
+    <h2>Passwort zurücksetzen</h2>
+    <div id="reset-step1">
+      <p style="color:#6b7280;font-size:14px;margin-top:0">Gib deine E-Mail-Adresse ein. Du erhältst einen Link zum Zurücksetzen.</p>
+      <input type="email" id="reset-email" placeholder="E-Mail">
+      <div class="error" id="reset-error"></div>
+      <div id="reset-success" style="display:none;color:#059669;font-size:14px;margin:8px 0"></div>
+      <button id="reset-submit-btn" onclick="requestReset()">Reset-Link anfordern</button>
+    </div>
+    <div id="reset-step2" style="display:none">
+      <p style="color:#6b7280;font-size:14px;margin-top:0">Gib den Code aus der E-Mail und dein neues Passwort ein.</p>
+      <input type="text" id="reset-token" placeholder="Reset-Code">
+      <input type="password" id="reset-newpw" placeholder="Neues Passwort (min. 8 Zeichen)">
+      <div class="error" id="reset-confirm-error"></div>
+      <button onclick="confirmReset()">Passwort setzen</button>
+    </div>
+    <div class="toggle"><a onclick="showLogin()">Zurück zum Login</a></div>
   </div>
 
   <script src="api-client.js"></script>
@@ -90,6 +111,16 @@
 
     // Show login tab if URL has ?tab=login
     if (urlParams.get('tab') === 'login') showLogin();
+    // Show reset tab if URL has ?tab=reset (email link click)
+    const resetToken = urlParams.get('token');
+    if (urlParams.get('tab') === 'reset') {
+      showReset();
+      if (resetToken) {
+        document.getElementById('reset-step1').style.display = 'none';
+        document.getElementById('reset-step2').style.display = 'block';
+        document.getElementById('reset-token').value = resetToken;
+      }
+    }
 
     function redirectByRole(role, isNewUser) {
       if (role === 'founder') {
@@ -108,6 +139,71 @@
     function showRegister() {
       document.getElementById('register-section').style.display = 'block';
       document.getElementById('login-section').style.display = 'none';
+    }
+
+    function showReset() {
+      document.getElementById('register-section').style.display = 'none';
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('reset-section').style.display = 'block';
+    }
+
+    async function requestReset() {
+      const email = document.getElementById('reset-email').value.trim();
+      const err = document.getElementById('reset-error');
+      const ok = document.getElementById('reset-success');
+      const btn = document.getElementById('reset-submit-btn');
+      err.style.display = 'none'; ok.style.display = 'none';
+      if (!email) { err.textContent = 'E-Mail erforderlich.'; err.style.display = 'block'; return; }
+      btn.disabled = true; btn.textContent = 'Wird gesendet...';
+      try {
+        const res = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Fehler');
+        ok.textContent = data.message || 'Reset-Link gesendet!';
+        ok.style.display = 'block';
+        // Dev mode: token returned in response — show confirm step
+        if (data.dev_token) {
+          document.getElementById('reset-step1').style.display = 'none';
+          document.getElementById('reset-step2').style.display = 'block';
+          document.getElementById('reset-token').value = data.dev_token;
+        }
+      } catch (ex) {
+        err.textContent = ex.message;
+        err.style.display = 'block';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Reset-Link anfordern';
+      }
+    }
+
+    async function confirmReset() {
+      const token = document.getElementById('reset-token').value.trim();
+      const password = document.getElementById('reset-newpw').value;
+      const err = document.getElementById('reset-confirm-error');
+      err.style.display = 'none';
+      if (!token || !password) { err.textContent = 'Code und Passwort erforderlich.'; err.style.display = 'block'; return; }
+      if (password.length < 8) { err.textContent = 'Passwort muss mindestens 8 Zeichen haben.'; err.style.display = 'block'; return; }
+      try {
+        const res = await fetch('/api/auth/reset-password/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Ungültiger oder abgelaufener Code.');
+        alert('Passwort erfolgreich zurückgesetzt! Bitte jetzt einloggen.');
+        showLogin();
+        document.getElementById('reset-step1').style.display = 'block';
+        document.getElementById('reset-step2').style.display = 'none';
+        document.getElementById('reset-token').value = '';
+        document.getElementById('reset-newpw').value = '';
+      } catch (ex) {
+        err.textContent = ex.message;
+        err.style.display = 'block';
+      }
     }
 
     document.getElementById('register-form').addEventListener('submit', async (e) => {

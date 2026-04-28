@@ -48,6 +48,7 @@ const ListingsAPI = {
   getById: (id) => api('GET', '/listings/' + id),
   update: (id, data) => api('PUT', '/listings/' + id, data, auth.getToken()),
   delete: (id) => api('DELETE', '/listings/' + id, null, auth.getToken()),
+  contact: (id, message) => api('POST', '/listings/' + id + '/contact', { message }, auth.getToken()),
 };
 
 // Radar
