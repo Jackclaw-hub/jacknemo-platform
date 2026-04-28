@@ -334,6 +334,23 @@
       }
     }
 
+    // K-36: Sync filters to/from URL for shareable links
+    function pushFiltersToURL(params) {
+      const url = new URL(location.href);
+      ['stage', 'geo', 'city'].forEach(k => {
+        if (params[k]) url.searchParams.set(k, params[k]);
+        else url.searchParams.delete(k);
+      });
+      history.replaceState(null, '', url.toString());
+    }
+
+    function restoreFiltersFromURL() {
+      const p = new URLSearchParams(location.search);
+      if (p.get('stage')) document.getElementById('f-stage').value = p.get('stage');
+      if (p.get('geo'))   document.getElementById('f-geo').value   = p.get('geo');
+      if (p.get('city'))  document.getElementById('f-city').value  = p.get('city');
+    }
+
     async function loadRadar() {
       const params = {};
       const stage = document.getElementById('f-stage').value;
@@ -342,6 +359,7 @@
       if (stage) params.stage = stage;
       if (geo) params.geo = geo;
       if (city) params.city = city;
+      pushFiltersToURL(params);
       document.getElementById('results').innerHTML = '<div class="spinner">&#x26A1; Lade Radar...</div>';
       try {
         const data = await RadarAPI.getResults(params);
@@ -358,6 +376,7 @@
       }
     }
 
+    restoreFiltersFromURL();
     loadRadar();
   </script>
 </body>

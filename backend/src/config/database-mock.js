@@ -102,6 +102,24 @@ class MockDatabase {
         }
         return { rows: this.providerProfiles };
       }
+      if (s.startsWith('UPDATE')) {
+        // K-35: verification update — UPDATE provider_profiles SET ... WHERE user_id = 
+        const userId = params[params.length - 1];
+        const idx = this.providerProfiles.findIndex(x => x.user_id === userId || x.user_id == userId);
+        if (idx < 0) return { rows: [] };
+        if (sl.includes('verification_status') && sl.includes('is_verified')) {
+          // adminVerifyProvider: is_verified, verification_status, verification_reason, reviewed_at, user_id
+          this.providerProfiles[idx].is_verified = params[0];
+          this.providerProfiles[idx].verification_status = params[1];
+          this.providerProfiles[idx].verification_reason = params[2];
+          this.providerProfiles[idx].verification_reviewed_at = params[3];
+        } else if (sl.includes('verification_status')) {
+          // requestVerification: verification_status, requested_at, user_id
+          this.providerProfiles[idx].verification_status = params[0];
+          this.providerProfiles[idx].verification_requested_at = params[1];
+        }
+        return { rows: [this.providerProfiles[idx]] };
+      }
       const entry = {
         user_id: params[0],
         company_name: params[1] || null,
@@ -109,6 +127,8 @@ class MockDatabase {
         website: params[3] || null,
         contact_email: params[4] || null,
         logo_url: params[5] || null,
+        is_verified: false,
+        verification_status: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };

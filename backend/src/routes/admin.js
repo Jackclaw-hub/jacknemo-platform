@@ -1,3 +1,4 @@
+const { adminVerifyProvider } = require('../controllers/providerProfileController');
 const express = require('express');
 const router = express.Router();
 const { getPendingListings, approveListing, rejectListing, featureListing, unfeatureListing } = require('../controllers/adminController');
@@ -12,5 +13,8 @@ router.put('/listings/:id/reject', ...adminOnly, rejectListing);
 router.get('/analytics', ...adminOnly, getAnalytics);
 router.put('/listings/:id/feature', ...adminOnly, featureListing);
 router.put('/listings/:id/unfeature', ...adminOnly, unfeatureListing);
+
+// K-35: Admin approves/rejects provider verification
+router.patch('/providers/:userId/verify', ...adminOnly, adminVerifyProvider);
 
 module.exports = router;

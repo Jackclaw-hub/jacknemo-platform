@@ -106,6 +106,7 @@
   <div class="profile-section">
     <div class="card">
       <h2>&#x1F464; Mein Profil</h2>
+      <div id="verify-status"></div>
       <form id="profile-form">
         <label>Firmenname</label>
         <input type="text" id="p-company" placeholder="z.B. TechEquip GmbH">
@@ -249,8 +250,34 @@
           document.getElementById('p-desc').value = p.description || '';
           document.getElementById('p-website').value = p.website || '';
           document.getElementById('p-email').value = p.contact_email || '';
+          const verifyEl = document.getElementById('verify-status');
+          if (verifyEl) {
+            if (p.is_verified) {
+              verifyEl.textContent = '✓ Verified Provider';
+              verifyEl.style.cssText = 'color:#065f46;background:#d1fae5;padding:6px 12px;border-radius:6px;font-size:13px;display:inline-block;margin-top:8px;';
+            } else if (p.verification_status === 'pending') {
+              verifyEl.textContent = 'Verification pending review';
+              verifyEl.style.cssText = 'color:#92400e;background:#fef3c7;padding:6px 12px;border-radius:6px;font-size:13px;display:inline-block;margin-top:8px;';
+            } else {
+              const btn = document.createElement('button');
+              btn.textContent = 'Request Verified Badge';
+              btn.onclick = requestVerification;
+              btn.style.cssText = 'background:#4f46e5;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px;margin-top:8px;';
+              verifyEl.appendChild(btn);
+            }
+          }
         }
       } catch(e) { /* profile may not exist yet */ }
+    }
+
+    async function requestVerification() {
+      try {
+        await api('POST', '/providers/verify-request', {}, auth.getToken());
+        const el = document.getElementById('verify-status');
+        el.innerHTML = '';
+        el.textContent = 'Verification pending review';
+        el.style.cssText = 'color:#92400e;background:#fef3c7;padding:6px 12px;border-radius:6px;font-size:13px;display:inline-block;margin-top:8px;';
+      } catch(e) { alert('Error: ' + e.message); }
     }
 
     document.getElementById('profile-form').addEventListener('submit', async (e) => {

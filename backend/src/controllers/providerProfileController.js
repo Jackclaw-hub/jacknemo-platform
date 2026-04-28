@@ -50,4 +50,33 @@ const getProviderListings = async (req, res) => {
   }
 };
 
-module.exports = { upsertProfile, getProfile, getProviderListings };
+
+// K-35: Provider verification
+async function requestVerification(req, res) {
+  try {
+    await db.query(
+      'UPDATE provider_profiles SET verification_status = $1, verification_requested_at = $2 WHERE user_id = $3',
+      ['pending', new Date().toISOString(), req.user.id]
+    );
+    res.json({ message: 'Verification request submitted. Admin will review.' });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to submit verification request' });
+  }
+}
+
+async function adminVerifyProvider(req, res) {
+  const { userId } = req.params;
+  const { approve, reason } = req.body;
+  if (approve === undefined) return res.status(400).json({ error: 'approve (boolean) required' });
+  try {
+    const status = approve ? 'verified' : 'rejected';
+    await db.query(
+      'UPDATE provider_profiles SET is_verified = $1, verification_status = $2, verification_reason = $3, verification_reviewed_at = $4 WHERE user_id = $5',
+      [!!approve, status, reason || null, new Date().toISOString(), userId]
+    );
+    res.json({ userId, is_verified: !!approve, status });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to update verification' });
+  }
+}
+module.exports = { upsertProfile, getProfile, getProviderListings, requestVerification, adminVerifyProvider };
