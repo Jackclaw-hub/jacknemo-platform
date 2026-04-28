@@ -13,6 +13,7 @@ const adminRouter = require("./routes/admin");
 const providersRouter = require("./routes/providers");
 const messagesRouter = require("./routes/messages");
 const { authenticateToken } = require("./middleware/auth");
+const paymentsRouter = require("./routes/payments");
 const { authLimiter, listingsWriteLimiter, messageLimiter, generalLimiter } = require("./middleware/rateLimiter");
 
 const app = express();
@@ -33,6 +34,8 @@ app.use(express.static(require('path').join(__dirname, '../public')));
 app.use(express.static(require('path').join(__dirname, '../../frontend')));
 
 app.get("/health", (req, res) => res.json({ status: "ok", ts: new Date().toISOString() }));
+
+app.use("/api/payments", paymentsRouter);
 
 // K-32: Per-endpoint rate limiting
 app.use("/api/auth", authLimiter, authRouter);
