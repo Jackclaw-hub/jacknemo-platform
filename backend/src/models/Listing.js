@@ -24,16 +24,28 @@ class Listing {
     return result.rows[0];
   }
 
-  static async findAll({ type, geo, starterFriendly, status = 'active' } = {}) {
+  static async findAll({ type, geo, starterFriendly, tags, status = 'active' } = {}) {
     let query = 'SELECT * FROM listings WHERE status = $1';
     const values = [status];
     let idx = 2;
     if (type) { query += ` AND type = $${idx++}`; values.push(type); }
     if (geo)  { query += ` AND geo = $${idx++}`;  values.push(geo); }
     if (starterFriendly === true) { query += ` AND starter_friendly = $${idx++}`; values.push(true); }
+    // tags: comma-separated string or array — filter in-memory after query (mock + PG compatible)
     query += ' ORDER BY created_at DESC';
     const result = await pool.query(query, values);
-    return result.rows;
+    let rows = result.rows;
+    // Tag filter (works with both JSON array stored as string and real array)
+    if (tags) {
+      const filterTags = (Array.isArray(tags) ? tags : tags.split(',')).map(t => t.trim().toLowerCase()).filter(Boolean);
+      if (filterTags.length) {
+        rows = rows.filter(l => {
+          const lTags = Array.isArray(l.tags) ? l.tags : (typeof l.tags === 'string' ? JSON.parse(l.tags || '[]') : []);
+          return filterTags.some(ft => lTags.some(lt => lt.toLowerCase().includes(ft)));
+        });
+      }
+    }
+    return rows;
   }
 
   static async search(term) {

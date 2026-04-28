@@ -169,7 +169,7 @@
         '<span class="type-badge">' + (l.type || '&mdash;') + '</span>' + (l.is_featured ? '<span class="featured-chip">\u2B50 Featured</span>' : '') +
         '<h3 style="margin:8px 0 4px">' + l.title + '</h3>' +
         '<p style="margin:4px 0;color:#6b7280;font-size:13px"><strong>Geo:</strong> ' + (l.geo || '&mdash;') + ' | <strong>Stadt:</strong> ' + (l.city || '&mdash;') + '</p>' +
-        '<p>' + (l.tags || []).map(t => '<span class="tag">' + t + '</span>').join('') + '</p>' +
+        '<p>' + (l.tags || []).map(t => '<span class="tag" style="cursor:pointer" onclick="filterByTag(\'' + t + '\')" title="Filter: ' + t + '">' + t + '</span>').join('') + '</p>' +
         expHtml +
         '<button class="contact-btn ' + (contacted ? 'contacted' : '') + '" onclick="markContacted(' + l.id + ')" ' + (contacted ? 'disabled' : '') + '>' +
           (contacted ? '&#10003; Kontaktiert' : 'Kontaktieren') +

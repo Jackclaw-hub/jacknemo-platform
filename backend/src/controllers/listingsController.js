@@ -45,7 +45,7 @@ const createListing = async (req, res) => {
 
 const getListings = async (req, res) => {
   try {
-    const { type, geo, starterFriendly, search, status, premium } = req.query;
+    const { type, geo, starterFriendly, search, status, premium, tags } = req.query;
 
     if (search && search.trim()) {
       const listings = await Listing.search(search.trim());
@@ -57,6 +57,7 @@ const getListings = async (req, res) => {
     if (geo) filters.geo = geo;
     if (starterFriendly === 'true') filters.starterFriendly = true;
     if (premium === 'true') filters.is_premium = true;
+    if (tags) filters.tags = tags;
 
     const listings = await Listing.findAll(filters);
     res.json({ listings, count: listings.length });

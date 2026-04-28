@@ -255,6 +255,7 @@ class MockDatabase {
         if (sql.includes('geo =')) rows = rows.filter(x => x.geo === params[pi++]);
         if (sql.includes('starter_friendly =')) rows = rows.filter(x => x.starter_friendly === params[pi++]);
         if (sql.includes('is_premium =')) rows = rows.filter(x => x.is_premium === params[pi++]);
+        // K-49: tag filter — handled post-query by Listing.findAll() JS layer; mock doesn't need SQL-level filter
         rows.sort((a, b) => {
           const aPremium = a.is_premium && (!a.premium_expires_at || a.premium_expires_at > new Date().toISOString());
           const bPremium = b.is_premium && (!b.premium_expires_at || b.premium_expires_at > new Date().toISOString());
