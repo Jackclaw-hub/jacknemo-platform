@@ -11,7 +11,7 @@ const createListing = async (req, res) => {
     }
 
     const { type, title, description, geo, city, tags, stages, sectors,
-            starterFriendly, hourlyRate, dailyRate, fromPrice } = req.body;
+            starterFriendly, hourlyRate, dailyRate, fromPrice, imageUrl } = req.body;
 
     if (!type || !title || !geo) {
       return res.status(400).json({ error: 'Missing required fields: type, title, geo' });
@@ -30,7 +30,8 @@ const createListing = async (req, res) => {
       tags: tags || [], stages: stages || [], sectors: sectors || [],
       starterFriendly: Boolean(starterFriendly),
       hourlyRate: hourlyRate || null, dailyRate: dailyRate || null, fromPrice: fromPrice || null,
-      status: req.body.draft ? 'draft' : 'pending'
+      status: req.body.draft ? 'draft' : 'pending',
+      imageUrl: imageUrl || null
     });
 
     const msg = listing.status === 'draft'

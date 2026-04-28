@@ -170,6 +170,7 @@
         '<span class="type-badge">' + (l.type || '&mdash;') + '</span>' + (l.is_featured ? '<span class="featured-chip">\u2B50 Featured</span>' : '') +
         '<h3 style="margin:8px 0 4px">' + l.title + '</h3>' +
         '<p style="margin:4px 0;color:#6b7280;font-size:13px"><strong>Geo:</strong> ' + (l.geo || '&mdash;') + ' | <strong>Stadt:</strong> ' + (l.city || '&mdash;') + '</p>' +
+        (l.hourly_rate || l.daily_rate || l.from_price ? '<p style="margin:2px 0;font-size:13px;color:#059669;font-weight:600">' + (l.hourly_rate ? 'ab €' + l.hourly_rate + '/Std' : '') + (l.daily_rate ? (l.hourly_rate ? ' · ' : '') + 'ab €' + l.daily_rate + '/Tag' : '') + (l.from_price && !l.hourly_rate && !l.daily_rate ? 'ab €' + l.from_price : '') + '</p>' : '') +
         '<p>' + (l.tags || []).map(t => '<span class="tag" style="cursor:pointer" onclick="filterByTag(\'' + t + '\')" title="Filter: ' + t + '">' + t + '</span>').join('') + '</p>' +
         expHtml +
         '<button class="contact-btn ' + (contacted ? 'contacted' : '') + '" onclick="markContacted(' + l.id + ')" ' + (contacted ? 'disabled' : '') + '>' +

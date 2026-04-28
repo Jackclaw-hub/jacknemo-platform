@@ -154,10 +154,24 @@
         document.getElementById('detail-badges').innerHTML = badges.join('');
 
         document.getElementById('detail-title').textContent = l.title;
+        // Show listing image if available
+        if (l.image_url) {
+          const imgEl = document.createElement('img');
+          imgEl.src = l.image_url;
+          imgEl.alt = l.title;
+          imgEl.style.cssText = 'width:100%;max-height:280px;object-fit:cover;border-radius:8px;margin-bottom:16px';
+          imgEl.onerror = () => imgEl.remove();
+          document.querySelector('.card').insertBefore(imgEl, document.querySelector('.header-row'));
+        }
 
         const city = l.city ? ' · ' + l.city : '';
         const date = l.created_at ? new Date(l.created_at).toLocaleDateString('de-DE') : '';
-        document.getElementById('detail-meta').textContent = (l.type || '') + city + (date ? ' · Eingestellt am ' + date : '');
+        const priceParts = [];
+        if (l.hourly_rate) priceParts.push('ab €' + l.hourly_rate + '/Std');
+        if (l.daily_rate) priceParts.push('ab €' + l.daily_rate + '/Tag');
+        if (l.from_price && !l.hourly_rate && !l.daily_rate) priceParts.push('ab €' + l.from_price);
+        const priceStr = priceParts.length ? ' · <strong style="color:#059669">' + priceParts.join(' · ') + '</strong>' : '';
+        document.getElementById('detail-meta').innerHTML = (l.type || '') + city + (date ? ' · Eingestellt am ' + date : '') + priceStr;
 
         document.getElementById('detail-stats').innerHTML =
           '<span>👁 ' + (l.view_count||0) + ' Aufrufe</span>' +

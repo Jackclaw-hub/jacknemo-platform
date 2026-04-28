@@ -4,21 +4,21 @@ class Listing {
   static async create(data) {
     const {
       type, title, description, providerId, providerRole, geo, city,
-      tags, stages, sectors, starterFriendly, hourlyRate, dailyRate, fromPrice, status
+      tags, stages, sectors, starterFriendly, hourlyRate, dailyRate, fromPrice, status, imageUrl
     } = data;
 
     const query = `
       INSERT INTO listings
         (type, title, description, provider_id, provider_role, geo, city,
-         tags, stages, sectors, starter_friendly, hourly_rate, daily_rate, from_price, status, created_at, updated_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, NOW(), NOW())
+         tags, stages, sectors, starter_friendly, hourly_rate, daily_rate, from_price, status, image_url, created_at, updated_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16, NOW(), NOW())
       RETURNING *
     `;
     const values = [
       type, title, description, providerId, providerRole, geo, city || null,
       JSON.stringify(tags || []), JSON.stringify(stages || []), JSON.stringify(sectors || []),
       starterFriendly || false, hourlyRate || null, dailyRate || null, fromPrice || null,
-      status || 'pending'
+      status || 'pending', imageUrl || null
     ];
     const result = await pool.query(query, values);
     return result.rows[0];
@@ -73,7 +73,7 @@ class Listing {
 
   static async update(id, providerId, data) {
     const allowed = ['title','description','geo','city','tags','stages','sectors',
-                     'starter_friendly','hourly_rate','daily_rate','from_price'];
+                     'starter_friendly','hourly_rate','daily_rate','from_price','image_url'];
     const sets = [];
     const values = [];
     let idx = 1;

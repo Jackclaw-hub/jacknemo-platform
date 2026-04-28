@@ -68,7 +68,7 @@
   <div class="toast" id="toast"></div>
   <nav>
     <h1>&#x1F680; Startup Radar</h1>
-    <div><a href="messages.html" id="msg-badge" style="background:#4f46e5;color:white;text-decoration:none;padding:8px 14px;border-radius:4px;font-size:13px;margin-right:8px">&#x1F4AC; Messages</a><span id="user-name"></span> <button onclick="logout()">Logout</button></div>
+    <div><button id="bell-btn" onclick="toggleNotifPanel()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;position:relative;padding:0 4px;vertical-align:middle;margin-right:6px" title="Benachrichtigungen"><span id="bell-icon">🔔</span><span id="notif-count" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;font-size:10px;padding:1px 4px;font-weight:700"></span></button><a href="messages.html" id="msg-badge" style="background:#4f46e5;color:white;text-decoration:none;padding:8px 14px;border-radius:4px;font-size:13px;margin-right:8px">&#x1F4AC; Messages</a><span id="user-name"></span> <button onclick="logout()">Logout</button></div>
   </nav>
 
   <div class="panel">
@@ -96,6 +96,20 @@
           <input type="text" id="l-tags" placeholder="3d-druck, prototyping">
           <label>Beschreibung</label>
           <textarea id="l-desc" rows="3" placeholder="Kurze Beschreibung..."></textarea>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
+            <div>
+              <label style="font-size:12px;color:#6b7280">Stundenpreis (€)</label>
+              <input type="number" id="l-hourly" placeholder="z.B. 25" min="0" step="1" style="margin:2px 0">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#6b7280">Tagespreis (€)</label>
+              <input type="number" id="l-daily" placeholder="z.B. 150" min="0" step="1" style="margin:2px 0">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#6b7280">Ab-Preis (€)</label>
+              <input type="number" id="l-from-price" placeholder="z.B. 99" min="0" step="1" style="margin:2px 0">
+            </div>
+          </div>
           <div class="error" id="l-error"></div>
           <div class="success" id="l-success"></div>
           <button type="submit" class="primary" id="submit-btn">Inserat einreichen</button>
@@ -146,6 +160,45 @@
     redirectIfNotLoggedIn();
     const user = auth.getUser();
     document.getElementById('user-name').textContent = user?.name || user?.email || '';
+
+
+    // K-53: Notification center
+    let notifPanelOpen = false;
+    async function loadNotifications() {
+      if (!auth.getToken()) return;
+      try {
+        const data = await NotificationsAPI.getAll();
+        const count = data.unread || 0;
+        const badge = document.getElementById('notif-count');
+        if (badge) { badge.textContent = count > 9 ? '9+' : String(count); badge.style.display = count > 0 ? 'block' : 'none'; }
+        if (notifPanelOpen) renderNotifList(data.notifications || []);
+      } catch(e) {}
+    }
+    function renderNotifList(notifications) {
+      const el = document.getElementById('notif-list');
+      if (!el) return;
+      if (!notifications.length) { el.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:24px;font-size:14px">Keine Benachrichtigungen</p>'; return; }
+      el.innerHTML = notifications.map(n =>
+        '<div style="padding:12px 16px;border-bottom:1px solid #f9fafb;background:' + (n.read_at ? '#fff' : '#f0f4ff') + ';cursor:pointer" onclick="readNotif(' + n.id + ', this)">' +
+        '<div style="font-size:13px;font-weight:600;color:#1f2937">' + (n.subject||'') + '</div>' +
+        '<div style="font-size:12px;color:#6b7280;margin-top:2px">' + (n.body||'').slice(0,80) + ((n.body||'').length>80?'…':'') + '</div>' +
+        '<div style="font-size:11px;color:#9ca3af;margin-top:4px">' + new Date(n.created_at).toLocaleDateString('de-DE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + '</div>' +
+        '</div>'
+      ).join('');
+    }
+    function toggleNotifPanel() {
+      const panel = document.getElementById('notif-panel');
+      if (notifPanelOpen) { panel.style.display = 'none'; notifPanelOpen = false; }
+      else {
+        panel.style.display = 'flex'; notifPanelOpen = true;
+        NotificationsAPI.getAll().then(d => { renderNotifList(d.notifications||[]); const b=document.getElementById('notif-count'); if(b) b.style.display='none'; }).catch(()=>{});
+      }
+    }
+    function closeNotifPanel() { document.getElementById('notif-panel').style.display = 'none'; notifPanelOpen = false; }
+    async function readNotif(id, el) { el.style.background = '#fff'; try { await NotificationsAPI.markRead(id); } catch(e) {} }
+    async function markAllRead() {
+      try { await NotificationsAPI.markAllRead(); document.querySelectorAll('#notif-list > div').forEach(el => el.style.background='#fff'); const b=document.getElementById('notif-count'); if(b) b.style.display='none'; } catch(e) {}
+    }
 
     function logout() { AuthAPI.logout(); location.href = 'auth.html'; }
 
@@ -275,6 +328,9 @@
             city: document.getElementById('l-city').value,
             tags,
             description: document.getElementById('l-desc').value,
+            hourlyRate: parseFloat(document.getElementById('l-hourly').value) || null,
+            dailyRate: parseFloat(document.getElementById('l-daily').value) || null,
+            fromPrice: parseFloat(document.getElementById('l-from-price').value) || null,
             draft: true
           })
         });
@@ -357,6 +413,9 @@
       err.style.display = 'none'; ok.style.display = 'none';
       const tags = document.getElementById('l-tags').value.split(',').map(t => t.trim()).filter(Boolean);
       try {
+        const hourlyRate = parseFloat(document.getElementById('l-hourly').value) || null;
+        const dailyRate = parseFloat(document.getElementById('l-daily').value) || null;
+        const fromPrice = parseFloat(document.getElementById('l-from-price').value) || null;
         await ListingsAPI.create({
           title: document.getElementById('l-title').value,
           type: document.getElementById('l-type').value,
@@ -364,6 +423,9 @@
           city: document.getElementById('l-city').value,
           tags,
           description: document.getElementById('l-desc').value,
+          hourlyRate,
+          dailyRate,
+          fromPrice,
         });
         ok.style.display = 'block';
         ok.textContent = 'Inserat eingereicht! Wird nach Pr&#xFC;fung freigeschaltet.';
@@ -475,5 +537,17 @@
       } catch(e) { /* analytics optional */ }
     }
   </script>
+
+  <!-- K-53: Notification panel -->
+  <div id="notif-panel" style="display:none;position:fixed;top:52px;right:16px;width:340px;max-width:95vw;max-height:480px;background:#fff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.16);z-index:999;overflow:hidden;flex-direction:column">
+    <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between">
+      <strong style="font-size:15px">Benachrichtigungen</strong>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="markAllRead()" style="font-size:12px;color:#4f46e5;background:none;border:none;cursor:pointer;padding:0">Alle gelesen</button>
+        <button onclick="closeNotifPanel()" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px">✕</button>
+      </div>
+    </div>
+    <div id="notif-list" style="overflow-y:auto;max-height:400px;padding:0"></div>
+  </div>
 </body>
 </html>
