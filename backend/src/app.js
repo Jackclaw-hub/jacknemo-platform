@@ -13,6 +13,7 @@ const adminRouter = require("./routes/admin");
 const providersRouter = require("./routes/providers");
 const messagesRouter = require("./routes/messages");
 const { authenticateToken } = require("./middleware/auth");
+const { authLimiter, listingsWriteLimiter, messageLimiter, generalLimiter } = require("./middleware/rateLimiter");
 
 const app = express();
 
@@ -33,13 +34,15 @@ app.use(express.static(require('path').join(__dirname, '../../frontend')));
 
 app.get("/health", (req, res) => res.json({ status: "ok", ts: new Date().toISOString() }));
 
-app.use("/api/auth", authRouter);
+// K-32: Per-endpoint rate limiting
+app.use("/api/auth", authLimiter, authRouter);
 app.use("/api/founders", authenticateToken, foundersRouter);
 app.use("/api/listings", listingsRouter);
 app.use("/api/radar", radarRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/providers", providersRouter);
-app.use("/api/messages", messagesRouter);
+app.use("/api/messages", messageLimiter, messagesRouter);
+app.use("/api", generalLimiter);
 
 setupSwagger(app);
 app.use((req, res) => res.status(404).json({ error: "Not found" }));

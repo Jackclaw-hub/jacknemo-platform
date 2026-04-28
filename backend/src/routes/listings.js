@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const { apiRateLimiter, validateListing } = require('../middleware/security');
+const { listingsWriteLimiter } = require('../middleware/rateLimiter');
 const {
   createListing, getListings, getListing, contactListing,
   updateListing, deleteListing, getMyListings, promoteListing, demoteListing
@@ -76,8 +77,8 @@ router.patch('/:id/premium', authenticateToken, promoteListing);
 router.delete('/:id/premium', authenticateToken, demoteListing);
 
 // Protected routes (provider only)
-router.post('/', authenticateToken, validateListing, createListing);
-router.put('/:id', authenticateToken, validateListing, updateListing);
+router.post('/', authenticateToken, listingsWriteLimiter, validateListing, createListing);
+router.put('/:id', authenticateToken, listingsWriteLimiter, validateListing, updateListing);
 router.delete('/:id', authenticateToken, deleteListing);
 
 module.exports = router;
