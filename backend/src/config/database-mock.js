@@ -24,6 +24,8 @@ class MockDatabase {
     this.messages = [];
     this.ratings = [];
     this.bookmarks = []; // saved_listings
+    this.notifications = [];
+    this.nextNotificationId = 1;
     this.nextUserId = 10000;
     this.nextListingId = 1;
     this.nextMessageId = 1;
@@ -376,6 +378,40 @@ class MockDatabase {
             return { ...r, rater_name: rater ? rater.name : null };
           })
         };
+      }
+    }
+
+    // ---- NOTIFICATIONS ----
+    if (sl.includes('notifications')) {
+      if (s.startsWith('INSERT')) {
+        const n = {
+          id: this.nextNotificationId++,
+          user_id: params[0], type: params[1], subject: params[2], body: params[3],
+          read_at: null, created_at: new Date().toISOString()
+        };
+        this.notifications.push(n);
+        return { rows: [n] };
+      }
+      if (s.startsWith('SELECT')) {
+        const uid = params[0];
+        const rows = this.notifications
+          .filter(n => n.user_id == uid)
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .slice(0, 30);
+        return { rows };
+      }
+      if (s.startsWith('UPDATE')) {
+        const uid = params[0];
+        if (sql.includes('id = $1')) {
+          // mark single read: params = [id, user_id]
+          const n = this.notifications.find(n => n.id == params[0] && n.user_id == params[1]);
+          if (n) n.read_at = new Date().toISOString();
+        } else {
+          // mark all read
+          this.notifications.filter(n => n.user_id == uid && !n.read_at)
+            .forEach(n => { n.read_at = new Date().toISOString(); });
+        }
+        return { rows: [] };
       }
     }
 

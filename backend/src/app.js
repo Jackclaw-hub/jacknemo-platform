@@ -12,6 +12,7 @@ const radarRouter = require("./routes/radar");
 const adminRouter = require("./routes/admin");
 const providersRouter = require("./routes/providers");
 const messagesRouter = require("./routes/messages");
+const notificationsRouter = require("./routes/notifications");
 const { authenticateToken } = require("./middleware/auth");
 const paymentsRouter = require("./routes/payments");
 const { startPremiumExpiryCron } = require("./jobs/premiumExpiry");
@@ -53,6 +54,7 @@ app.use("/api/radar", radarRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/providers", providersRouter);
 app.use("/api/messages", messageLimiter, messagesRouter);
+app.use("/api/notifications", notificationsRouter);
 app.use("/api", generalLimiter);
 
 setupSwagger(app);

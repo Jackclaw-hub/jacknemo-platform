@@ -51,6 +51,13 @@ const ListingsAPI = {
   contact: (id, message) => api('POST', '/listings/' + id + '/contact', { message }, auth.getToken()),
 };
 
+// K-50: Notifications
+const NotificationsAPI = {
+  getAll: () => api('GET', '/notifications', null, auth.getToken()),
+  markAllRead: () => api('PATCH', '/notifications/read-all', {}, auth.getToken()),
+  markRead: (id) => api('PATCH', '/notifications/' + id + '/read', {}, auth.getToken()),
+};
+
 // K-48: Bookmarks
 const BookmarksAPI = {
   save: (listing_id) => api('POST', '/founders/bookmarks', { listing_id }, auth.getToken()),
