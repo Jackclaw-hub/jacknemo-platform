@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { notifyVerificationApproved } = require('../services/notificationService');
 
 const upsertProfile = async (req, res) => {
   try {
@@ -74,6 +75,16 @@ async function adminVerifyProvider(req, res) {
       'UPDATE provider_profiles SET is_verified = $1, verification_status = $2, verification_reason = $3, verification_reviewed_at = $4 WHERE user_id = $5',
       [!!approve, status, reason || null, new Date().toISOString(), userId]
     );
+    // K-42: notify on approval
+    if (approve) {
+      try {
+        const userR = await db.query('SELECT email FROM users WHERE id = $1', [userId]);
+        const profR = await db.query('SELECT company_name FROM provider_profiles WHERE user_id = $1', [userId]);
+        const email = userR.rows[0]?.email;
+        const companyName = profR.rows[0]?.company_name;
+        if (email) await notifyVerificationApproved(email, companyName, userId);
+      } catch (ne) { console.warn('[NOTIFY] verification approved email failed:', ne.message); }
+    }
     res.json({ userId, is_verified: !!approve, status });
   } catch (e) {
     res.status(500).json({ error: 'Failed to update verification' });

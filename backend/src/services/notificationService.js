@@ -147,4 +147,42 @@ async function notifyHighScoreMatch(founderEmail, founderUserId, listing, score)
   await saveNotification(founderUserId, "high_score_match", subject, text);
 }
 
-module.exports = { notifyListingApproved, notifyListingRejected, notifyContactReceived, notifyHighScoreMatch };
+
+// K-42: Premium upgrade notification
+async function notifyPremiumUpgrade(listing, providerEmail) {
+  const subject = "⭐ Dein Inserat ist jetzt Premium — Startup Radar";
+  const expiresDate = listing.premium_expires_at
+    ? new Date(listing.premium_expires_at).toLocaleDateString('de-DE')
+    : '30 Tage';
+  const html = base(subject, `
+    <h3>Dein Inserat ist jetzt Premium!</h3>
+    <p>Herzlichen Glückwunsch! <strong>${listing.title}</strong> wurde auf Premium hochgestuft und erscheint jetzt prominent auf Startup Radar.</p>
+    <ul style="color:#374151">
+      <li>✅ Bevorzugte Platzierung in Suchergebnissen</li>
+      <li>✅ Premium-Badge für mehr Vertrauen</li>
+      <li>✅ Gültig bis: <strong>${expiresDate}</strong></li>
+    </ul>
+    <a href="https://jacknemo1994.de/provider-dashboard.html" class="btn">Dashboard öffnen →</a>
+    <p style="margin-top:24px;color:#6b7280;font-size:14px">Dein Startup Radar Team</p>
+  `);
+  const text = `Dein Inserat "${listing.title}" ist jetzt Premium (gültig bis ${expiresDate}). https://jacknemo1994.de`;
+  await sendEmail(providerEmail, subject, html, text);
+  await saveNotification(listing.provider_id || listing.user_id, "premium_upgrade", subject, text);
+}
+
+// K-42: Verification approved notification
+async function notifyVerificationApproved(providerEmail, companyName, userId) {
+  const subject = "✅ Verifizierungs-Badge genehmigt — Startup Radar";
+  const html = base(subject, `
+    <h3>Dein Profil wurde verifiziert!</h3>
+    <p><strong>${companyName || 'Dein Unternehmen'}</strong> hat jetzt den offiziellen Verifizierungs-Badge auf Startup Radar.</p>
+    <p>Gründer sehen das Verifizierungszeichen bei deinen Inseraten — das stärkt das Vertrauen und erhöht die Kontaktrate.</p>
+    <a href="https://jacknemo1994.de/provider-dashboard.html" class="btn">Profil ansehen →</a>
+    <p style="margin-top:24px;color:#6b7280;font-size:14px">Dein Startup Radar Team</p>
+  `);
+  const text = `${companyName || 'Dein Profil'} wurde verifiziert und hat jetzt den offiziellen Badge. https://jacknemo1994.de`;
+  await sendEmail(providerEmail, subject, html, text);
+  if (userId) await saveNotification(userId, "verification_approved", subject, text);
+}
+
+module.exports = { notifyListingApproved, notifyListingRejected, notifyContactReceived, notifyHighScoreMatch, notifyPremiumUpgrade, notifyVerificationApproved };

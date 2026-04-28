@@ -30,10 +30,13 @@ const createListing = async (req, res) => {
       tags: tags || [], stages: stages || [], sectors: sectors || [],
       starterFriendly: Boolean(starterFriendly),
       hourlyRate: hourlyRate || null, dailyRate: dailyRate || null, fromPrice: fromPrice || null,
-      status: 'pending'
+      status: req.body.draft ? 'draft' : 'pending'
     });
 
-    res.status(201).json({ listing, message: 'Listing created — pending moderation' });
+    const msg = listing.status === 'draft'
+      ? 'Draft saved — publish when ready'
+      : 'Listing created — pending moderation';
+    res.status(201).json({ listing, message: msg });
   } catch (err) {
     console.error('createListing error:', err);
     res.status(500).json({ error: 'Failed to create listing' });
@@ -156,4 +159,28 @@ const demoteListing = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing };
+// K-43: Publish a draft listing (status: draft → pending for moderation)
+const publishListing = async (req, res) => {
+  try {
+    if (!PROVIDER_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only providers can publish listings' });
+    }
+    const db = require('../config/database');
+    const r = await db.query('SELECT * FROM listings WHERE id = $1', [req.params.id]);
+    const listing = r.rows[0];
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    if (listing.provider_id != req.user.id) return res.status(403).json({ error: 'Not your listing' });
+    if (listing.status !== 'draft') return res.status(409).json({ error: 'Only draft listings can be published' });
+
+    const upd = await db.query(
+      "UPDATE listings SET status = 'pending', updated_at = NOW() WHERE id = $1 RETURNING *",
+      [req.params.id]
+    );
+    res.json({ listing: upd.rows[0], message: 'Listing submitted for moderation' });
+  } catch (err) {
+    console.error('publishListing error:', err);
+    res.status(500).json({ error: 'Failed to publish listing' });
+  }
+};
+
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing };

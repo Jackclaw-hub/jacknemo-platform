@@ -1,6 +1,7 @@
 // K-31: Stripe Payment Integration — native fetch, no stripe npm package
 const crypto = require('crypto');
 const db = require('../config/database');
+const { notifyPremiumUpgrade } = require('../services/notificationService');
 
 const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY || '';
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
@@ -95,6 +96,16 @@ const handleWebhook = async (req, res) => {
           [expires, listing_id]
         );
         console.log('[STRIPE] listing', listing_id, 'upgraded to premium, expires', expires);
+        // K-42: notify provider
+        try {
+          const provEmail = session.customer_email || session.customer_details?.email;
+          if (provEmail) {
+            await notifyPremiumUpgrade(
+              { id: listing_id, title: session.metadata?.listing_title || 'Inserat', provider_id: session.metadata?.user_id, premium_expires_at: expires },
+              provEmail
+            );
+          }
+        } catch (ne) { console.warn('[NOTIFY] premium upgrade email failed:', ne.message); }
       } catch (e) {
         console.error('[STRIPE] DB update failed:', e.message);
         // Still return 200 — Stripe will retry if we return non-2xx

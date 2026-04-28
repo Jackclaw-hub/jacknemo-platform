@@ -22,6 +22,7 @@
     .status-pending { background: #fef3c7; color: #92400e; }
     .status-approved { background: #d1fae5; color: #065f46; }
     .status-rejected { background: #fee2e2; color: #991b1b; }
+    .status-draft { background: #e0e7ff; color: #3730a3; }
     .tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px; }
     .toast { position: fixed; top: 20px; right: 20px; padding: 14px 20px; border-radius: 8px; color: white; font-weight: 600; z-index: 9999; display: none; animation: fadeIn .3s; }
     .toast.show { display: block; }
@@ -89,7 +90,8 @@
           <textarea id="l-desc" rows="3" placeholder="Kurze Beschreibung..."></textarea>
           <div class="error" id="l-error"></div>
           <div class="success" id="l-success"></div>
-          <button type="submit" class="primary">Inserat einreichen</button>
+          <button type="submit" class="primary" id="submit-btn">Inserat einreichen</button>
+          <button type="button" class="secondary" id="draft-btn" onclick="saveDraft()" style="margin-top:8px;width:100%;padding:8px;border:1px solid #6366f1;background:#f0f0ff;color:#4338ca;border-radius:4px;cursor:pointer;font-size:14px">Als Entwurf speichern</button>
         </form>
       </div>
     </div>
@@ -224,10 +226,60 @@
             <p style="margin:6px 0 0;font-size:12px;color:#6b7280">
               &#x1F441; ${l.view_count||0} Aufrufe &nbsp;&bull;&nbsp; &#x1F4AC; ${l.contact_count||0} Kontakte
             </p>
+            ${l.status === 'draft' ? `<button onclick="publishListing(${l.id})" style="margin-top:8px;padding:5px 14px;background:#4f46e5;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px">&#x1F4E4; Veröffentlichen</button>` : ''}
           </div>
         `).join('');
       } catch(ex) {
         document.getElementById('my-listings').innerHTML = '<em>Fehler: ' + ex.message + '</em>';
+      }
+    }
+
+    async function saveDraft() {
+      const err = document.getElementById('l-error');
+      const ok = document.getElementById('l-success');
+      err.style.display = 'none'; ok.style.display = 'none';
+      const tags = document.getElementById('l-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+      const title = document.getElementById('l-title').value.trim();
+      if (!title) { err.textContent = 'Titel erforderlich.'; err.style.display = 'block'; return; }
+      try {
+        const res = await fetch('/api/listings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+          body: JSON.stringify({
+            title,
+            type: document.getElementById('l-type').value,
+            geo: document.getElementById('l-geo').value,
+            city: document.getElementById('l-city').value,
+            tags,
+            description: document.getElementById('l-desc').value,
+            draft: true
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Fehler');
+        ok.textContent = 'Entwurf gespeichert!';
+        ok.style.display = 'block';
+        document.getElementById('listing-form').reset();
+        setTimeout(() => loadMyListings(), 800);
+      } catch (ex) {
+        err.textContent = ex.message;
+        err.style.display = 'block';
+      }
+    }
+
+    async function publishListing(id) {
+      if (!confirm('Inserat zur Prüfung einreichen?')) return;
+      try {
+        const res = await fetch('/api/listings/' + id + '/publish', {
+          method: 'PATCH',
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Fehler');
+        alert('Inserat eingereicht! Wird nach Prüfung freigeschaltet.');
+        loadMyListings();
+      } catch (ex) {
+        alert('Fehler: ' + ex.message);
       }
     }
 

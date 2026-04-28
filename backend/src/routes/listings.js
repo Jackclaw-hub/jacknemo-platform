@@ -5,7 +5,7 @@ const { apiRateLimiter, validateListing } = require('../middleware/security');
 const { listingsWriteLimiter } = require('../middleware/rateLimiter');
 const {
   createListing, getListings, getListing, contactListing,
-  updateListing, deleteListing, getMyListings, promoteListing, demoteListing
+  updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing
 } = require('../controllers/listingsController');
 
 // SSE clients registry (in-memory, resets on restart — sufficient for polling fallback)
@@ -75,6 +75,9 @@ router.post('/:id/contact', authenticateToken, contactListing);
 // Admin: premium management (K-20)
 router.patch('/:id/premium', authenticateToken, promoteListing);
 router.delete('/:id/premium', authenticateToken, demoteListing);
+
+// K-43: Publish draft listing
+router.patch('/:id/publish', authenticateToken, publishListing);
 
 // Protected routes (provider only)
 router.post('/', authenticateToken, listingsWriteLimiter, validateListing, createListing);
