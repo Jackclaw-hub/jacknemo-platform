@@ -51,8 +51,16 @@
     <div><a href="admin-analytics.html" style="background:#7c3aed;color:white;text-decoration:none;padding:8px 16px;border-radius:4px;font-size:13px;margin-right:8px">&#128202; Analytics</a><span id="user-name"></span> <button onclick="logout()">Logout</button></div>
   </nav>
 
+  <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:2px solid #e5e7eb;padding-bottom:8px">
+    <button id="tab-listings" onclick="showTab('listings')" style="background:#dc2626;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px">Listings pending</button>
+    <button id="tab-verify" onclick="showTab('verify')" style="background:#e5e7eb;color:#374151;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px">Verification queue</button>
+  </div>
   <div id="summary">Lade ausstehende Inserate...</div>
   <div id="listings"></div>
+  <div id="verify-section" style="display:none">
+    <div id="verify-summary"></div>
+    <div id="verify-list"></div>
+  </div>
 
   <script src="api-client.js"></script>
   <script>
@@ -120,6 +128,59 @@
         else await AdminAPI.feature(id);
         loadPending();
       } catch(ex) { alert('Error: ' + ex.message); }
+    }
+
+    function showTab(tab) {
+      document.getElementById('listings').style.display = tab === 'listings' ? '' : 'none';
+      document.getElementById('summary').style.display = tab === 'listings' ? '' : 'none';
+      document.getElementById('verify-section').style.display = tab === 'verify' ? '' : 'none';
+      document.getElementById('tab-listings').style.cssText = tab === 'listings'
+        ? 'background:#dc2626;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px'
+        : 'background:#e5e7eb;color:#374151;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px';
+      document.getElementById('tab-verify').style.cssText = tab === 'verify'
+        ? 'background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px'
+        : 'background:#e5e7eb;color:#374151;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px';
+      if (tab === 'verify') loadVerificationQueue();
+    }
+
+    // K-37: Verification queue
+    async function loadVerificationQueue() {
+      const sum = document.getElementById('verify-summary');
+      const list = document.getElementById('verify-list');
+      sum.textContent = 'Loading...';
+      try {
+        const data = await api('GET', '/admin/providers/pending-verification', null, auth.getToken());
+        const providers = data.providers || [];
+        sum.textContent = providers.length + ' provider(s) awaiting verification';
+        if (!providers.length) {
+          list.innerHTML = '<div class="empty">No pending verifications ✓</div>';
+          return;
+        }
+        list.innerHTML = providers.map(p => `
+          <div class="card" id="vcard-${p.user_id}">
+            <h3 style="margin:0 0 4px">${p.company_name || p.name || 'Unknown'}</h3>
+            <div class="meta">Email: <strong>${p.email}</strong> · Requested: ${p.verification_requested_at ? new Date(p.verification_requested_at).toLocaleDateString() : '—'}</div>
+            <div class="actions" style="margin-top:10px">
+              <button onclick="verifyProvider(${p.user_id}, true)" style="background:#059669;color:white;border:none;padding:7px 16px;border-radius:4px;cursor:pointer;margin-right:8px">✓ Approve</button>
+              <button onclick="verifyProvider(${p.user_id}, false)" style="background:#dc2626;color:white;border:none;padding:7px 16px;border-radius:4px;cursor:pointer">✗ Reject</button>
+            </div>
+          </div>`).join('');
+      } catch(e) {
+        sum.textContent = 'Error: ' + e.message;
+      }
+    }
+
+    async function verifyProvider(userId, approve) {
+      try {
+        await api('PATCH', '/admin/providers/' + userId + '/verify', { approve }, auth.getToken());
+        const card = document.getElementById('vcard-' + userId);
+        if (card) {
+          card.style.opacity = '0.5';
+          card.querySelector('.actions').innerHTML = approve
+            ? '<span style="color:#059669;font-weight:600">✓ Approved</span>'
+            : '<span style="color:#dc2626;font-weight:600">✗ Rejected</span>';
+        }
+      } catch(e) { alert('Error: ' + e.message); }
     }
 
     async function loadPending() {

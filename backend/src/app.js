@@ -56,6 +56,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 if (require.main === module) {
+  startPremiumExpiryCron();
   app.listen(PORT, () => console.log(`NemoClaw backend running on port ${PORT}`));
 }
 

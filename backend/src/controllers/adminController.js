@@ -98,4 +98,47 @@ const unfeatureListing = async (req, res) => {
   }
 };
 
-module.exports = { getPendingListings, approveListing, rejectListing, featureListing, unfeatureListing };
+
+// K-37: Providers pending verification
+const getPendingVerification = async (req, res) => {
+  try {
+    const r = await db.query(
+      `SELECT pp.user_id, pp.company_name, pp.contact_email, pp.verification_status,
+              pp.verification_requested_at, u.email, u.name
+         FROM provider_profiles pp
+         JOIN users u ON u.id = pp.user_id
+        WHERE pp.verification_status = 'pending'
+        ORDER BY pp.verification_requested_at ASC`
+    );
+    res.json({ providers: r.rows });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch pending verifications' });
+  }
+};
+
+// K-38: Admin view of expired premium listings
+const getExpiredPremium = async (req, res) => {
+  try {
+    const r = await db.query(
+      `SELECT id, title, is_premium, premium_expires_at
+         FROM listings
+        WHERE premium_expires_at IS NOT NULL
+          AND premium_expires_at < $1
+        ORDER BY premium_expires_at DESC
+        LIMIT 50`,
+      [new Date().toISOString()]
+    );
+    res.json({ listings: r.rows });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch expired premium listings' });
+  }
+};
+
+// K-38: Manual trigger for premium expiry
+const { revertExpiredPremium } = require('../jobs/premiumExpiry');
+const runPremiumExpiry = async (req, res) => {
+  const reverted = await revertExpiredPremium();
+  res.json({ reverted: reverted.length, listings: reverted });
+};
+
+module.exports = { getPendingListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry };

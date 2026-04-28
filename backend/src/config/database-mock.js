@@ -94,6 +94,14 @@ class MockDatabase {
     // ---- PROVIDER PROFILES ----
     if (sl.includes('provider_profiles')) {
       if (s.startsWith('SELECT')) {
+        // K-37: JOIN with users for pending verification queue
+        if (sl.includes('join users') && sl.includes("verification_status = 'pending'")) {
+          const pending = this.providerProfiles.filter(p => p.verification_status === 'pending');
+          return { rows: pending.map(p => {
+            const u = this.users.find(u => u.id === p.user_id || u.id == p.user_id) || {};
+            return { ...p, email: u.email || '', name: u.name || '' };
+          })};
+        }
         // Public profile lookup by user_id (numeric param)
         const uid = params[0];
         if (uid !== undefined) {
