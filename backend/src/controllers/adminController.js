@@ -141,4 +141,41 @@ const runPremiumExpiry = async (req, res) => {
   res.json({ reverted: reverted.length, listings: reverted });
 };
 
-module.exports = { getPendingListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry };
+
+// K-55: Bulk approve/reject multiple pending listings
+const bulkAction = async (req, res) => {
+  const { ids, action, reason } = req.body;
+  if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: 'ids array required' });
+  if (!['approve', 'reject'].includes(action)) return res.status(400).json({ error: 'action must be approve or reject' });
+  const db = require('../config/database');
+  const { notifyListingApproved, notifyListingRejected } = require('../services/notificationService');
+  const results = { succeeded: [], failed: [] };
+  for (const id of ids) {
+    try {
+      const newStatus = action === 'approve' ? 'active' : 'rejected';
+      const r = await db.query(
+        action === 'approve'
+          ? "UPDATE listings SET status='active', updated_at=NOW() WHERE id=$1 RETURNING *"
+          : "UPDATE listings SET status='rejected', rejection_reason=$1, updated_at=NOW() WHERE id=$2 RETURNING *",
+        action === 'approve' ? [id] : [reason || '', id]
+      );
+      const listing = r.rows[0];
+      if (listing) {
+        results.succeeded.push(id);
+        // Notify provider (fire-and-forget)
+        try {
+          const ur = await db.query('SELECT email FROM users WHERE id=$1', [listing.provider_id || listing.user_id]);
+          const email = ur.rows[0]?.email;
+          if (email) {
+            if (action === 'approve') await notifyListingApproved(listing, email);
+            else await notifyListingRejected(listing, email, reason);
+          }
+        } catch(ne) { /* notification optional */ }
+      } else { results.failed.push(id); }
+    } catch(e) { results.failed.push(id); }
+  }
+  res.json({ ...results, message: `${results.succeeded.length} ${action}d, ${results.failed.length} failed` });
+};
+
+module.exports = {
+  bulkAction, getPendingListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry };

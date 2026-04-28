@@ -80,6 +80,7 @@ const AdminAPI = {
   reject: (id, reason) => api('PUT', '/admin/listings/' + id + '/reject', { reason }, auth.getToken()),
   feature: (id) => api('PUT', '/admin/listings/' + id + '/feature', {}, auth.getToken()),
   unfeature: (id) => api('PUT', '/admin/listings/' + id + '/unfeature', {}, auth.getToken()),
+  bulkAction: (ids, action, reason) => api('POST', '/admin/listings/bulk-action', { ids, action, reason }, auth.getToken()),
   getAnalytics: () => api('GET', '/admin/analytics', null, auth.getToken()),
 };
 

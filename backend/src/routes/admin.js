@@ -1,7 +1,7 @@
 const { adminVerifyProvider } = require('../controllers/providerProfileController');
 const express = require('express');
 const router = express.Router();
-const { getPendingListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry } = require('../controllers/adminController');
+const { getPendingListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, bulkAction } = require('../controllers/adminController');
 const { getAnalytics } = require('../controllers/adminAnalyticsController');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
@@ -21,5 +21,8 @@ router.get('/listings/expired-premium', ...adminOnly, getExpiredPremium);
 router.post('/listings/run-expiry', ...adminOnly, runPremiumExpiry);
 // K-35: Admin approves/rejects provider verification
 router.patch('/providers/:userId/verify', ...adminOnly, adminVerifyProvider);
+
+// K-55: Bulk action
+router.post('/listings/bulk-action', ...adminOnly, bulkAction);
 
 module.exports = router;

@@ -114,7 +114,9 @@
 
     function renderListing(l) {
       return `<div class="card" id="card-${l.id}">
-        <div class="listing-header">
+        <div class="listing-header" style="display:flex;align-items:flex-start;gap:10px">
+          <input type="checkbox" class="bulk-cb" value="${l.id}" onclick="updateBulkBar()" style="margin-top:4px;width:16px;height:16px;cursor:pointer">
+          <div style="flex:1">
           <h3 style="margin:0">${l.title}</h3>
           <span style="font-size:12px;background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:12px">${l.status}</span>
         </div>
@@ -129,6 +131,7 @@
           <input class="reason" type="text" id="reason-${l.id}" placeholder="Ablehnungsgrund (optional)">
           <button class="btn-reject" onclick="reject(${l.id})">✗ Ablehnen</button>
           <button class="btn-feature ${l.is_featured ? '' : 'unfeatured'}" onclick="toggleFeature(${l.id}, ${l.is_featured ? 1 : 0})">${l.is_featured ? '\u2B50 Unfeature' : '\u2606 Feature'}</button>
+        </div>
         </div>
         <div id="msg-${l.id}"></div>
       </div>`;
@@ -220,6 +223,49 @@
             : '<span style="color:#dc2626;font-weight:600">✗ Rejected</span>';
         }
       } catch(e) { alert('Error: ' + e.message); }
+    }
+
+
+    function updateBulkBar() {
+      const checked = document.querySelectorAll('.bulk-cb:checked');
+      const bar = document.getElementById('bulk-bar');
+      const countEl = document.getElementById('bulk-count');
+      if (checked.length > 0) {
+        bar.style.display = 'flex';
+        countEl.textContent = checked.length + ' ausgewählt';
+      } else {
+        bar.style.display = 'none';
+      }
+    }
+
+    function clearSelection() {
+      document.querySelectorAll('.bulk-cb:checked').forEach(cb => { cb.checked = false; });
+      document.getElementById('bulk-bar').style.display = 'none';
+    }
+
+    async function bulkApprove() {
+      const ids = Array.from(document.querySelectorAll('.bulk-cb:checked')).map(cb => parseInt(cb.value));
+      if (!ids.length) return;
+      if (!confirm('Wirklich ' + ids.length + ' Inserate genehmigen?')) return;
+      try {
+        const r = await AdminAPI.bulkAction(ids, 'approve');
+        alert(r.message);
+        clearSelection();
+        loadPending();
+      } catch(e) { alert('Fehler: ' + e.message); }
+    }
+
+    async function bulkReject() {
+      const ids = Array.from(document.querySelectorAll('.bulk-cb:checked')).map(cb => parseInt(cb.value));
+      if (!ids.length) return;
+      const reason = prompt('Ablehnungsgrund (optional):') || '';
+      if (reason === null) return; // cancelled
+      try {
+        const r = await AdminAPI.bulkAction(ids, 'reject', reason);
+        alert(r.message);
+        clearSelection();
+        loadPending();
+      } catch(e) { alert('Fehler: ' + e.message); }
     }
 
     async function loadPending() {
