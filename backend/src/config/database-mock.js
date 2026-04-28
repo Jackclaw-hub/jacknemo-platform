@@ -303,7 +303,10 @@ class MockDatabase {
           const id = params[params.length - 1];
           const idx = this.listings.findIndex(x => x.id == id);
           if (idx < 0) return { rows: [] };
-          this.listings[idx].status = params[0];
+          // Status may be a literal in SQL ("SET status = 'pending'") or parameterized ($1)
+          const litMatch = sql.match(/status\s*=\s*'([^']+)'/);
+          const newStatus = litMatch ? litMatch[1] : params[0];
+          this.listings[idx].status = newStatus;
           if (params[1] && typeof params[1] === 'string' && params[1].startsWith(' [REJECTED')) this.listings[idx].description += params[1];
           this.listings[idx].updated_at = new Date().toISOString();
           return { rows: [this.listings[idx]] };
