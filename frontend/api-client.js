@@ -51,6 +51,13 @@ const ListingsAPI = {
   contact: (id, message) => api('POST', '/listings/' + id + '/contact', { message }, auth.getToken()),
 };
 
+// K-48: Bookmarks
+const BookmarksAPI = {
+  save: (listing_id) => api('POST', '/founders/bookmarks', { listing_id }, auth.getToken()),
+  getAll: () => api('GET', '/founders/bookmarks', null, auth.getToken()),
+  remove: (listing_id) => api('DELETE', '/founders/bookmarks/' + listing_id, null, auth.getToken()),
+};
+
 // Radar
 const RadarAPI = {
   getResults: (params = {}) => {

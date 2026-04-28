@@ -23,6 +23,7 @@ class MockDatabase {
     this.founderProfiles = [];
     this.messages = [];
     this.ratings = [];
+    this.bookmarks = []; // saved_listings
     this.nextUserId = 10000;
     this.nextListingId = 1;
     this.nextMessageId = 1;
@@ -374,6 +375,35 @@ class MockDatabase {
             return { ...r, rater_name: rater ? rater.name : null };
           })
         };
+      }
+    }
+
+    // ---- SAVED LISTINGS (bookmarks) ----
+    if (sl.includes('saved_listings')) {
+      if (s.startsWith('INSERT')) {
+        const userId = params[0], listingId = params[1];
+        const exists = this.bookmarks.find(b => b.user_id == userId && b.listing_id == listingId);
+        if (exists) return { rows: [] }; // ON CONFLICT DO NOTHING
+        const bm = { user_id: userId, listing_id: listingId, saved_at: new Date().toISOString() };
+        this.bookmarks.push(bm);
+        return { rows: [bm] };
+      }
+      if (s.startsWith('SELECT')) {
+        const userId = params[0];
+        const bms = this.bookmarks.filter(b => b.user_id == userId);
+        // JOIN with listings
+        const rows = bms.map(b => {
+          const l = this.listings.find(x => x.id == b.listing_id) || {};
+          return { listing_id: b.listing_id, saved_at: b.saved_at,
+                   title: l.title, type: l.type, geo: l.geo, city: l.city,
+                   tags: l.tags, is_premium: l.is_premium, provider_id: l.provider_id, status: l.status };
+        }).filter(r => r.title); // only if listing still exists
+        return { rows };
+      }
+      if (s.startsWith('DELETE')) {
+        const userId = params[0], listingId = params[1];
+        this.bookmarks = this.bookmarks.filter(b => !(b.user_id == userId && b.listing_id == listingId));
+        return { rows: [] };
       }
     }
 
