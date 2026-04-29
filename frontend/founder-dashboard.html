@@ -92,6 +92,15 @@
   <div id="mode-label" class="mode-label">Radar Results</div>
 
   <div class="filters" id="radar-filters">
+    <!-- K-64: type filter -->
+    <select id="f-type" onchange="loadRadar()">
+      <option value="">Alle Typen</option>
+      <option value="funding">Funding</option>
+      <option value="equipment">Equipment</option>
+      <option value="services">Services</option>
+      <option value="workspace">Workspace</option>
+      <option value="mentoring">Mentoring</option>
+    </select>
     <select id="f-stage">
       <option value="">Alle Stages</option>
       <option value="pre-seed">Pre-Seed</option>
@@ -106,6 +115,7 @@
     </select>
     <input type="text" id="f-city" placeholder="Stadt..." style="width:140px">
     <button onclick="loadRadar()" style="background:#4f46e5;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer">Aktualisieren</button>
+    <button onclick="resetFilters()" style="background:#f9fafb;color:#374151;border:1px solid #e5e7eb;padding:8px 14px;border-radius:4px;cursor:pointer">Zurücksetzen</button>
     <button class="save-search-btn" onclick="saveCurrentSearch()">&#x2665; Save Search</button>
   </div>
 
@@ -277,12 +287,14 @@
 
     async function saveCurrentSearch() {
       const filters = {};
+      const type  = document.getElementById('f-type').value;
       const stage = document.getElementById('f-stage').value;
-      const geo = document.getElementById('f-geo').value;
-      const city = document.getElementById('f-city').value;
+      const geo   = document.getElementById('f-geo').value;
+      const city  = document.getElementById('f-city').value;
+      if (type)  filters.type  = type;
       if (stage) filters.stage = stage;
-      if (geo) filters.geo = geo;
-      if (city) filters.city = city;
+      if (geo)   filters.geo   = geo;
+      if (city)  filters.city  = city;
       const name = prompt('Name for this search:', 'My Search');
       if (name === null) return;
       try {
@@ -309,9 +321,11 @@
     }
 
     function applySavedSearch(filters) {
-      if (filters.stage) document.getElementById('f-stage').value = filters.stage;
-      if (filters.geo) document.getElementById('f-geo').value = filters.geo;
-      if (filters.city) document.getElementById('f-city').value = filters.city || '';
+      if (filters.type)  document.getElementById('f-type').value  = filters.type  || '';
+      if (filters.stage) document.getElementById('f-stage').value = filters.stage || '';
+      if (filters.geo)   document.getElementById('f-geo').value   = filters.geo   || '';
+      if (filters.city)  document.getElementById('f-city').value  = filters.city  || '';
+      loadRadar();
       async function loadInviteSection() {
       if (user?.role !== 'founder') return;
       try {
@@ -383,10 +397,10 @@
       }
     }
 
-    // K-36: Sync filters to/from URL for shareable links
+    // K-36/K-64: Sync filters to/from URL for shareable links
     function pushFiltersToURL(params) {
       const url = new URL(location.href);
-      ['stage', 'geo', 'city'].forEach(k => {
+      ['type', 'stage', 'geo', 'city'].forEach(k => {
         if (params[k]) url.searchParams.set(k, params[k]);
         else url.searchParams.delete(k);
       });
@@ -395,19 +409,28 @@
 
     function restoreFiltersFromURL() {
       const p = new URLSearchParams(location.search);
+      if (p.get('type'))  document.getElementById('f-type').value  = p.get('type');
       if (p.get('stage')) document.getElementById('f-stage').value = p.get('stage');
       if (p.get('geo'))   document.getElementById('f-geo').value   = p.get('geo');
       if (p.get('city'))  document.getElementById('f-city').value  = p.get('city');
     }
 
+    function resetFilters() {
+      ['f-type', 'f-stage', 'f-geo'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('f-city').value = '';
+      loadRadar();
+    }
+
     async function loadRadar() {
       const params = {};
+      const type  = document.getElementById('f-type').value;
       const stage = document.getElementById('f-stage').value;
-      const geo = document.getElementById('f-geo').value;
-      const city = document.getElementById('f-city').value;
+      const geo   = document.getElementById('f-geo').value;
+      const city  = document.getElementById('f-city').value;
+      if (type)  params.type  = type;
       if (stage) params.stage = stage;
-      if (geo) params.geo = geo;
-      if (city) params.city = city;
+      if (geo)   params.geo   = geo;
+      if (city)  params.city  = city;
       pushFiltersToURL(params);
       document.getElementById('results').innerHTML = '<div class="spinner">&#x26A1; Lade Radar...</div>';
       try {
