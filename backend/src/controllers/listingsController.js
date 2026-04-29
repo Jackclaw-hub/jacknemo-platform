@@ -185,4 +185,31 @@ const publishListing = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing };
+// K-56: Renew a listing — provider extends expiry by 90 days (reactivates expired)
+const renewListing = async (req, res) => {
+  try {
+    if (!PROVIDER_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only providers can renew listings' });
+    }
+    const listing = await Listing.renew(req.params.id, req.user.id);
+    if (!listing) return res.status(404).json({ error: 'Listing not found, not owned by you, or not renewable' });
+    res.json({ listing, message: 'Listing renewed — active for another 90 days' });
+  } catch (err) {
+    console.error('renewListing error:', err);
+    res.status(500).json({ error: 'Failed to renew listing' });
+  }
+};
+
+// K-56: Admin endpoint — expire stale listings
+const runListingExpiry = async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    const expired = await Listing.expireOldListings();
+    res.json({ expired_ids: expired, count: expired.length, message: `${expired.length} listing(s) expired` });
+  } catch (err) {
+    console.error('runListingExpiry error:', err);
+    res.status(500).json({ error: 'Failed to run expiry' });
+  }
+};
+
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing, renewListing, runListingExpiry };

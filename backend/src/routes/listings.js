@@ -5,7 +5,8 @@ const { apiRateLimiter, validateListing } = require('../middleware/security');
 const { listingsWriteLimiter } = require('../middleware/rateLimiter');
 const {
   createListing, getListings, getListing, contactListing,
-  updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing
+  updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing,
+  renewListing, runListingExpiry
 } = require('../controllers/listingsController');
 
 // SSE clients registry (in-memory, resets on restart — sufficient for polling fallback)
@@ -78,6 +79,10 @@ router.delete('/:id/premium', authenticateToken, demoteListing);
 
 // K-43: Publish draft listing
 router.patch('/:id/publish', authenticateToken, publishListing);
+
+// K-56: Renew listing (provider) / expire old listings (admin)
+router.patch('/:id/renew', authenticateToken, renewListing);
+router.post('/admin/expire', authenticateToken, runListingExpiry);
 
 // Protected routes (provider only)
 router.post('/', authenticateToken, listingsWriteLimiter, validateListing, createListing);

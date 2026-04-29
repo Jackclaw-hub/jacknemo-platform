@@ -268,7 +268,8 @@ class MockDatabase {
         return { rows };
       }
       if (s.startsWith('INSERT')) {
-        const l = { id: this.nextListingId++, type: params[0], title: params[1], description: params[2], provider_id: params[3], provider_role: params[4], geo: params[5], city: params[6], tags: params[7], stages: params[8], sectors: params[9], starter_friendly: params[10], hourly_rate: params[11], daily_rate: params[12], from_price: params[13], status: params[14], image_url: params[15] || null, featured: false, is_premium: false, premium_expires_at: null, view_count: 0, contact_count: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+        const l = { id: this.nextListingId++, type: params[0], title: params[1], description: params[2], provider_id: params[3], provider_role: params[4], geo: params[5], city: params[6], tags: params[7], stages: params[8], sectors: params[9], starter_friendly: params[10], hourly_rate: params[11], daily_rate: params[12], from_price: params[13], status: params[14], image_url: params[15] || null, featured: false, is_premium: false, premium_expires_at: null, expires_at: expiresAt, view_count: 0, contact_count: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
         this.listings.push(l);
         return { rows: [l] };
       }
@@ -302,6 +303,29 @@ class MockDatabase {
           this.listings[idx].featured = featured;
           this.listings[idx].updated_at = new Date().toISOString();
           return { rows: [this.listings[idx]] };
+        }
+        // K-56: Renew — SET status='active', expires_at = NOW() + INTERVAL '90 days'
+        if (sql.includes('expires_at') && sql.includes('INTERVAL') && sql.includes('provider_id')) {
+          const id = params[0]; const pid = params[1];
+          const idx = this.listings.findIndex(x => x.id == id && x.provider_id == pid && ['active','expired'].includes(x.status));
+          if (idx < 0) return { rows: [] };
+          this.listings[idx].status = 'active';
+          this.listings[idx].expires_at = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+          this.listings[idx].updated_at = new Date().toISOString();
+          return { rows: [this.listings[idx]] };
+        }
+        // K-56: Expire cron — SET status='expired' WHERE status='active' AND expires_at < NOW()
+        if (sql.includes("status='expired'") && sql.includes('expires_at') && !params.length) {
+          const now = new Date().toISOString();
+          const expired = [];
+          this.listings.forEach((l, i) => {
+            if (l.status === 'active' && l.expires_at && l.expires_at < now) {
+              this.listings[i].status = 'expired';
+              this.listings[i].updated_at = new Date().toISOString();
+              expired.push({ id: l.id });
+            }
+          });
+          return { rows: expired };
         }
         if (sql.includes('SET status')) {
           const id = params[params.length - 1];

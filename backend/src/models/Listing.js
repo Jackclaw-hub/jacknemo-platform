@@ -10,8 +10,9 @@ class Listing {
     const query = `
       INSERT INTO listings
         (type, title, description, provider_id, provider_role, geo, city,
-         tags, stages, sectors, starter_friendly, hourly_rate, daily_rate, from_price, status, image_url, created_at, updated_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16, NOW(), NOW())
+         tags, stages, sectors, starter_friendly, hourly_rate, daily_rate, from_price, status, image_url,
+         expires_at, created_at, updated_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16, NOW() + INTERVAL '90 days', NOW(), NOW())
       RETURNING *
     `;
     const values = [
@@ -140,6 +141,23 @@ class Listing {
       "UPDATE listings SET contact_count = COALESCE(contact_count,0) + 1 WHERE id = $1",
       [id]
     );
+  }
+
+  // K-56: Renew listing — extends expiry 90 days and reactivates if expired
+  static async renew(id, providerId) {
+    const result = await pool.query(
+      "UPDATE listings SET status='active', expires_at = NOW() + INTERVAL '90 days', updated_at = NOW() WHERE id = $1 AND provider_id = $2 AND status IN ('active','expired') RETURNING *",
+      [id, providerId]
+    );
+    return result.rows[0] || null;
+  }
+
+  // K-56: Expire listings older than 90 days — called by admin cron endpoint
+  static async expireOldListings() {
+    const result = await pool.query(
+      "UPDATE listings SET status='expired', updated_at = NOW() WHERE status = 'active' AND expires_at < NOW() RETURNING id"
+    );
+    return result.rows.map(r => r.id);
   }
 }
 
