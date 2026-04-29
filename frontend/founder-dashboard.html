@@ -114,17 +114,55 @@
   <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:8px">
     <button onclick="showBookmarks()" style="background:#f9fafb;border:1px solid #e5e7eb;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;color:#374151">❤️ Gespeicherte Inserate</button>
   </div>
+  <!-- K-61: Profile completeness widget -->
+  <div id="profile-completeness" style="display:none;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px"></div>
+
   <div id="results"><div class="empty">Lade Radar-Ergebnisse...</div></div>
 
   <script src="api-client.js"></script>
   <script>
     redirectIfNotLoggedIn();
     const user = auth.getUser();
+    // K-61: Profile completeness indicator
+    function showCompletenessIndicator(profile) {
+      const fields = [
+        { key: 'company_name', label: 'Startup-Name' },
+        { key: 'stage', label: 'Funding-Stage' },
+        { key: 'sector', label: 'Sektor' },
+        { key: 'city', label: 'Stadt' },
+        { key: 'description', label: 'Beschreibung' },
+        { key: 'team_size', label: 'Teamgröße' },
+      ];
+      const done = fields.filter(f => profile[f.key]);
+      const pct = Math.round((done.length / fields.length) * 100);
+      if (pct >= 100) return; // fully complete — hide widget
+      const missing = fields.filter(f => !profile[f.key]).map(f => f.label);
+      const el = document.getElementById('profile-completeness');
+      const color = pct >= 66 ? '#10b981' : pct >= 33 ? '#f59e0b' : '#ef4444';
+      el.style.display = 'block';
+      el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:180px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-weight:600;color:#374151">Profil-Vollständigkeit</span>
+              <span style="color:${color};font-weight:700">${pct}%</span>
+            </div>
+            <div style="height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden">
+              <div style="width:${pct}%;height:100%;background:${color};border-radius:99px;transition:width .4s"></div>
+            </div>
+            ${missing.length ? `<div style="margin-top:5px;color:#6b7280">Fehlend: ${missing.join(', ')}</div>` : ''}
+          </div>
+          <a href="onboarding.html" style="color:#4f46e5;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap">Profil vervollständigen →</a>
+        </div>
+      `;
+    }
+
     // K-33: Gate dashboard — redirect to onboarding if profile not complete
     (async () => {
       try {
         const r = await api('GET', '/founders/profile', null, auth.getToken());
         if (!r.profile || !r.profile.company_name) throw new Error('incomplete');
+        showCompletenessIndicator(r.profile);
       } catch (_) {
         if (location.pathname.indexOf('onboarding') === -1) {
           location.replace('onboarding.html');
