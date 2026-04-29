@@ -1,4 +1,5 @@
 const Listing = require('../models/Listing');
+const { notifyContactReceived } = require('../services/notificationService');
 
 const PROVIDER_ROLES = ['equipment_provider', 'service_provider'];
 const VALID_GEO = ['local', 'regional', 'national', 'remote', 'global'];
@@ -86,6 +87,12 @@ const contactListing = async (req, res) => {
     const listing = await Listing.findById(req.params.id);
     if (!listing) return res.status(404).json({ error: 'Listing not found' });
     Listing.incrementContact(req.params.id).catch(() => {});
+
+    // K-59: Send email notification to provider (fire-and-forget)
+    const senderName = req.user?.name || req.user?.email || 'Ein Gründer';
+    const message = req.body?.message || '';
+    notifyContactReceived(listing, listing.provider_id, senderName, message).catch(() => {});
+
     res.json({ ok: true });
   } catch (err) {
     console.error('contactListing error:', err);
