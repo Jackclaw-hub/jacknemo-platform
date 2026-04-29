@@ -2,128 +2,244 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Startup Radar — Profil einrichten</title>
   <style>
-    body { font-family: system-ui; max-width: 520px; margin: 40px auto; padding: 0 20px; }
-    h1 { color: #4f46e5; }
-    .step { display: none; }
-    .step.active { display: block; }
-    .card { background: #f8f9fa; border-radius: 8px; padding: 24px; }
-    .progress { display: flex; gap: 8px; margin-bottom: 24px; }
-    .dot { width: 12px; height: 12px; border-radius: 50%; background: #ddd; }
-    .dot.done { background: #4f46e5; }
-    .dot.current { background: #818cf8; }
-    label { display: block; margin: 12px 0 4px; font-weight: 500; }
-    input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-    .nav { display: flex; gap: 12px; margin-top: 20px; }
-    button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 15px; }
-    .btn-next { background: #4f46e5; color: white; flex: 1; }
-    .btn-back { background: #e5e7eb; flex: 1; }
-    .btn-next:hover { background: #4338ca; }
-    .error { color: red; display: none; margin: 8px 0; }
-    .success { color: #065f46; background: #d1fae5; padding: 10px 14px; border-radius: 6px; margin: 10px 0; display: none; }
-    .summary p { margin: 6px 0; }
-    .referral-box { background: #ede9fe; border-radius: 6px; padding: 12px 16px; margin-top: 16px; font-size: 14px; }
-    .referral-box code { font-size: 18px; font-weight: 700; letter-spacing: 2px; color: #4338ca; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f1f5f9; min-height: 100vh; margin: 0; display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px; }
+    .container { width: 100%; max-width: 540px; }
+    .header { text-align: center; margin-bottom: 28px; }
+    .header h1 { color: #4f46e5; margin: 0 0 6px; font-size: 26px; }
+    .header p { color: #64748b; margin: 0; font-size: 15px; }
+
+    /* Progress bar */
+    .progress-wrap { margin-bottom: 24px; }
+    .progress-steps { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .progress-step { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+    .step-circle { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #cbd5e1; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #94a3b8; transition: all .2s; position: relative; z-index: 1; }
+    .step-circle.done { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+    .step-circle.active { background: #fff; border-color: #4f46e5; color: #4f46e5; box-shadow: 0 0 0 3px #e0e7ff; }
+    .step-label { font-size: 11px; color: #94a3b8; font-weight: 500; white-space: nowrap; }
+    .step-label.active { color: #4f46e5; font-weight: 600; }
+    .step-label.done { color: #4f46e5; }
+    .progress-connector { flex: 1; height: 2px; background: #e2e8f0; margin: 0 -4px; margin-top: -20px; position: relative; z-index: 0; transition: background .3s; }
+    .progress-connector.done { background: #4f46e5; }
+    .progress-bar-line { height: 4px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-top: 4px; }
+    .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #4f46e5, #818cf8); border-radius: 99px; transition: width .4s ease; }
+
+    /* Card */
+    .card { background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 2px 12px rgba(0,0,0,.07); }
+    .step-form { display: none; }
+    .step-form.active { display: block; }
+    .step-title { font-size: 19px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
+    .step-sub { font-size: 13px; color: #64748b; margin: 0 0 20px; }
+    label { display: block; margin: 14px 0 4px; font-size: 13px; font-weight: 600; color: #374151; }
+    label span.opt { font-weight: 400; color: #9ca3af; font-size: 12px; }
+    input, select, textarea { width: 100%; padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #1f2937; background: #fafafa; transition: border .15s, box-shadow .15s; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px #e0e7ff; background: #fff; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .checkbox-group { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+    .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #374151; cursor: pointer; }
+    .checkbox-item input[type=checkbox] { width: auto; accent-color: #4f46e5; }
+    .error { color: #dc2626; font-size: 13px; margin: 8px 0 0; display: none; }
+    .saving-hint { font-size: 12px; color: #6b7280; margin-top: 8px; display: none; }
+
+    /* Navigation */
+    .nav { display: flex; gap: 10px; margin-top: 24px; }
+    button { padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: background .15s, opacity .15s; }
+    .btn-next { background: #4f46e5; color: #fff; flex: 1; }
+    .btn-next:hover:not(:disabled) { background: #4338ca; }
+    .btn-next:disabled { opacity: .6; cursor: default; }
+    .btn-back { background: #f1f5f9; color: #475569; flex: 0 0 auto; padding: 10px 16px; }
+    .btn-back:hover { background: #e2e8f0; }
+
+    /* Done screen */
+    .done-screen { text-align: center; padding: 8px 0; }
+    .done-icon { font-size: 52px; margin-bottom: 12px; }
+    .done-screen h2 { color: #1e293b; margin: 0 0 8px; }
+    .done-screen p { color: #64748b; font-size: 15px; margin: 0 0 20px; }
+    .referral-box { background: #ede9fe; border-radius: 8px; padding: 14px 16px; text-align: left; font-size: 14px; color: #374151; margin-bottom: 20px; }
+    .referral-box strong { display: block; margin-bottom: 6px; color: #4338ca; }
+    .referral-code { font-size: 22px; font-weight: 800; letter-spacing: 3px; color: #4338ca; }
+    .referral-box small { display: block; margin-top: 6px; color: #6b7280; font-size: 12px; line-height: 1.4; }
+    .checkmarks { text-align: left; margin: 16px 0; }
+    .checkmarks li { list-style: none; padding: 4px 0; font-size: 14px; color: #374151; }
+    .checkmarks li::before { content: '✓ '; color: #4f46e5; font-weight: 700; }
   </style>
 </head>
 <body>
-  <h1>&#x1F680; Startup Radar</h1>
-  <p>Richte dein Founder-Profil ein, damit wir die besten Matches für dich finden.</p>
+  <div class="container">
+    <div class="header">
+      <h1>&#x1F680; Startup Radar</h1>
+      <p>Richte dein Founder-Profil ein — dauert nur 2 Minuten.</p>
+    </div>
 
-  <div class="progress">
-    <div class="dot current" id="dot-0"></div>
-    <div class="dot" id="dot-1"></div>
-    <div class="dot" id="dot-2"></div>
-    <div class="dot" id="dot-3"></div>
-  </div>
-
-  <div class="card">
-    <!-- Step 1: Company -->
-    <div class="step active" id="step-0">
-      <h2>1. Dein Startup</h2>
-      <label>Startup-Name</label>
-      <input type="text" id="company_name" placeholder="z.B. FinNext GmbH" required>
-      <label>Stage</label>
-      <select id="stage">
-        <option value="pre-seed">Pre-Seed (Idee / MVP)</option>
-        <option value="seed">Seed (Erste Kunden)</option>
-        <option value="series-a">Series A (Skalierung)</option>
-        <option value="series-b">Series B+</option>
-      </select>
-      <div class="error" id="err-0"></div>
-      <div class="nav">
-        <button class="btn-next" onclick="next(0)">Weiter &#x2192;</button>
+    <!-- Progress -->
+    <div class="progress-wrap">
+      <div class="progress-steps">
+        <div class="progress-step">
+          <div class="step-circle active" id="pc-0">1</div>
+          <div class="step-label active" id="pl-0">Startup</div>
+        </div>
+        <div class="progress-connector" id="conn-0"></div>
+        <div class="progress-step">
+          <div class="step-circle" id="pc-1">2</div>
+          <div class="step-label" id="pl-1">Präferenzen</div>
+        </div>
+        <div class="progress-connector" id="conn-1"></div>
+        <div class="progress-step">
+          <div class="step-circle" id="pc-2">3</div>
+          <div class="step-label" id="pl-2">Radar</div>
+        </div>
+      </div>
+      <div class="progress-bar-line">
+        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
       </div>
     </div>
 
-    <!-- Step 2: Sector + Team -->
-    <div class="step" id="step-1">
-      <h2>2. Branche &amp; Team</h2>
-      <label>Sektor</label>
-      <select id="sector">
-        <option value="fintech">Fintech</option>
-        <option value="healthtech">Healthtech</option>
-        <option value="edtech">Edtech</option>
-        <option value="ecommerce">E-Commerce</option>
-        <option value="saas">SaaS / B2B Software</option>
-        <option value="deeptech">Deeptech / Hardware</option>
-        <option value="other">Sonstiges</option>
-      </select>
-      <label>Teamgröße</label>
-      <input type="number" id="team_size" min="1" max="500" placeholder="z.B. 4">
-      <div class="error" id="err-1"></div>
-      <div class="nav">
-        <button class="btn-back" onclick="back(1)">&#x2190; Zurück</button>
-        <button class="btn-next" onclick="next(1)">Weiter &#x2192;</button>
+    <div class="card">
+      <!-- Step 1: Company Info -->
+      <div class="step-form active" id="step-0">
+        <div class="step-title">Dein Startup</div>
+        <div class="step-sub">Grundlegende Informationen über dein Unternehmen</div>
+        <label>Startup-Name</label>
+        <input type="text" id="company_name" placeholder="z.B. FinNext GmbH" autocomplete="organization">
+        <div class="field-row">
+          <div>
+            <label>Gründungsjahr <span class="opt">(optional)</span></label>
+            <input type="number" id="founded_year" min="2000" max="2026" placeholder="2023">
+          </div>
+          <div>
+            <label>Teamgröße <span class="opt">(optional)</span></label>
+            <input type="number" id="team_size" min="1" max="9999" placeholder="z.B. 4">
+          </div>
+        </div>
+        <label>Funding-Stage</label>
+        <select id="stage">
+          <option value="">— Bitte wählen —</option>
+          <option value="idea">Idee / Konzept</option>
+          <option value="pre-seed">Pre-Seed (MVP in Entwicklung)</option>
+          <option value="seed">Seed (erste Kunden)</option>
+          <option value="series-a">Series A (Skalierung)</option>
+          <option value="series-b">Series B+</option>
+          <option value="bootstrapped">Bootstrapped / profitabel</option>
+        </select>
+        <label>Kurzbeschreibung <span class="opt">(optional)</span></label>
+        <textarea id="description" rows="2" placeholder="Was macht euer Startup? (1-2 Sätze)"></textarea>
+        <div class="error" id="err-0"></div>
+        <div class="nav">
+          <button class="btn-next" id="btn-next-0" onclick="saveAndNext(0)">Weiter &#x2192;</button>
+        </div>
+        <div class="saving-hint" id="hint-0">Wird gespeichert…</div>
       </div>
-    </div>
 
-    <!-- Step 3: Location -->
-    <div class="step" id="step-2">
-      <h2>3. Standort</h2>
-      <label>Stadt</label>
-      <input type="text" id="city" placeholder="Berlin">
-      <label>Suchradius</label>
-      <select id="geo">
-        <option value="local">Lokal (&lt; 50 km)</option>
-        <option value="regional">Regional (&lt; 200 km)</option>
-        <option value="national">National (DE)</option>
-      </select>
-      <div class="error" id="err-2"></div>
-      <div class="nav">
-        <button class="btn-back" onclick="back(2)">&#x2190; Zurück</button>
-        <button class="btn-next" onclick="next(2)">Weiter &#x2192;</button>
+      <!-- Step 2: Investment Preferences -->
+      <div class="step-form" id="step-1">
+        <div class="step-title">Investment-Präferenzen</div>
+        <div class="step-sub">Welche Art von Unterstützung sucht ihr?</div>
+        <label>Gesuchte Investment-Typen</label>
+        <div class="checkbox-group" id="investment_types">
+          <label class="checkbox-item"><input type="checkbox" value="equity"> Equity-Investment</label>
+          <label class="checkbox-item"><input type="checkbox" value="grant"> Fördermittel / Grants</label>
+          <label class="checkbox-item"><input type="checkbox" value="loan"> Startup-Kredit / Darlehen</label>
+          <label class="checkbox-item"><input type="checkbox" value="accelerator"> Accelerator / Inkubator</label>
+          <label class="checkbox-item"><input type="checkbox" value="consulting"> Beratung &amp; Coaching</label>
+          <label class="checkbox-item"><input type="checkbox" value="infrastructure"> Infrastruktur-Services</label>
+        </div>
+        <label>Sektor</label>
+        <select id="sector">
+          <option value="">— Bitte wählen —</option>
+          <option value="fintech">Fintech</option>
+          <option value="healthtech">Healthtech</option>
+          <option value="edtech">Edtech</option>
+          <option value="ecommerce">E-Commerce / Retail</option>
+          <option value="saas">SaaS / B2B Software</option>
+          <option value="deeptech">Deeptech / Hardware</option>
+          <option value="cleantech">Cleantech / GreenTech</option>
+          <option value="mobility">Mobility / Logistik</option>
+          <option value="proptech">Proptech / Real Estate</option>
+          <option value="mediatech">Media / Content</option>
+          <option value="other">Sonstiges</option>
+        </select>
+        <label>Erwartete Investitionsgröße <span class="opt">(optional)</span></label>
+        <select id="investment_range">
+          <option value="">— Keine Angabe —</option>
+          <option value="<50k">Unter €50.000</option>
+          <option value="50k-250k">€50.000 – €250.000</option>
+          <option value="250k-1m">€250.000 – €1 Mio.</option>
+          <option value="1m-5m">€1 Mio. – €5 Mio.</option>
+          <option value=">5m">Über €5 Mio.</option>
+        </select>
+        <div class="error" id="err-1"></div>
+        <div class="nav">
+          <button class="btn-back" onclick="goBack(1)">&#x2190;</button>
+          <button class="btn-next" id="btn-next-1" onclick="saveAndNext(1)">Weiter &#x2192;</button>
+        </div>
+        <div class="saving-hint" id="hint-1">Wird gespeichert…</div>
       </div>
-    </div>
 
-    <!-- Step 4: Summary + Submit -->
-    <div class="step" id="step-3">
-      <h2>4. Zusammenfassung</h2>
-      <div class="summary" id="summary"></div>
-      <label>Kurzbeschreibung (optional)</label>
-      <textarea id="description" rows="3" placeholder="Was macht euer Startup?"></textarea>
-      <div class="error" id="err-3"></div>
-      <div class="success" id="success-3"></div>
-      <div class="nav">
-        <button class="btn-back" onclick="back(3)">&#x2190; Zurück</button>
-        <button class="btn-next" id="submit-btn" onclick="submitProfile()">Profil speichern &#x2713;</button>
+      <!-- Step 3: Radar Settings -->
+      <div class="step-form" id="step-2">
+        <div class="step-title">Radar-Einstellungen</div>
+        <div class="step-sub">Wie soll dein persönlicher Anbieter-Radar konfiguriert sein?</div>
+        <div class="field-row">
+          <div>
+            <label>Stadt / Region</label>
+            <input type="text" id="city" placeholder="Berlin" autocomplete="address-level2">
+          </div>
+          <div>
+            <label>Suchradius</label>
+            <select id="geo">
+              <option value="local">Lokal (&lt; 50 km)</option>
+              <option value="regional">Regional (&lt; 200 km)</option>
+              <option value="national">National (DE)</option>
+              <option value="dach">DACH-Region</option>
+              <option value="europe">Europa</option>
+              <option value="global">Global / Remote</option>
+            </select>
+          </div>
+        </div>
+        <label>Welche Anbieter interessieren dich? <span class="opt">(optional)</span></label>
+        <div class="checkbox-group" id="provider_types">
+          <label class="checkbox-item"><input type="checkbox" value="investor"> Investoren &amp; VCs</label>
+          <label class="checkbox-item"><input type="checkbox" value="accelerator"> Acceleratoren &amp; Inkubatoren</label>
+          <label class="checkbox-item"><input type="checkbox" value="bank"> Banken &amp; Kreditinstitute</label>
+          <label class="checkbox-item"><input type="checkbox" value="consulting"> Beratungsunternehmen</label>
+          <label class="checkbox-item"><input type="checkbox" value="coworking"> Coworking &amp; Spaces</label>
+          <label class="checkbox-item"><input type="checkbox" value="legal"> Rechts- &amp; Steuerberatung</label>
+        </div>
+        <label>E-Mail-Benachrichtigungen</label>
+        <select id="notify_freq">
+          <option value="daily">Täglich — neue passende Anbieter</option>
+          <option value="weekly" selected>Wöchentlich — Zusammenfassung</option>
+          <option value="none">Keine automatischen E-Mails</option>
+        </select>
+        <div class="error" id="err-2"></div>
+        <div class="nav">
+          <button class="btn-back" onclick="goBack(2)">&#x2190;</button>
+          <button class="btn-next" id="btn-next-2" onclick="saveAndNext(2)">Profil abschließen &#x2713;</button>
+        </div>
+        <div class="saving-hint" id="hint-2">Wird gespeichert…</div>
       </div>
-    </div>
 
-    <!-- Step 5: Done + Referral -->
-    <div class="step" id="step-4">
-      <h2>&#x1F389; Profil gespeichert!</h2>
-      <p>Willkommen bei Startup Radar. Dein Profil ist jetzt aktiv.</p>
-      <div class="referral-box">
-        <strong>Dein Referral-Code:</strong><br>
-        <code id="my-referral-code">—</code>
-        <p style="margin:8px 0 0;color:#374151;font-size:13px">
-          Teile diesen Code mit anderen Foundern — wenn sie sich registrieren, werdet ihr beide priorisiert.
-        </p>
-      </div>
-      <div class="nav" style="margin-top:20px">
-        <button class="btn-next" onclick="location.href='founder-dashboard.html'">Zum Dashboard &#x2192;</button>
+      <!-- Done screen -->
+      <div class="step-form" id="step-done">
+        <div class="done-screen">
+          <div class="done-icon">&#x1F389;</div>
+          <h2>Profil gespeichert!</h2>
+          <p>Willkommen bei Startup Radar. Dein Founder-Profil ist jetzt aktiv.</p>
+          <ul class="checkmarks">
+            <li>Anbieter in deiner Region werden benachrichtigt</li>
+            <li>Dein persönlicher Radar ist konfiguriert</li>
+            <li>Du erhältst Matches basierend auf deinen Präferenzen</li>
+          </ul>
+          <div class="referral-box" id="referral-box" style="display:none">
+            <strong>&#x1F381; Dein Referral-Code</strong>
+            <div class="referral-code" id="my-referral-code">—</div>
+            <small>Teile diesen Code mit anderen Foundern — bei Registrierung werden ihr beide priorisiert gematcht.</small>
+          </div>
+          <button class="btn-next" style="width:100%;margin-top:4px" onclick="location.href='founder-dashboard.html'">Zum Dashboard &#x2192;</button>
+        </div>
       </div>
     </div>
   </div>
@@ -131,92 +247,153 @@
   <script src="api-client.js"></script>
   <script>
     redirectIfNotLoggedIn();
-    const STEPS = 4; // 0-3 are form steps
+
+    const TOTAL_STEPS = 3;
     let current = 0;
+    const saved = {}; // accumulate data across steps
 
-    // Pre-fill referral code from URL if coming from a referral link
+    // Pre-fill referral from URL
     const urlParams = new URLSearchParams(location.search);
-    const urlReferral = urlParams.get('ref');
 
-    function updateDots(step) {
-      for (let i = 0; i < STEPS; i++) {
-        const d = document.getElementById('dot-' + i);
-        if (!d) continue;
-        d.className = 'dot' + (i < step ? ' done' : i === step ? ' current' : '');
+    function setProgress(step) {
+      for (let i = 0; i < TOTAL_STEPS; i++) {
+        const c = document.getElementById('pc-' + i);
+        const l = document.getElementById('pl-' + i);
+        if (!c) continue;
+        if (i < step) {
+          c.className = 'step-circle done';
+          l.className = 'step-label done';
+        } else if (i === step) {
+          c.className = 'step-circle active';
+          l.className = 'step-label active';
+        } else {
+          c.className = 'step-circle';
+          l.className = 'step-label';
+        }
+        const conn = document.getElementById('conn-' + i);
+        if (conn) conn.className = 'progress-connector' + (i < step ? ' done' : '');
       }
+      const pct = step === TOTAL_STEPS ? 100 : Math.round((step / TOTAL_STEPS) * 100);
+      document.getElementById('progress-fill').style.width = pct + '%';
     }
 
-    function next(step) {
-      const err = document.getElementById('err-' + step);
-      err.style.display = 'none';
-      if (step === 0 && !document.getElementById('company_name').value.trim()) {
-        showError(err, 'Bitte Startup-Namen eingeben.'); return;
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function getChecked(containerId) {
+      return Array.from(document.querySelectorAll('#' + containerId + ' input[type=checkbox]:checked')).map(cb => cb.value);
+    }
+
+    function collectStep(step) {
+      if (step === 0) {
+        return {
+          company_name: document.getElementById('company_name').value.trim(),
+          stage: document.getElementById('stage').value,
+          team_size: parseInt(document.getElementById('team_size').value) || null,
+          founded_year: parseInt(document.getElementById('founded_year').value) || null,
+          description: document.getElementById('description').value.trim(),
+        };
       }
-      document.getElementById('step-' + step).classList.remove('active');
-      current = step + 1;
-      document.getElementById('step-' + current).classList.add('active');
-      updateDots(current);
-      if (current === 3) buildSummary();
+      if (step === 1) {
+        return {
+          sector: document.getElementById('sector').value,
+          investment_types: getChecked('investment_types'),
+          investment_range: document.getElementById('investment_range').value || null,
+        };
+      }
+      if (step === 2) {
+        return {
+          city: document.getElementById('city').value.trim(),
+          geo: document.getElementById('geo').value,
+          provider_types: getChecked('provider_types'),
+          notify_freq: document.getElementById('notify_freq').value,
+        };
+      }
+      return {};
     }
 
-    function back(step) {
-      document.getElementById('step-' + step).classList.remove('active');
-      current = step - 1;
-      document.getElementById('step-' + current).classList.add('active');
-      updateDots(current);
+    function validateStep(step, data) {
+      if (step === 0) {
+        if (!data.company_name) return 'Bitte gib den Namen deines Startups ein.';
+        if (!data.stage) return 'Bitte wähle einen Funding-Stage.';
+      }
+      if (step === 2) {
+        if (!data.city) return 'Bitte gib eine Stadt oder Region ein.';
+      }
+      return null;
     }
 
-    function buildSummary() {
-      document.getElementById('summary').innerHTML = `
-        <p><strong>Startup:</strong> ${document.getElementById('company_name').value}</p>
-        <p><strong>Stage:</strong> ${document.getElementById('stage').value}</p>
-        <p><strong>Sektor:</strong> ${document.getElementById('sector').value}</p>
-        <p><strong>Team:</strong> ${document.getElementById('team_size').value || '—'} Personen</p>
-        <p><strong>Stadt:</strong> ${document.getElementById('city').value || '—'}</p>
-        <p><strong>Radius:</strong> ${document.getElementById('geo').value}</p>
-      `;
-    }
+    async function saveAndNext(step) {
+      const errId = 'err-' + step;
+      document.getElementById(errId).style.display = 'none';
+      const hintEl = document.getElementById('hint-' + step);
+      const btnEl = document.getElementById('btn-next-' + step);
 
-    async function submitProfile() {
-      const btn = document.getElementById('submit-btn');
-      const err = document.getElementById('err-3');
-      err.style.display = 'none';
-      btn.disabled = true;
-      btn.textContent = 'Speichern...';
+      const data = collectStep(step);
+      const validErr = validateStep(step, data);
+      if (validErr) { showError(errId, validErr); return; }
+
+      // Merge into saved
+      Object.assign(saved, data);
+
+      // Show saving hint
+      btnEl.disabled = true;
+      hintEl.style.display = 'block';
+      hintEl.textContent = 'Wird gespeichert…';
 
       try {
-        await FoundersAPI.saveProfile({
-          company_name: document.getElementById('company_name').value,
-          stage: document.getElementById('stage').value,
-          sector: document.getElementById('sector').value,
-          team_size: parseInt(document.getElementById('team_size').value) || null,
-          city: document.getElementById('city').value,
-          geo: document.getElementById('geo').value,
-          description: document.getElementById('description').value,
-        });
+        await FoundersAPI.saveProfile(saved);
+        hintEl.textContent = '✓ Gespeichert';
+        setTimeout(() => { hintEl.style.display = 'none'; }, 1000);
+      } catch(e) {
+        // Non-fatal: continue even if save fails (will retry on next step)
+        hintEl.textContent = '⚠ Konnte nicht speichern — wird beim nächsten Schritt erneut versucht';
+        hintEl.style.color = '#b45309';
+      }
 
-        // Fetch referral code from user profile
+      btnEl.disabled = false;
+
+      if (step < TOTAL_STEPS - 1) {
+        // Move to next step
+        document.getElementById('step-' + step).classList.remove('active');
+        current = step + 1;
+        document.getElementById('step-' + current).classList.add('active');
+        setProgress(current);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        // Final step — show done screen
+        document.getElementById('step-' + step).classList.remove('active');
+        document.getElementById('step-done').classList.add('active');
+        setProgress(TOTAL_STEPS);
+
+        // Try to fetch referral code
         try {
           const profileData = await api('GET', '/auth/profile', null, auth.getToken());
           const code = profileData.user && profileData.user.referral_code;
-          if (code) document.getElementById('my-referral-code').textContent = code;
-        } catch (_) {}
+          if (code) {
+            document.getElementById('my-referral-code').textContent = code;
+            document.getElementById('referral-box').style.display = 'block';
+          }
+        } catch(_) {}
 
-        // Show done step
-        document.getElementById('step-3').classList.remove('active');
-        document.getElementById('step-4').classList.add('active');
-        // Update dots: all done
-        for (let i = 0; i < STEPS; i++) {
-          const d = document.getElementById('dot-' + i);
-          if (d) d.className = 'dot done';
-        }
-
-      } catch(ex) {
-        showError(err, ex.message);
-        btn.disabled = false;
-        btn.textContent = 'Profil speichern ✓';
+        // Auto-redirect after 4 seconds
+        setTimeout(() => { location.href = 'founder-dashboard.html'; }, 4000);
       }
     }
+
+    function goBack(step) {
+      document.getElementById('step-' + step).classList.remove('active');
+      current = step - 1;
+      document.getElementById('step-' + current).classList.add('active');
+      setProgress(current);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Init
+    setProgress(0);
   </script>
 </body>
 </html>
