@@ -41,7 +41,7 @@ const getProfile = async (req, res) => {
 const getProviderListings = async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT * FROM listings WHERE provider_id=$1 AND status='approved' ORDER BY created_at DESC`,
+      `SELECT * FROM listings WHERE provider_id=$1 AND status='active' ORDER BY created_at DESC`,
       [req.params.userId]
     );
     res.json({ listings: result.rows });

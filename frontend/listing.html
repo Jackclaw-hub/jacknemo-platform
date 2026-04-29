@@ -98,6 +98,7 @@
         <p id="prov-desc"></p>
         <p id="prov-web"></p>
         <div id="prov-verified" style="display:none;margin-top:8px;font-size:13px;color:#065f46;background:#d1fae5;padding:4px 10px;border-radius:6px;display:inline-block">✓ Verifizierter Anbieter</div>
+        <a id="prov-profile-link" href="#" style="display:none;margin-top:10px;font-size:13px;color:#4f46e5;text-decoration:none">Vollständiges Profil ansehen →</a>
       </div>
 
       <button class="contact-btn" id="contact-btn" onclick="toggleContact()">Kontakt aufnehmen</button>
@@ -203,6 +204,9 @@
               if (p.is_verified) {
                 document.getElementById('prov-verified').style.display = 'inline-block';
               }
+              const profLink = document.getElementById('prov-profile-link');
+              profLink.href = 'provider.html?id=' + l.provider_id;
+              profLink.style.display = 'inline-block';
             }
           } catch(e) { /* provider profile optional */ }
         }
