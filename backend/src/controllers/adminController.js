@@ -20,6 +20,30 @@ const getPendingListings = async (req, res) => {
   }
 };
 
+// K-60: Get all listings with optional filters (admin)
+const getAllListings = async (req, res) => {
+  try {
+    const { status, type, search } = req.query;
+    const db = require('../config/database');
+    let sql = 'SELECT * FROM listings WHERE 1=1';
+    const params = [];
+    let idx = 1;
+    if (status && status !== 'all') { sql += ` AND status = $${idx++}`; params.push(status); }
+    if (type) { sql += ` AND type = $${idx++}`; params.push(type); }
+    if (search && search.trim()) {
+      sql += ` AND (LOWER(title) LIKE $${idx} OR LOWER(description) LIKE $${idx} OR LOWER(city) LIKE $${idx})`;
+      params.push('%' + search.trim().toLowerCase() + '%');
+      idx++;
+    }
+    sql += ' ORDER BY created_at DESC';
+    const result = await db.query(sql, params);
+    res.json({ listings: result.rows, count: result.rows.length });
+  } catch (err) {
+    console.error('getAllListings error:', err);
+    res.status(500).json({ error: 'Failed to fetch listings' });
+  }
+};
+
 const approveListing = async (req, res) => {
   try {
     const listing = await Listing.updateStatus(req.params.id, 'approved');
@@ -178,4 +202,4 @@ const bulkAction = async (req, res) => {
 };
 
 module.exports = {
-  bulkAction, getPendingListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry };
+  bulkAction, getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry };

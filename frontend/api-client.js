@@ -77,7 +77,11 @@ const RadarAPI = {
 
 // Admin
 const AdminAPI = {
-  getPending: (status = 'pending') => api('GET', '/admin/listings?status=' + status, null, auth.getToken()),
+  getPending: () => api('GET', '/admin/listings/pending', null, auth.getToken()),
+  getListings: (filters = {}) => {
+    const q = new URLSearchParams(filters).toString();
+    return api('GET', '/admin/listings' + (q ? '?' + q : ''), null, auth.getToken());
+  },
   approve: (id) => api('PUT', '/admin/listings/' + id + '/approve', {}, auth.getToken()),
   reject: (id, reason) => api('PUT', '/admin/listings/' + id + '/reject', { reason }, auth.getToken()),
   feature: (id) => api('PUT', '/admin/listings/' + id + '/feature', {}, auth.getToken()),

@@ -251,6 +251,19 @@ class MockDatabase {
         if (sql.includes('provider_id = $1') && sql.includes('status = $2')) {
           return { rows: this.listings.filter(x => x.provider_id == params[0] && x.status === params[1]) };
         }
+        // K-60: Admin all-listings query with WHERE 1=1 + dynamic filters
+        if (sql.includes('WHERE 1=1')) {
+          let rows = [...this.listings];
+          let pi = 0;
+          if (sql.includes('status =')) { rows = rows.filter(x => x.status === params[pi++]); }
+          if (sql.includes('type =')) { rows = rows.filter(x => x.type === params[pi++]); }
+          if (sql.includes('LOWER(title) LIKE')) {
+            const term = (params[pi++] || '').replace(/%/g, '').toLowerCase();
+            rows = rows.filter(x => (x.title||'').toLowerCase().includes(term) || (x.description||'').toLowerCase().includes(term) || (x.city||'').toLowerCase().includes(term));
+          }
+          rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          return { rows };
+        }
         let rows = this.listings.filter(x => x.status === params[0]);
         let pi = 1;
         if (sql.includes('type =')) rows = rows.filter(x => x.type === params[pi++]);

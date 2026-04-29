@@ -25,6 +25,11 @@
     .btn-feature:hover { background: #d97706; }
     .btn-feature.unfeatured { background: #6b7280; }
     #summary { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; margin-bottom: 16px; }
+    .search-filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+    .search-filter-bar input[type=text] { flex: 1; min-width: 180px; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; }
+    .search-filter-bar select { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; background: #fff; }
+    .search-filter-bar button { padding: 7px 14px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .search-filter-bar button.reset-btn { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
   
     /* K-23: Mobile responsive */
     @media (max-width: 640px) {
@@ -54,6 +59,24 @@
   <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:2px solid #e5e7eb;padding-bottom:8px">
     <button id="tab-listings" onclick="showTab('listings')" style="background:#dc2626;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px">Listings pending</button>
     <button id="tab-verify" onclick="showTab('verify')" style="background:#e5e7eb;color:#374151;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px">Verification queue</button>
+  </div>
+  <!-- K-60: Search & filter panel -->
+  <div class="search-filter-bar" id="search-filter-bar">
+    <input type="text" id="admin-search" placeholder="Suche nach Titel, Stadt…" oninput="debounceSearch()">
+    <select id="filter-status" onchange="applyFilters()">
+      <option value="pending">Ausstehend</option>
+      <option value="active">Aktiv</option>
+      <option value="rejected">Abgelehnt</option>
+      <option value="expired">Abgelaufen</option>
+      <option value="draft">Entwurf</option>
+      <option value="all">Alle Status</option>
+    </select>
+    <select id="filter-type" onchange="applyFilters()">
+      <option value="">Alle Typen</option>
+      <option value="equipment">Equipment</option>
+      <option value="service">Service</option>
+    </select>
+    <button class="reset-btn" onclick="resetFilters()">Zurücksetzen</button>
   </div>
   <div id="summary">Lade ausstehende Inserate...</div>
   <div id="listings"></div>
@@ -175,6 +198,7 @@
     function showTab(tab) {
       document.getElementById('listings').style.display = tab === 'listings' ? '' : 'none';
       document.getElementById('summary').style.display = tab === 'listings' ? '' : 'none';
+      document.getElementById('search-filter-bar').style.display = tab === 'listings' ? 'flex' : 'none';
       document.getElementById('verify-section').style.display = tab === 'verify' ? '' : 'none';
       document.getElementById('tab-listings').style.cssText = tab === 'listings'
         ? 'background:#dc2626;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px'
@@ -268,20 +292,46 @@
       } catch(e) { alert('Fehler: ' + e.message); }
     }
 
-    async function loadPending() {
+    // K-60: Search/filter
+    let searchTimer = null;
+    function debounceSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(applyFilters, 300);
+    }
+
+    async function applyFilters() {
+      const status = document.getElementById('filter-status').value;
+      const type = document.getElementById('filter-type').value;
+      const search = document.getElementById('admin-search').value.trim();
+      await loadListings({ status, type: type || undefined, search: search || undefined });
+    }
+
+    function resetFilters() {
+      document.getElementById('filter-status').value = 'pending';
+      document.getElementById('filter-type').value = '';
+      document.getElementById('admin-search').value = '';
+      loadListings({ status: 'pending' });
+    }
+
+    async function loadListings(filters = { status: 'pending' }) {
       try {
-        const data = await AdminAPI.getPending();
+        const data = await AdminAPI.getListings(filters);
         const listings = data.listings || data;
         const el = document.getElementById('listings');
-        document.getElementById('summary').textContent = listings.length + ' ausstehende Inserate';
+        const statusLabel = filters.status === 'all' ? 'alle' : filters.status || 'ausstehende';
+        document.getElementById('summary').textContent = listings.length + ' ' + statusLabel + ' Inserate';
         if (!listings.length) {
-          el.innerHTML = '<div class="empty">Keine ausstehenden Inserate 🎉</div>';
+          el.innerHTML = '<div class="empty">Keine Inserate gefunden 🎉</div>';
         } else {
           el.innerHTML = listings.map(renderListing).join('');
         }
       } catch(ex) {
         document.getElementById('summary').textContent = 'Fehler beim Laden: ' + ex.message;
       }
+    }
+
+    async function loadPending() {
+      await loadListings({ status: 'pending' });
     }
 
     loadPending();
