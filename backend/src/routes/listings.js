@@ -6,7 +6,7 @@ const { listingsWriteLimiter } = require('../middleware/rateLimiter');
 const {
   createListing, getListings, getListing, contactListing,
   updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing,
-  renewListing, runListingExpiry
+  renewListing, runListingExpiry, recordView
 } = require('../controllers/listingsController');
 const { reportListing, getReportCount } = require('../controllers/reportController');
 
@@ -88,6 +88,9 @@ router.post('/admin/expire', authenticateToken, runListingExpiry);
 // K-67: Report abuse
 router.post('/:id/report', authenticateToken, reportListing);
 router.get('/:id/reports/count', authenticateToken, getReportCount);
+
+// K-69: Explicit view tracking (session-deduplicated by frontend)
+router.post('/:id/view', recordView);
 
 // Protected routes (provider only)
 router.post('/', authenticateToken, listingsWriteLimiter, validateListing, createListing);

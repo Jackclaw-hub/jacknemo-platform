@@ -234,6 +234,13 @@
         document.getElementById('loading').style.display = 'none';
         document.getElementById('listing-detail').style.display = 'block';
 
+        // K-69: Record view once per session (sessionStorage deduplication)
+        const viewKey = 'viewed_' + listingId;
+        if (!sessionStorage.getItem(viewKey)) {
+          sessionStorage.setItem(viewKey, '1');
+          fetch('/api/listings/' + listingId + '/view', { method: 'POST' }).catch(() => {});
+        }
+
         // Hide contact button if not logged in or is own listing
         if (!auth.getToken()) {
           document.getElementById('contact-btn').textContent = 'Einloggen zum Kontaktieren';

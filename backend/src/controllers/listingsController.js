@@ -73,12 +73,23 @@ const getListing = async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id);
     if (!listing) return res.status(404).json({ error: 'Listing not found' });
-    // Increment view count (fire-and-forget, don't block response)
-    Listing.incrementView(req.params.id).catch(() => {});
+    // K-69: view counting moved to POST /:id/view (session-deduplicated)
     res.json({ listing });
   } catch (err) {
     console.error('getListing error:', err);
     res.status(500).json({ error: 'Failed to fetch listing' });
+  }
+};
+
+// K-69: Explicit view event — called by frontend once per session
+const recordView = async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    Listing.incrementView(req.params.id).catch(() => {});
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to record view' });
   }
 };
 
@@ -219,4 +230,4 @@ const runListingExpiry = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing, renewListing, runListingExpiry };
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing, renewListing, runListingExpiry, recordView };
