@@ -2,17 +2,18 @@ const db = require('../config/database');
 
 class FounderProfile {
   static async upsert(userId, data) {
-    const { company_name, stage, sector, city, geo, team_size, description } = data;
+    const { company_name, stage, sector, city, geo, team_size, description, display_name } = data;
     const res = await db.query(
-      `INSERT INTO founder_profiles (user_id, company_name, stage, sector, city, geo, team_size, description, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
+      `INSERT INTO founder_profiles (user_id, company_name, stage, sector, city, geo, team_size, description, display_name, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())
        ON CONFLICT (user_id) DO UPDATE SET
          company_name=EXCLUDED.company_name, stage=EXCLUDED.stage,
          sector=EXCLUDED.sector, city=EXCLUDED.city, geo=EXCLUDED.geo,
          team_size=EXCLUDED.team_size, description=EXCLUDED.description,
+         display_name=EXCLUDED.display_name,
          updated_at=NOW()
        RETURNING *`,
-      [userId, company_name, stage, sector, city, geo, team_size, description]
+      [userId, company_name, stage, sector, city, geo, team_size, description, display_name || null]
     );
     return res.rows[0];
   }

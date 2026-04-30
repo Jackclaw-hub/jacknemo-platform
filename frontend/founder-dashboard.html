@@ -80,6 +80,15 @@
     </div>
   </nav>
 
+  <!-- K-82: Personalized welcome banner -->
+  <div id="welcome-banner" style="display:none;background:linear-gradient(135deg,#ede9fe,#e0e7ff);border-radius:10px;padding:14px 20px;margin-bottom:18px;align-items:center;justify-content:space-between">
+    <div>
+      <div id="welcome-text" style="font-size:18px;font-weight:700;color:#3730a3"></div>
+      <div id="welcome-sub" style="font-size:13px;color:#6b7280;margin-top:2px"></div>
+    </div>
+    <button onclick="document.getElementById('welcome-banner').style.display='none'" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:16px;padding:4px">&#x2715;</button>
+  </div>
+
   <div class="search-bar">
     <input type="text" id="search-input" placeholder="Search listings&#8230; (equipment, services, city)" onkeydown="if(event.key==='Enter') runSearch()">
     <button onclick="runSearch()">&#x1F50D; Search</button>
@@ -199,11 +208,25 @@
     }
 
     // K-33: Gate dashboard — redirect to onboarding if profile not complete
+    // K-82: Show personalized welcome banner with display_name
     (async () => {
       try {
         const r = await api('GET', '/founders/profile', null, auth.getToken());
         if (!r.profile || !r.profile.company_name) throw new Error('incomplete');
         showCompletenessIndicator(r.profile);
+
+        // Welcome banner
+        const name = r.profile.display_name || r.profile.company_name || user?.name || null;
+        if (name) {
+          const banner = document.getElementById('welcome-banner');
+          const hour = new Date().getHours();
+          const greeting = hour < 12 ? 'Guten Morgen' : hour < 18 ? 'Willkommen zurück' : 'Guten Abend';
+          document.getElementById('welcome-text').textContent = greeting + ', ' + name + '!';
+          document.getElementById('welcome-sub').textContent = r.profile.company_name
+            ? r.profile.company_name + ' · ' + (r.profile.stage || '') + (r.profile.city ? ' · ' + r.profile.city : '')
+            : 'Dein Founder-Dashboard';
+          banner.style.display = 'flex';
+        }
       } catch (_) {
         if (location.pathname.indexOf('onboarding') === -1) {
           location.replace('onboarding.html');

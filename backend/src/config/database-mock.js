@@ -211,6 +211,7 @@ class MockDatabase {
         geo: params[5] || null,
         team_size: params[6] || null,
         description: params[7] || null,
+        display_name: params[8] || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
