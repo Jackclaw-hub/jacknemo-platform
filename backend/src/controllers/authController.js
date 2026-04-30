@@ -218,6 +218,30 @@ const confirmPasswordReset = async (req, res) => {
   }
 };
 
+// K-80: Change password (authenticated — verifies current password first)
+const changePassword = async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+    if (!current_password || !new_password) {
+      return res.status(400).json({ error: 'current_password and new_password are required' });
+    }
+    if (new_password.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters' });
+    }
+    const user = await User.findByIdWithHash(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const valid = await auth.verifyPassword(current_password, user.password_hash);
+    if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
+    const hash = await auth.hashPassword(new_password);
+    await User.updatePassword(user.id, hash);
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    console.error('changePassword error:', err);
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+};
+
 module.exports = {
+  changePassword,
   requestPasswordReset,
   confirmPasswordReset, register, login, getProfile, updateProfile, verifyEmail, resendVerification, refreshToken, logout };

@@ -167,6 +167,19 @@
         <div class="form-msg" id="p-msg"></div>
         <button type="submit" class="primary" style="margin-top:4px">Profil speichern</button>
       </form>
+
+      <!-- K-80: Change password -->
+      <div style="margin-top:20px;border-top:1px solid #e5e7eb;padding-top:16px">
+        <button onclick="togglePwForm()" style="background:none;border:none;color:#4f46e5;font-size:13px;cursor:pointer;padding:0;font-weight:600">&#x1F512; Passwort ändern</button>
+        <div id="pw-form" style="display:none;margin-top:12px">
+          <input type="password" id="pw-current" placeholder="Aktuelles Passwort" autocomplete="current-password">
+          <input type="password" id="pw-new" placeholder="Neues Passwort (mind. 8 Zeichen)" autocomplete="new-password">
+          <input type="password" id="pw-confirm" placeholder="Neues Passwort bestätigen" autocomplete="new-password">
+          <div class="form-msg" id="pw-msg"></div>
+          <button type="button" onclick="submitPwChange()" style="background:#4f46e5;color:#fff;border:none;padding:8px 18px;border-radius:4px;cursor:pointer;font-size:13px">Passwort ändern</button>
+          <button type="button" onclick="togglePwForm()" style="background:#f3f4f6;color:#374151;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:13px;margin-left:8px">Abbrechen</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -559,6 +572,34 @@
         msg.style.display = 'block';
       }
     });
+
+    // K-80: Change password
+    function togglePwForm() {
+      const f = document.getElementById('pw-form');
+      f.style.display = f.style.display === 'block' ? 'none' : 'block';
+      if (f.style.display === 'none') {
+        ['pw-current','pw-new','pw-confirm'].forEach(id => { document.getElementById(id).value = ''; });
+        const msg = document.getElementById('pw-msg'); msg.style.display = 'none';
+      }
+    }
+    async function submitPwChange() {
+      const msg = document.getElementById('pw-msg');
+      msg.style.display = 'none';
+      const cur = document.getElementById('pw-current').value;
+      const nw  = document.getElementById('pw-new').value;
+      const cnf = document.getElementById('pw-confirm').value;
+      if (!cur || !nw || !cnf) { msg.className='form-msg error'; msg.textContent='Alle Felder ausfüllen.'; msg.style.display='block'; return; }
+      if (nw.length < 8) { msg.className='form-msg error'; msg.textContent='Mindestens 8 Zeichen erforderlich.'; msg.style.display='block'; return; }
+      if (nw !== cnf) { msg.className='form-msg error'; msg.textContent='Passwörter stimmen nicht überein.'; msg.style.display='block'; return; }
+      try {
+        await AuthAPI.changePassword(cur, nw);
+        msg.className='form-msg success'; msg.textContent='✓ Passwort erfolgreich geändert.'; msg.style.display='block';
+        ['pw-current','pw-new','pw-confirm'].forEach(id => { document.getElementById(id).value = ''; });
+        setTimeout(() => togglePwForm(), 2000);
+      } catch(ex) {
+        msg.className='form-msg error'; msg.textContent='Fehler: ' + ex.message; msg.style.display='block';
+      }
+    }
 
     loadMyListings();
     loadProviderProfile();

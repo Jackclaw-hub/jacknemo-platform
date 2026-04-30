@@ -10,7 +10,8 @@ const {
   refreshToken,
   logout,
   requestPasswordReset,
-  confirmPasswordReset
+  confirmPasswordReset,
+  changePassword
 } = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');
 const { authRateLimiter, registrationRateLimiter, resetRateLimiter, validateRegistration, validateLogin } = require('../middleware/security');
@@ -44,5 +45,8 @@ router.post('/reset-password', resetRateLimiter, requestPasswordReset);
 
 // POST /api/auth/reset-password/confirm - Confirm reset (K-22)
 router.post('/reset-password/confirm', confirmPasswordReset);
+
+// POST /api/auth/change-password - Change password (K-80, authenticated)
+router.post('/change-password', authenticateToken, changePassword);
 
 module.exports = router;

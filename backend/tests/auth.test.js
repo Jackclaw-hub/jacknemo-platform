@@ -57,4 +57,49 @@ describe("POST /api/auth/login", () => {
   });
 });
 
+// K-80: Change password
+describe("POST /api/auth/change-password", () => {
+  let token;
+  beforeAll(async () => {
+    const res = await request(app).post("/api/auth/login")
+      .send({ email: "admin@nemoclaw.dev", password: "admin2026!" });
+    token = res.body.access_token;
+  });
+
+  it("401 without auth", async () => {
+    const res = await request(app).post("/api/auth/change-password")
+      .send({ current_password: "admin2026!", new_password: "newpass123" });
+    expect(res.status).toBe(401);
+  });
+
+  it("400 when fields missing", async () => {
+    const res = await request(app).post("/api/auth/change-password")
+      .set("Authorization", "Bearer " + token)
+      .send({ current_password: "admin2026!" });
+    expect(res.status).toBe(400);
+  });
+
+  it("400 when new password too short", async () => {
+    const res = await request(app).post("/api/auth/change-password")
+      .set("Authorization", "Bearer " + token)
+      .send({ current_password: "admin2026!", new_password: "short" });
+    expect(res.status).toBe(400);
+  });
+
+  it("401 when current password is wrong", async () => {
+    const res = await request(app).post("/api/auth/change-password")
+      .set("Authorization", "Bearer " + token)
+      .send({ current_password: "wrongpassword", new_password: "newpass123" });
+    expect(res.status).toBe(401);
+  });
+
+  it("200 on successful change", async () => {
+    const res = await request(app).post("/api/auth/change-password")
+      .set("Authorization", "Bearer " + token)
+      .send({ current_password: "admin2026!", new_password: "admin2026!" });
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBeDefined();
+  });
+});
+
 afterAll(async () => {});

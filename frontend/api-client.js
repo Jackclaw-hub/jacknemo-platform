@@ -28,6 +28,9 @@ const AuthAPI = {
   login: (email, password) =>
     api('POST', '/auth/login', { email, password }),
   logout: () => { auth.clearToken(); auth.setUser(null); },
+  // K-80: Change password (authenticated)
+  changePassword: (current_password, new_password) =>
+    api('POST', '/auth/change-password', { current_password, new_password }, auth.getToken()),
 };
 
 // Founders

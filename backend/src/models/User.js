@@ -63,6 +63,15 @@ class User {
     return result.rows[0];
   }
 
+  // K-80: Find user with password_hash for change-password verification
+  static async findByIdWithHash(id) {
+    const result = await pool.query(
+      'SELECT id, email, role, name, password_hash, is_active FROM users WHERE id = $1',
+      [id]
+    );
+    return result.rows[0] || null;
+  }
+
   // K-22: Password reset
   static async setResetToken(id, token, expires) {
     await pool.query(
