@@ -30,7 +30,17 @@
     .search-filter-bar select { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; background: #fff; }
     .search-filter-bar button { padding: 7px 14px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
     .search-filter-bar button.reset-btn { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
-  
+    /* K-83: Listing detail modal */
+    .detail-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center; }
+    .detail-modal-overlay.open { display:flex; }
+    .detail-modal { background:#fff; border-radius:12px; max-width:600px; width:95vw; max-height:85vh; overflow-y:auto; padding:28px 32px; position:relative; box-shadow:0 8px 40px rgba(0,0,0,.2); }
+    .detail-modal h2 { margin:0 0 12px; font-size:20px; }
+    .detail-modal .dm-meta { font-size:13px; color:#6b7280; margin-bottom:12px; }
+    .detail-modal .dm-desc { font-size:14px; line-height:1.7; white-space:pre-wrap; color:#374151; background:#f9fafb; border-radius:6px; padding:12px; }
+    .detail-modal .dm-close { position:absolute; top:14px; right:16px; background:none; border:none; font-size:20px; cursor:pointer; color:#9ca3af; }
+    .btn-details { background:#f3f4f6; color:#374151; border:1px solid #d1d5db; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:12px; }
+    .btn-details:hover { background:#e5e7eb; }
+
     /* K-23: Mobile responsive */
     @media (max-width: 640px) {
       body { padding: 12px; }
@@ -187,6 +197,7 @@
           <input class="reason" type="text" id="reason-${l.id}" placeholder="Ablehnungsgrund (optional)">
           <button class="btn-reject" onclick="reject(${l.id})">✗ Ablehnen</button>
           <button class="btn-feature ${l.is_featured ? '' : 'unfeatured'}" onclick="toggleFeature(${l.id}, ${l.is_featured ? 1 : 0})">${l.is_featured ? '\u2B50 Unfeature' : '\u2606 Feature'}</button>
+          <button class="btn-details" onclick="showListingDetail(${l.id})">&#128269; Details</button>
         </div>
         </div>
         <div id="msg-${l.id}"></div>
@@ -493,8 +504,51 @@
       }
     }
 
+    async function showListingDetail(id) {
+      const overlay = document.getElementById('detail-modal-overlay');
+      const body = document.getElementById('dm-body');
+      body.innerHTML = '<p style="color:#6b7280;text-align:center;padding:20px">Lade...</p>';
+      overlay.classList.add('open');
+      try {
+        const data = await ListingsAPI.getById(id);
+        const l = data.listing || data;
+        const tags = (l.tags || []).map(t => `<span class="tag">${t}</span>`).join(' ') || '—';
+        const expires = l.expires_at ? new Date(l.expires_at).toLocaleDateString('de-DE') : '—';
+        const created = l.created_at ? new Date(l.created_at).toLocaleDateString('de-DE') : '—';
+        body.innerHTML = `
+          <h2>${l.title}</h2>
+          <div class="dm-meta">
+            ID: <strong>${l.id}</strong> &nbsp;·&nbsp;
+            Status: <strong>${l.status}</strong> &nbsp;·&nbsp;
+            Typ: <strong>${l.type}</strong> &nbsp;·&nbsp;
+            Geo: <strong>${l.geo}</strong>
+            ${l.city ? '&nbsp;·&nbsp; Stadt: <strong>' + l.city + '</strong>' : ''}
+            <br>Provider ID: <strong>${l.provider_id}</strong> &nbsp;·&nbsp;
+            Erstellt: <strong>${created}</strong> &nbsp;·&nbsp;
+            Läuft ab: <strong>${expires}</strong>
+          </div>
+          <div style="margin-bottom:10px">${tags}</div>
+          <div class="dm-desc">${l.description || '(keine Beschreibung)'}</div>
+        `;
+      } catch(ex) {
+        body.innerHTML = '<p style="color:#ef4444;padding:8px">Fehler: ' + ex.message + '</p>';
+      }
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detail-modal-overlay').classList.remove('open');
+    }
+
     loadPending();
   </script>
+
+  <!-- K-83: Listing detail modal -->
+  <div class="detail-modal-overlay" id="detail-modal-overlay" onclick="if(event.target===this)closeDetailModal()">
+    <div class="detail-modal">
+      <button class="dm-close" onclick="closeDetailModal()">&#x2715;</button>
+      <div id="dm-body"></div>
+    </div>
+  </div>
 
   <!-- K-53: Notification panel -->
   <div id="notif-panel" style="display:none;position:fixed;top:52px;right:16px;width:340px;max-width:95vw;max-height:480px;background:#fff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.16);z-index:999;overflow:hidden;flex-direction:column">
