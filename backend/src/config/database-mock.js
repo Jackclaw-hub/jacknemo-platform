@@ -25,6 +25,8 @@ class MockDatabase {
     this.messages = [];
     this.ratings = [];
     this.bookmarks = []; // saved_listings
+    this.reports = []; // K-67: listing reports
+    this.nextReportId = 1;
     this.notifications = [];
     this.nextNotificationId = 1;
     this.nextUserId = 10000;
@@ -525,6 +527,32 @@ class MockDatabase {
         const userId = params[0], listingId = params[1];
         this.bookmarks = this.bookmarks.filter(b => !(b.user_id == userId && b.listing_id == listingId));
         return { rows: [] };
+      }
+    }
+
+    // ---- LISTING REPORTS (K-67) ----
+    if (sl.includes('listing_reports')) {
+      if (s.startsWith('INSERT')) {
+        const report = { id: this.nextReportId++, listing_id: params[0], reporter_id: params[1], reason: params[2], dismissed: false, created_at: new Date().toISOString() };
+        // prevent duplicate report from same user for same listing
+        const dup = this.reports.find(r => r.listing_id == params[0] && r.reporter_id == params[1]);
+        if (dup) return { rows: [dup] }; // ON CONFLICT DO NOTHING equivalent
+        this.reports.push(report);
+        return { rows: [report] };
+      }
+      if (s.startsWith('SELECT')) {
+        if (sl.includes('listing_id = $1') && !sl.includes('dismissed')) {
+          return { rows: this.reports.filter(r => r.listing_id == params[0]) };
+        }
+        if (sl.includes('dismissed = false') || sl.includes("dismissed = 'false'")) {
+          return { rows: this.reports.filter(r => !r.dismissed) };
+        }
+        return { rows: this.reports };
+      }
+      if (s.startsWith('UPDATE') && sl.includes('dismissed')) {
+        const idx = this.reports.findIndex(r => r.id == params[1]);
+        if (idx >= 0) { this.reports[idx].dismissed = true; }
+        return { rows: idx >= 0 ? [this.reports[idx]] : [] };
       }
     }
 

@@ -8,6 +8,7 @@ const {
   updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing,
   renewListing, runListingExpiry
 } = require('../controllers/listingsController');
+const { reportListing, getReportCount } = require('../controllers/reportController');
 
 // SSE clients registry (in-memory, resets on restart — sufficient for polling fallback)
 const sseClients = new Map(); // userId → res
@@ -83,6 +84,10 @@ router.patch('/:id/publish', authenticateToken, publishListing);
 // K-56: Renew listing (provider) / expire old listings (admin)
 router.patch('/:id/renew', authenticateToken, renewListing);
 router.post('/admin/expire', authenticateToken, runListingExpiry);
+
+// K-67: Report abuse
+router.post('/:id/report', authenticateToken, reportListing);
+router.get('/:id/reports/count', authenticateToken, getReportCount);
 
 // Protected routes (provider only)
 router.post('/', authenticateToken, listingsWriteLimiter, validateListing, createListing);

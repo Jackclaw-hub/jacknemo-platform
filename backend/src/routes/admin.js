@@ -5,6 +5,7 @@ const { getPendingListings, getAllListings, approveListing, rejectListing, featu
 const { getAnalytics } = require('../controllers/adminAnalyticsController');
 const { listUsers, disableUser, enableUser } = require('../controllers/adminUserController');
 const { exportListings, exportUsers } = require('../controllers/adminExportController');
+const { getReports, dismissReport } = require('../controllers/reportController');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 const adminOnly = [authenticateToken, requireRole(['admin'])];
@@ -37,5 +38,9 @@ router.patch('/users/:id/enable', ...adminOnly, enableUser);
 // K-66: CSV exports
 router.get('/export/listings.csv', ...adminOnly, exportListings);
 router.get('/export/users.csv', ...adminOnly, exportUsers);
+
+// K-67: Abuse reports
+router.get('/reports', ...adminOnly, getReports);
+router.patch('/reports/:id/dismiss', ...adminOnly, dismissReport);
 
 module.exports = router;

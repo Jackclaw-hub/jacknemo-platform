@@ -110,6 +110,26 @@
         </div>
         <div class="msg-sent" id="msg-sent">✓ Nachricht gesendet! Der Anbieter wird benachrichtigt.</div>
       </div>
+      <!-- K-67: Report button -->
+      <div style="margin-top:14px;text-align:right">
+        <button id="report-btn" onclick="toggleReport()" style="background:none;border:none;color:#9ca3af;font-size:12px;cursor:pointer;text-decoration:underline">Inserat melden</button>
+      </div>
+      <div id="report-form" style="display:none;margin-top:8px;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:12px">
+        <div style="font-size:13px;font-weight:600;color:#92400e;margin-bottom:8px">Grund für die Meldung:</div>
+        <select id="report-reason" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:4px;font-size:13px;margin-bottom:8px">
+          <option value="spam">Spam</option>
+          <option value="misleading">Irreführend / falsche Angaben</option>
+          <option value="inappropriate">Unangemessener Inhalt</option>
+          <option value="duplicate">Duplikat</option>
+          <option value="other">Sonstiges</option>
+        </select>
+        <textarea id="report-details" rows="2" placeholder="Optionale Details..." style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:4px;font-size:13px;resize:vertical;box-sizing:border-box;margin-bottom:8px"></textarea>
+        <div>
+          <button onclick="submitReport()" style="background:#dc2626;color:white;border:none;padding:7px 16px;border-radius:4px;cursor:pointer;font-size:13px">Melden</button>
+          <button onclick="toggleReport()" style="background:#f3f4f6;color:#374151;border:none;padding:7px 14px;border-radius:4px;cursor:pointer;font-size:13px;margin-left:6px">Abbrechen</button>
+        </div>
+        <div id="report-sent" style="display:none;margin-top:8px;font-size:13px;color:#059669">✓ Meldung eingereicht. Danke!</div>
+      </div>
     </div>
 
     <div id="error-state" class="card error-state" style="display:none">
@@ -254,6 +274,30 @@
         msg.style.display = 'inline';
         setTimeout(() => { msg.style.display = 'none'; }, 2000);
       });
+    }
+
+    // K-67: Report abuse
+    function toggleReport() {
+      if (!auth.getToken()) { location.href = 'auth.html?tab=login'; return; }
+      const form = document.getElementById('report-form');
+      form.style.display = form.style.display === 'block' ? 'none' : 'block';
+    }
+
+    async function submitReport() {
+      if (!auth.getToken()) { location.href = 'auth.html?tab=login'; return; }
+      const reason = document.getElementById('report-reason').value;
+      const details = document.getElementById('report-details').value.trim();
+      try {
+        await api('POST', '/listings/' + listingId + '/report', { reason, details }, auth.getToken());
+        document.getElementById('report-sent').style.display = 'block';
+        document.getElementById('report-btn').textContent = '⚑ Gemeldet';
+        document.getElementById('report-btn').disabled = true;
+        setTimeout(() => {
+          document.getElementById('report-form').style.display = 'none';
+        }, 2000);
+      } catch(e) {
+        alert('Fehler: ' + e.message);
+      }
     }
   </script>
 </body>
