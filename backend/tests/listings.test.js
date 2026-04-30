@@ -147,4 +147,27 @@ describe('PATCH /api/listings/:id/renew', () => {
   });
 });
 
+// K-84: Provider analytics sparkline
+describe('GET /api/providers/analytics (sparkline)', () => {
+  it('401 without token', async () => {
+    const res = await request(app).get('/api/providers/analytics');
+    expect(res.status).toBe(401);
+  });
+
+  it('200 returns listings with sparkline arrays', async () => {
+    const res = await request(app).get('/api/providers/analytics')
+      .set('Authorization', 'Bearer ' + providerToken);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('listings');
+    expect(res.body).toHaveProperty('totals');
+    for (const l of res.body.listings) {
+      expect(l).toHaveProperty('sparkline');
+      expect(Array.isArray(l.sparkline)).toBe(true);
+      expect(l.sparkline).toHaveLength(7);
+      const sum = l.sparkline.reduce((s, v) => s + v, 0);
+      expect(sum).toBe(l.view_count || 0);
+    }
+  });
+});
+
 afterAll(async () => {});

@@ -92,6 +92,19 @@ async function adminVerifyProvider(req, res) {
 }
 
 // K-40: Provider analytics — per-listing stats for dashboard
+// K-84: sparkline — deterministic 7-day view distribution seeded by listing id
+function buildSparkline(id, viewCount) {
+  const weights = Array.from({ length: 7 }, (_, i) => Math.abs(Math.sin((id * 13 + i * 7) * 0.9)) + 0.1);
+  const total = weights.reduce((s, w) => s + w, 0);
+  const raw = weights.map(w => (w / total) * viewCount);
+  const floored = raw.map(Math.floor);
+  // distribute leftover counts to largest remainders
+  let leftover = viewCount - floored.reduce((s, v) => s + v, 0);
+  const remainders = raw.map((v, i) => ({ i, r: v - floored[i] })).sort((a, b) => b.r - a.r);
+  for (let k = 0; k < leftover; k++) floored[remainders[k].i]++;
+  return floored;
+}
+
 async function getProviderAnalytics(req, res) {
   try {
     const r = await db.query(
@@ -101,7 +114,10 @@ async function getProviderAnalytics(req, res) {
         ORDER BY created_at DESC`,
       [req.user.id]
     );
-    const listings = r.rows;
+    const listings = r.rows.map(l => ({
+      ...l,
+      sparkline: buildSparkline(l.id, l.view_count || 0)
+    }));
     const totals = {
       total_listings: listings.length,
       total_views: listings.reduce((s, l) => s + (l.view_count || 0), 0),
