@@ -48,7 +48,13 @@
     .form-msg.success { color: #059669; }
     .form-msg.error { color: #dc2626; }
     .sse-status.live { color: #10b981; }
-  
+    /* K-76: Expiry warning banner */
+    .expiry-banner { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; }
+    .expiry-banner .icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .expiry-banner ul { margin: 4px 0 0; padding-left: 18px; font-size: 13px; color: #78350f; }
+    .expiry-banner ul li { margin: 2px 0; }
+    .expiry-banner a { color: #b45309; font-weight: 600; text-decoration: underline; cursor: pointer; }
+
     /* K-23: Mobile responsive */
     @media (max-width: 640px) {
       body { padding: 12px; }
@@ -74,6 +80,9 @@
     <h1>&#x1F680; Startup Radar</h1>
     <div><button id="bell-btn" onclick="toggleNotifPanel()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;position:relative;padding:0 4px;vertical-align:middle;margin-right:6px" title="Benachrichtigungen"><span id="bell-icon">🔔</span><span id="notif-count" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;font-size:10px;padding:1px 4px;font-weight:700"></span></button><a href="messages.html" id="msg-badge" style="background:#4f46e5;color:white;text-decoration:none;padding:8px 14px;border-radius:4px;font-size:13px;margin-right:8px">&#x1F4AC; Messages</a><span id="user-name"></span> <button onclick="logout()">Logout</button></div>
   </nav>
+
+  <!-- K-76: Expiry warning banner -->
+  <div id="expiry-banner" style="display:none"></div>
 
   <div class="panel">
     <div>
@@ -314,6 +323,31 @@
             </div>
           </div>
         `).join('');
+        // K-76: Show expiry warning banner for listings expiring within 7 days
+        const now = Date.now();
+        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+        const expiringSoon = data.listings.filter(l => {
+          if (!l.expires_at || l.status === 'expired') return false;
+          const exp = new Date(l.expires_at).getTime();
+          return exp > now && exp - now <= sevenDays;
+        });
+        const banner = document.getElementById('expiry-banner');
+        if (expiringSoon.length) {
+          banner.style.display = 'flex';
+          banner.className = 'expiry-banner';
+          banner.innerHTML = `
+            <div class="icon">⚠️</div>
+            <div>
+              <strong style="color:#92400e;font-size:14px">Ablauf in den nächsten 7 Tagen</strong>
+              <ul>${expiringSoon.map(l => {
+                const daysLeft = Math.ceil((new Date(l.expires_at) - now) / (24 * 60 * 60 * 1000));
+                return `<li><strong>${l.title}</strong> — läuft in <strong>${daysLeft} Tag${daysLeft !== 1 ? 'en' : ''}</strong> ab
+                  <a onclick="renewListing(${l.id})" style="margin-left:8px">Jetzt erneuern →</a></li>`;
+              }).join('')}</ul>
+            </div>`;
+        } else {
+          banner.style.display = 'none';
+        }
       } catch(ex) {
         document.getElementById('my-listings').innerHTML = '<em>Fehler: ' + ex.message + '</em>';
       }
