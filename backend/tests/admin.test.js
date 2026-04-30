@@ -85,4 +85,65 @@ describe('Listing approve/reject flow', () => {
   });
 });
 
+// K-65: User management
+describe('Admin user management', () => {
+  let founderToken, founderId;
+
+  beforeAll(async () => {
+    const reg = await request(app).post('/api/auth/register')
+      .send({ email: 'usermgmt-founder@test.com', password: 'password123', role: 'founder', name: 'User Mgmt Test' });
+    founderToken = reg.body.access_token;
+    const me = await request(app).get('/api/founders/profile')
+      .set('Authorization', 'Bearer ' + founderToken);
+    // get id from list endpoint instead
+  });
+
+  it('GET /api/admin/users — 401 without token', async () => {
+    const res = await request(app).get('/api/admin/users');
+    expect(res.status).toBe(401);
+  });
+
+  it('GET /api/admin/users — 200 with admin token', async () => {
+    const res = await request(app).get('/api/admin/users')
+      .set('Authorization', 'Bearer ' + adminToken);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('users');
+    expect(Array.isArray(res.body.users)).toBe(true);
+    expect(res.body).toHaveProperty('total');
+    // save a non-admin user id for disable test
+    const nonAdmin = res.body.users.find(u => u.role !== 'admin');
+    if (nonAdmin) founderId = nonAdmin.id;
+  });
+
+  it('GET /api/admin/users?role=founder — filters by role', async () => {
+    const res = await request(app).get('/api/admin/users?role=founder')
+      .set('Authorization', 'Bearer ' + adminToken);
+    expect(res.status).toBe(200);
+    res.body.users.forEach(u => expect(u.role).toBe('founder'));
+  });
+
+  it('PATCH /api/admin/users/:id/disable — disables a user', async () => {
+    if (!founderId) return;
+    const res = await request(app).patch('/api/admin/users/' + founderId + '/disable')
+      .set('Authorization', 'Bearer ' + adminToken);
+    expect(res.status).toBe(200);
+    expect(res.body.user.is_active).toBe(false);
+  });
+
+  it('PATCH /api/admin/users/:id/enable — re-enables a user', async () => {
+    if (!founderId) return;
+    const res = await request(app).patch('/api/admin/users/' + founderId + '/enable')
+      .set('Authorization', 'Bearer ' + adminToken);
+    expect(res.status).toBe(200);
+    expect(res.body.user.is_active).toBe(true);
+  });
+
+  it('Cannot disable own account', async () => {
+    const res = await request(app).patch('/api/admin/users/' + 9999 + '/disable')
+      .set('Authorization', 'Bearer ' + adminToken);
+    // admin id is 9999 in mock
+    expect(res.status).toBe(400);
+  });
+});
+
 afterAll(async () => {});

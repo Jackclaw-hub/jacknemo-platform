@@ -12,6 +12,10 @@ const authenticateToken = (req, res, next) => {
   if (!result.valid) {
     return res.status(403).json({ error: result.error });
   }
+  // K-65: block disabled accounts
+  if (result.user.is_active === false) {
+    return res.status(403).json({ error: 'Account has been disabled' });
+  }
   req.user = result.user;
   next();
 };

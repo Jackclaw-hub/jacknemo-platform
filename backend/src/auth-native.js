@@ -53,6 +53,7 @@ class NativeAuth {
       email: user.email,
       role: user.role,
       email_verified: user.email_verified,
+      is_active: user.is_active !== false, // K-65: carry active state
       type: 'access',
       exp: Math.floor(Date.now() / 1000) + (15 * 60) // 15 minutes
     })).toString('base64');

@@ -15,6 +15,7 @@ class MockDatabase {
       verification_token: null,
       referral_code: 'ADMIN99',
       referred_by: null,
+      is_active: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }];
@@ -48,6 +49,37 @@ class MockDatabase {
           return { rows: u ? [u] : [] };
         }
         if (sql.includes('id = $1')) { const u = this.users.find(u => u.id === params[0]); return { rows: u ? [u] : [] }; }
+        // K-65: listAll with dynamic WHERE 1=1 filters
+        if (sl.includes('where 1=1')) {
+          let result = [...this.users];
+          // role filter
+          const roleIdx = params.findIndex((_, i) => sql.includes(`role = $${i + 1}`));
+          if (roleIdx >= 0) result = result.filter(u => u.role === params[roleIdx]);
+          // is_active filter
+          const activeIdx = params.findIndex((_, i) => sql.includes(`is_active = $${i + 1}`));
+          if (activeIdx >= 0) result = result.filter(u => u.is_active === params[activeIdx]);
+          // search filter (ILIKE)
+          const searchIdx = params.findIndex((_, i) => sql.includes(`ILIKE $${i + 1}`));
+          if (searchIdx >= 0) {
+            const term = params[searchIdx].replace(/%/g, '').toLowerCase();
+            result = result.filter(u => (u.email || '').toLowerCase().includes(term) || (u.name || '').toLowerCase().includes(term));
+          }
+          if (sl.includes('count(*)')) return { rows: [{ count: String(result.length) }] };
+          // limit/offset
+          const limitIdx = sql.toLowerCase().indexOf(' limit ');
+          const offsetIdx = sql.toLowerCase().indexOf(' offset ');
+          let limit = 50, offset = 0;
+          if (limitIdx >= 0) {
+            const lParamNum = parseInt(sql.substring(limitIdx + 7).match(/\$(\d+)/)?.[1]) - 1;
+            if (!isNaN(lParamNum)) limit = params[lParamNum] || 50;
+          }
+          if (offsetIdx >= 0) {
+            const oParamNum = parseInt(sql.substring(offsetIdx + 8).match(/\$(\d+)/)?.[1]) - 1;
+            if (!isNaN(oParamNum)) offset = params[oParamNum] || 0;
+          }
+          return { rows: result.slice(offset, offset + limit) };
+        }
+        if (sl.includes('count(*)')) return { rows: [{ count: String(this.users.length) }] };
         return { rows: this.users };
       }
       if (s.startsWith('INSERT')) {
@@ -62,6 +94,7 @@ class MockDatabase {
           verification_token: params[5],
           referral_code: params[6] || null,
           referred_by: params[7] || null,
+          is_active: true,
           created_at: new Date(),
           updated_at: new Date()
         };
@@ -69,6 +102,15 @@ class MockDatabase {
         return { rows: [user] };
       }
       if (s.startsWith('UPDATE')) {
+        // K-65: setActive
+        if (sl.includes('is_active =')) {
+          const id = params[1];
+          const idx = this.users.findIndex(u => u.id === id || u.id == id);
+          if (idx < 0) return { rows: [] };
+          this.users[idx].is_active = params[0];
+          this.users[idx].updated_at = new Date();
+          return { rows: [this.users[idx]] };
+        }
         if (sl.includes('reset_token') && sl.includes('reset_expires') && !sl.includes('password_hash')) {
           const id = params[2];
           const idx = this.users.findIndex(u => u.id === id || u.id == id);

@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, bulkAction } = require('../controllers/adminController');
 const { getAnalytics } = require('../controllers/adminAnalyticsController');
+const { listUsers, disableUser, enableUser } = require('../controllers/adminUserController');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 const adminOnly = [authenticateToken, requireRole(['admin'])];
@@ -26,5 +27,10 @@ router.patch('/providers/:userId/verify', ...adminOnly, adminVerifyProvider);
 
 // K-55: Bulk action
 router.post('/listings/bulk-action', ...adminOnly, bulkAction);
+
+// K-65: User management
+router.get('/users', ...adminOnly, listUsers);
+router.patch('/users/:id/disable', ...adminOnly, disableUser);
+router.patch('/users/:id/enable', ...adminOnly, enableUser);
 
 module.exports = router;

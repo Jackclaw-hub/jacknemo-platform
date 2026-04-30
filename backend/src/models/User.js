@@ -85,6 +85,50 @@ class User {
       [hash, id]
     );
   }
+
+  // K-65: Admin user management
+  static async listAll({ role, is_active, search, limit = 50, offset = 0 } = {}) {
+    let sql = 'SELECT id, email, role, name, email_verified, is_active, created_at FROM users WHERE 1=1';
+    const params = [];
+    if (role) { params.push(role); sql += ` AND role = $${params.length}`; }
+    if (is_active !== undefined && is_active !== null && is_active !== '') {
+      params.push(is_active === 'true' || is_active === true);
+      sql += ` AND is_active = $${params.length}`;
+    }
+    if (search) {
+      params.push('%' + search + '%');
+      sql += ` AND (email ILIKE $${params.length} OR name ILIKE $${params.length})`;
+    }
+    sql += ' ORDER BY created_at DESC';
+    params.push(limit);  sql += ` LIMIT $${params.length}`;
+    params.push(offset); sql += ` OFFSET $${params.length}`;
+    const result = await pool.query(sql, params);
+    return result.rows;
+  }
+
+  static async countAll({ role, is_active, search } = {}) {
+    let sql = 'SELECT COUNT(*) FROM users WHERE 1=1';
+    const params = [];
+    if (role) { params.push(role); sql += ` AND role = $${params.length}`; }
+    if (is_active !== undefined && is_active !== null && is_active !== '') {
+      params.push(is_active === 'true' || is_active === true);
+      sql += ` AND is_active = $${params.length}`;
+    }
+    if (search) {
+      params.push('%' + search + '%');
+      sql += ` AND (email ILIKE $${params.length} OR name ILIKE $${params.length})`;
+    }
+    const result = await pool.query(sql, params);
+    return parseInt(result.rows[0].count, 10);
+  }
+
+  static async setActive(id, is_active) {
+    const result = await pool.query(
+      'UPDATE users SET is_active = $1, updated_at = NOW() WHERE id = $2 RETURNING id, email, role, name, is_active',
+      [is_active, id]
+    );
+    return result.rows[0] || null;
+  }
 }
 
 module.exports = User;

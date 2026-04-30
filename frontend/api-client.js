@@ -88,6 +88,13 @@ const AdminAPI = {
   unfeature: (id) => api('PUT', '/admin/listings/' + id + '/unfeature', {}, auth.getToken()),
   bulkAction: (ids, action, reason) => api('POST', '/admin/listings/bulk-action', { ids, action, reason }, auth.getToken()),
   getAnalytics: () => api('GET', '/admin/analytics', null, auth.getToken()),
+  // K-65: User management
+  getUsers: (filters = {}) => {
+    const q = new URLSearchParams(filters).toString();
+    return api('GET', '/admin/users' + (q ? '?' + q : ''), null, auth.getToken());
+  },
+  disableUser: (id) => api('PATCH', '/admin/users/' + id + '/disable', {}, auth.getToken()),
+  enableUser: (id) => api('PATCH', '/admin/users/' + id + '/enable', {}, auth.getToken()),
 };
 
 // Providers — own profile (authenticated) + public view
