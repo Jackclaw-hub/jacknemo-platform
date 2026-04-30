@@ -120,6 +120,13 @@ const MessagesAPI = {
   getUnread: () => api('GET', '/messages/unread', null, auth.getToken()),
 };
 
+// K-68: Message templates
+const TemplatesAPI = {
+  getAll: () => api('GET', '/providers/templates', null, auth.getToken()),
+  create: (name, body) => api('POST', '/providers/templates', { name, body }, auth.getToken()),
+  delete: (id) => api('DELETE', '/providers/templates/' + id, null, auth.getToken()),
+};
+
 // Helpers
 function showError(el, msg) {
   el.textContent = msg;

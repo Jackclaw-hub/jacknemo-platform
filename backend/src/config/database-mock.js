@@ -27,6 +27,8 @@ class MockDatabase {
     this.bookmarks = []; // saved_listings
     this.reports = []; // K-67: listing reports
     this.nextReportId = 1;
+    this.templates = []; // K-68: message templates
+    this.nextTemplateId = 1;
     this.notifications = [];
     this.nextNotificationId = 1;
     this.nextUserId = 10000;
@@ -527,6 +529,28 @@ class MockDatabase {
         const userId = params[0], listingId = params[1];
         this.bookmarks = this.bookmarks.filter(b => !(b.user_id == userId && b.listing_id == listingId));
         return { rows: [] };
+      }
+    }
+
+    // ---- MESSAGE TEMPLATES (K-68) ----
+    if (sl.includes('message_templates')) {
+      if (s.startsWith('SELECT') && sl.includes('count(*)')) {
+        const count = this.templates.filter(t => t.user_id == params[0]).length;
+        return { rows: [{ count: String(count) }] };
+      }
+      if (s.startsWith('SELECT')) {
+        return { rows: this.templates.filter(t => t.user_id == params[0]).sort((a, b) => a.id - b.id) };
+      }
+      if (s.startsWith('INSERT')) {
+        const tmpl = { id: this.nextTemplateId++, user_id: params[0], name: params[1], body: params[2], created_at: new Date().toISOString() };
+        this.templates.push(tmpl);
+        return { rows: [tmpl] };
+      }
+      if (s.startsWith('DELETE')) {
+        const idx = this.templates.findIndex(t => t.id == params[0] && t.user_id == params[1]);
+        if (idx < 0) return { rows: [] };
+        const [removed] = this.templates.splice(idx, 1);
+        return { rows: [removed] };
       }
     }
 

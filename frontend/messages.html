@@ -23,10 +23,16 @@
     .msg.mine { background: #4f46e5; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
     .msg.theirs { background: #f3f4f6; color: #111827; align-self: flex-start; border-bottom-left-radius: 4px; }
     .msg .meta { font-size: 11px; opacity: 0.7; margin-top: 4px; }
-    .chat-input { display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid #e5e7eb; background: white; }
+    .chat-input { display: flex; flex-direction: column; gap: 6px; padding: 10px 20px 14px; border-top: 1px solid #e5e7eb; background: white; }
+    .chat-input-row { display: flex; gap: 10px; align-items: center; }
     .chat-input input { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 20px; font-size: 14px; outline: none; }
     .chat-input input:focus { border-color: #4f46e5; }
-    .chat-input button { background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 14px; }
+    .chat-input button.send-btn { background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 14px; }
+    .templates-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .tpl-chip { background: #ede9fe; color: #4f46e5; border: none; border-radius: 12px; padding: 3px 10px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+    .tpl-chip:hover { background: #ddd6fe; }
+    .tpl-manage-btn { background: none; border: 1px dashed #d1d5db; color: #9ca3af; border-radius: 12px; padding: 3px 10px; font-size: 12px; cursor: pointer; }
+    .tpl-manage-btn:hover { border-color: #4f46e5; color: #4f46e5; }
     .empty { text-align: center; color: #9ca3af; padding: 40px; }
     .no-thread { display: flex; align-items: center; justify-content: center; flex: 1; color: #9ca3af; font-size: 16px; }
   
@@ -118,11 +124,16 @@
         </div>
         <div class="chat-messages" id="chat-messages">Loading...</div>
         <div class="chat-input">
-          <input type="text" id="msg-input" placeholder="Nachricht schreiben..." onkeydown="if(event.key==='Enter') sendMsg()">
-          <button onclick="sendMsg()">&#x27A4;</button>
+          <!-- K-68: Templates bar -->
+          <div class="templates-bar" id="tpl-bar"></div>
+          <div class="chat-input-row">
+            <input type="text" id="msg-input" placeholder="Nachricht schreiben..." onkeydown="if(event.key==='Enter') sendMsg()">
+            <button class="send-btn" onclick="sendMsg()">&#x27A4;</button>
+          </div>
         </div>`;
 
       loadMessages(thread);
+      loadTemplatesBar();
       if (pollInterval) clearInterval(pollInterval);
       pollInterval = setInterval(() => loadMessages(thread), 5000);
       loadThreads(); // refresh unread dots
@@ -182,6 +193,86 @@
       es.onerror = () => { es.close(); setTimeout(connectSSE, 5000); };
     }
 
+    // K-68: Template bar
+    let cachedTemplates = [];
+
+    async function loadTemplatesBar() {
+      const bar = document.getElementById('tpl-bar');
+      if (!bar) return;
+      try {
+        const data = await TemplatesAPI.getAll();
+        cachedTemplates = data.templates || [];
+        renderTemplatesBar();
+      } catch(e) { /* templates optional */ }
+    }
+
+    function renderTemplatesBar() {
+      const bar = document.getElementById('tpl-bar');
+      if (!bar) return;
+      if (!cachedTemplates.length) {
+        bar.innerHTML = '<button class="tpl-manage-btn" onclick="openTemplateManager()">+ Vorlage erstellen</button>';
+        return;
+      }
+      bar.innerHTML =
+        cachedTemplates.map(t =>
+          `<button class="tpl-chip" onclick="applyTemplate(${t.id})" title="${t.body.replace(/"/g,'&quot;')}">${t.name}</button>`
+        ).join('') +
+        '<button class="tpl-manage-btn" onclick="openTemplateManager()">&#9998; Vorlagen</button>';
+    }
+
+    function applyTemplate(id) {
+      const t = cachedTemplates.find(x => x.id === id);
+      if (!t) return;
+      const input = document.getElementById('msg-input');
+      if (input) { input.value = t.body; input.focus(); }
+    }
+
+    function openTemplateManager() {
+      document.getElementById('tpl-modal').style.display = 'flex';
+      renderTemplateManagerList();
+    }
+    function closeTemplateManager() {
+      document.getElementById('tpl-modal').style.display = 'none';
+    }
+
+    function renderTemplateManagerList() {
+      const list = document.getElementById('tpl-list');
+      if (!cachedTemplates.length) { list.innerHTML = '<div style="color:#9ca3af;font-size:13px">Noch keine Vorlagen.</div>'; return; }
+      list.innerHTML = cachedTemplates.map(t => `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f3f4f6">
+          <div>
+            <div style="font-weight:600;font-size:13px">${t.name}</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:2px">${t.body.slice(0,80)}${t.body.length>80?'…':''}</div>
+          </div>
+          <button onclick="removeTpl(${t.id})" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px;padding:0 4px;flex-shrink:0">&#x2715;</button>
+        </div>`).join('');
+    }
+
+    async function removeTpl(id) {
+      try {
+        await TemplatesAPI.delete(id);
+        cachedTemplates = cachedTemplates.filter(t => t.id !== id);
+        renderTemplateManagerList();
+        renderTemplatesBar();
+      } catch(e) { alert('Fehler: ' + e.message); }
+    }
+
+    async function saveNewTemplate() {
+      const name = document.getElementById('tpl-name').value.trim();
+      const body = document.getElementById('tpl-body').value.trim();
+      const errEl = document.getElementById('tpl-err');
+      errEl.textContent = '';
+      if (!name || !body) { errEl.textContent = 'Name und Text sind Pflichtfelder.'; return; }
+      try {
+        const data = await TemplatesAPI.create(name, body);
+        cachedTemplates.push(data.template);
+        document.getElementById('tpl-name').value = '';
+        document.getElementById('tpl-body').value = '';
+        renderTemplateManagerList();
+        renderTemplatesBar();
+      } catch(e) { errEl.textContent = e.message; }
+    }
+
     loadThreads();
     connectSSE();
 
@@ -196,5 +287,24 @@
       }, 800);
     }
   </script>
+  <!-- K-68: Template manager modal -->
+  <div id="tpl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:10px;padding:24px;width:460px;max-width:95vw;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0;font-size:16px">Schnellantwort-Vorlagen</h3>
+        <button onclick="closeTemplateManager()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280">&#x2715;</button>
+      </div>
+      <div id="tpl-list" style="margin-bottom:16px"></div>
+      <div style="border-top:1px solid #e5e7eb;padding-top:14px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px">Neue Vorlage</div>
+        <input type="text" id="tpl-name" placeholder="Name (z.B. 'Standardantwort')" maxlength="80"
+          style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;box-sizing:border-box;margin-bottom:8px">
+        <textarea id="tpl-body" rows="3" placeholder="Vorlagentext..." maxlength="1000"
+          style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;resize:vertical;box-sizing:border-box;margin-bottom:8px"></textarea>
+        <div id="tpl-err" style="color:#dc2626;font-size:12px;margin-bottom:6px"></div>
+        <button onclick="saveNewTemplate()" style="background:#4f46e5;color:white;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px">Speichern</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { upsertProfile, getProfile, getProviderListings, requestVerification, getProviderAnalytics } = require('../controllers/providerProfileController');
 const { submitRating, getRating } = require('../controllers/ratingController');
+const { getTemplates, createTemplate, deleteTemplate } = require('../controllers/templateController');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 // Protected — provider only
@@ -21,5 +22,10 @@ router.get('/analytics', authenticateToken, requireRole(['equipment_provider','s
 
 // K-35: Provider requests verification badge
 router.post('/verify-request', authenticateToken, requireRole(['equipment_provider','service_provider']), requestVerification);
+
+// K-68: Quick-reply templates (any authenticated user — providers + founders both message)
+router.get('/templates', authenticateToken, getTemplates);
+router.post('/templates', authenticateToken, createTemplate);
+router.delete('/templates/:id', authenticateToken, deleteTemplate);
 
 module.exports = router;
