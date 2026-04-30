@@ -250,4 +250,37 @@ const duplicateListing = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing, renewListing, runListingExpiry, recordView, duplicateListing };
+// K-88: Search autocomplete — return up to 6 matching active listing titles + tags
+const suggestListings = async (req, res) => {
+  try {
+    const q = (req.query.q || '').trim().toLowerCase();
+    if (!q || q.length < 2) return res.json({ suggestions: [] });
+    const all = await Listing.findAll({});
+    const active = all.filter(l => l.status === 'active');
+    const seen = new Set();
+    const results = [];
+    for (const l of active) {
+      if (results.length >= 6) break;
+      const titleMatch = (l.title || '').toLowerCase().includes(q);
+      if (titleMatch && !seen.has(l.title)) {
+        seen.add(l.title);
+        results.push({ id: l.id, label: l.title, type: 'listing' });
+      }
+    }
+    // Also match tags
+    for (const l of active) {
+      if (results.length >= 6) break;
+      for (const tag of (l.tags || [])) {
+        if (tag.toLowerCase().includes(q) && !seen.has(tag)) {
+          seen.add(tag);
+          results.push({ id: null, label: tag, type: 'tag' });
+        }
+      }
+    }
+    res.json({ suggestions: results.slice(0, 6) });
+  } catch (err) {
+    res.status(500).json({ error: 'Suggest failed', suggestions: [] });
+  }
+};
+
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings };

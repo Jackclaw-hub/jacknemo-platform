@@ -147,6 +147,28 @@ describe('PATCH /api/listings/:id/renew', () => {
   });
 });
 
+// K-88: Search autocomplete
+describe('GET /api/listings/suggest', () => {
+  it('200 returns empty for short query', async () => {
+    const res = await request(app).get('/api/listings/suggest?q=a');
+    expect(res.status).toBe(200);
+    expect(res.body.suggestions).toEqual([]);
+  });
+
+  it('200 returns suggestions array for valid query', async () => {
+    const res = await request(app).get('/api/listings/suggest?q=test');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.suggestions)).toBe(true);
+    expect(res.body.suggestions.length).toBeLessThanOrEqual(6);
+  });
+
+  it('200 returns empty array for no matching query', async () => {
+    const res = await request(app).get('/api/listings/suggest?q=zzzzznonexistent');
+    expect(res.status).toBe(200);
+    expect(res.body.suggestions).toEqual([]);
+  });
+});
+
 // K-84: Provider analytics sparkline
 describe('GET /api/providers/analytics (sparkline)', () => {
   it('401 without token', async () => {

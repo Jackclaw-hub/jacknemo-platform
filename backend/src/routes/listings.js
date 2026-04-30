@@ -6,7 +6,7 @@ const { listingsWriteLimiter } = require('../middleware/rateLimiter');
 const {
   createListing, getListings, getListing, contactListing,
   updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing,
-  renewListing, runListingExpiry, recordView, duplicateListing
+  renewListing, runListingExpiry, recordView, duplicateListing, suggestListings
 } = require('../controllers/listingsController');
 const { reportListing, getReportCount } = require('../controllers/reportController');
 
@@ -70,6 +70,7 @@ router.get('/events', (req, res) => {
 router.get('/me/listings', authenticateToken, getMyListings);
 
 // Public routes
+router.get('/suggest', suggestListings); // K-88: autocomplete — must be before /:id
 router.get('/', apiRateLimiter, getListings);
 router.get('/:id', apiRateLimiter, getListing);
 router.post('/:id/contact', authenticateToken, contactListing);

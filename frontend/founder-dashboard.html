@@ -45,6 +45,10 @@
     .star-rating { margin-top: 8px; }
     .star-rating span { font-size: 20px; cursor: pointer; color: #d1d5db; transition: color .15s; }
     .star-rating span.active, .star-rating span:hover { color: #f59e0b; }
+    /* K-88: Autocomplete */
+    .ac-item { padding: 9px 14px; cursor: pointer; font-size: 14px; color: #1f2937; display: flex; align-items: center; gap: 8px; }
+    .ac-item:hover, .ac-item.ac-active { background: #ede9fe; }
+    .ac-type { font-size: 11px; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: 8px; flex-shrink: 0; }
     .save-search-btn { background: none; border: 1px solid #6b7280; color: #6b7280; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
     .save-search-btn:hover { border-color: #4f46e5; color: #4f46e5; }
     .saved-searches { margin-top: 8px; }
@@ -90,7 +94,11 @@
   </div>
 
   <div class="search-bar">
-    <input type="text" id="search-input" placeholder="Search listings&#8230; (equipment, services, city)" onkeydown="if(event.key==='Enter') runSearch()">
+    <!-- K-88: Autocomplete wrapper -->
+    <div style="flex:1;position:relative">
+      <input type="text" id="search-input" placeholder="Search listings&#8230; (equipment, services, city)" onkeydown="handleSearchKey(event)" oninput="debounceAutocomplete(this.value)" autocomplete="off" style="width:100%;padding:10px 14px;border:2px solid #4f46e5;border-radius:6px;font-size:15px;box-sizing:border-box">
+      <div id="autocomplete-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;max-height:220px;overflow-y:auto"></div>
+    </div>
     <button onclick="runSearch()">&#x1F50D; Search</button>
   </div>
 
@@ -241,6 +249,80 @@
     let radarCache = null;
 
     function logout() { AuthAPI.logout(); location.href = 'auth.html'; }
+
+    // K-88: Search autocomplete
+    let _acTimer = null;
+    let _acIndex = -1;
+
+    function debounceAutocomplete(val) {
+      clearTimeout(_acTimer);
+      if (!val || val.trim().length < 2) { closeAutocomplete(); return; }
+      _acTimer = setTimeout(() => fetchSuggestions(val.trim()), 200);
+    }
+
+    async function fetchSuggestions(q) {
+      try {
+        const data = await api('GET', '/listings/suggest?q=' + encodeURIComponent(q), null, null);
+        renderAutocomplete(data.suggestions || [], q);
+      } catch(_) { closeAutocomplete(); }
+    }
+
+    function renderAutocomplete(suggestions, q) {
+      const dd = document.getElementById('autocomplete-dropdown');
+      if (!suggestions.length) { closeAutocomplete(); return; }
+      _acIndex = -1;
+      dd.innerHTML = suggestions.map((s, i) =>
+        `<div class="ac-item" data-idx="${i}" data-label="${s.label.replace(/"/g,'&quot;')}" onmousedown="selectSuggestion('${s.label.replace(/'/g,"\\'")}')">
+          ${s.label.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'i'), '<strong>$1</strong>')}
+          <span class="ac-type">${s.type === 'tag' ? 'tag' : 'listing'}</span>
+        </div>`
+      ).join('');
+      dd.style.display = 'block';
+    }
+
+    function selectSuggestion(label) {
+      document.getElementById('search-input').value = label;
+      closeAutocomplete();
+      runSearch();
+    }
+
+    function closeAutocomplete() {
+      const dd = document.getElementById('autocomplete-dropdown');
+      if (dd) dd.style.display = 'none';
+      _acIndex = -1;
+    }
+
+    function handleSearchKey(e) {
+      const dd = document.getElementById('autocomplete-dropdown');
+      const items = dd ? dd.querySelectorAll('.ac-item') : [];
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        _acIndex = Math.min(_acIndex + 1, items.length - 1);
+        items.forEach((el, i) => el.classList.toggle('ac-active', i === _acIndex));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        _acIndex = Math.max(_acIndex - 1, -1);
+        items.forEach((el, i) => el.classList.toggle('ac-active', i === _acIndex));
+      } else if (e.key === 'Enter') {
+        if (_acIndex >= 0 && items[_acIndex]) {
+          const label = items[_acIndex].dataset.label;
+          document.getElementById('search-input').value = label;
+          closeAutocomplete();
+          runSearch();
+        } else {
+          runSearch();
+        }
+      } else if (e.key === 'Escape') {
+        closeAutocomplete();
+      }
+    }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#search-input') && !e.target.closest('#autocomplete-dropdown')) {
+        closeAutocomplete();
+      }
+    });
 
     // K-85: Founder profile edit
     function toggleProfileEdit() {
