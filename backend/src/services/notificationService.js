@@ -185,4 +185,20 @@ async function notifyVerificationApproved(providerEmail, companyName, userId) {
   if (userId) await saveNotification(userId, "verification_approved", subject, text);
 }
 
-module.exports = { notifyListingApproved, notifyListingRejected, notifyContactReceived, notifyHighScoreMatch, notifyPremiumUpgrade, notifyVerificationApproved };
+// K-86: Listing expiry reminder
+async function notifyListingExpiryReminder(listing, providerEmail) {
+  const expiresDate = new Date(listing.expires_at).toLocaleDateString('de-DE');
+  const subject = "⏰ Dein Inserat läuft bald ab — Startup Radar";
+  const html = base(subject, `
+    <h3>Dein Inserat läuft in 7 Tagen ab</h3>
+    <p>Das Inserat <strong>${listing.title}</strong> wird am <strong>${expiresDate}</strong> deaktiviert.</p>
+    <p>Verlängere es jetzt, um weiterhin von Foundern gefunden zu werden.</p>
+    <a href="https://jacknemo1994.de/provider-dashboard.html" class="btn">Jetzt verlängern →</a>
+    <p style="margin-top:24px;color:#6b7280;font-size:14px">Dein Startup Radar Team</p>
+  `);
+  const text = `Dein Inserat "${listing.title}" läuft am ${expiresDate} ab. Jetzt verlängern: https://jacknemo1994.de/provider-dashboard.html`;
+  await sendEmail(providerEmail, subject, html, text);
+  await saveNotification(listing.provider_id, "expiry_reminder", subject, text);
+}
+
+module.exports = { notifyListingApproved, notifyListingRejected, notifyContactReceived, notifyHighScoreMatch, notifyPremiumUpgrade, notifyVerificationApproved, notifyListingExpiryReminder };

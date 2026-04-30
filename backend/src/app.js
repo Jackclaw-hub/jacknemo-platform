@@ -16,6 +16,7 @@ const notificationsRouter = require("./routes/notifications");
 const { authenticateToken } = require("./middleware/auth");
 const paymentsRouter = require("./routes/payments");
 const { startPremiumExpiryCron } = require("./jobs/premiumExpiry");
+const { startExpiryReminderCron } = require("./jobs/expiryReminder");
 const { authLimiter, listingsWriteLimiter, messageLimiter, generalLimiter } = require("./middleware/rateLimiter");
 
 const app = express();
@@ -67,6 +68,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 if (require.main === module) {
   startPremiumExpiryCron();
+  startExpiryReminderCron();
   app.listen(PORT, () => console.log(`NemoClaw backend running on port ${PORT}`));
 }
 
