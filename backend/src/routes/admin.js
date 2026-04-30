@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, bulkAction } = require('../controllers/adminController');
 const { getAnalytics, getTrends } = require('../controllers/adminAnalyticsController');
-const { listUsers, disableUser, enableUser } = require('../controllers/adminUserController');
+const { listUsers, disableUser, enableUser, getUserDetail } = require('../controllers/adminUserController');
 const { exportListings, exportUsers } = require('../controllers/adminExportController');
 const { getReports, dismissReport } = require('../controllers/reportController');
 const { authenticateToken, requireRole } = require('../middleware/auth');
@@ -33,6 +33,7 @@ router.post('/listings/bulk-action', ...adminOnly, bulkAction);
 
 // K-65: User management
 router.get('/users', ...adminOnly, listUsers);
+router.get('/users/:id', ...adminOnly, getUserDetail);
 router.patch('/users/:id/disable', ...adminOnly, disableUser);
 router.patch('/users/:id/enable', ...adminOnly, enableUser);
 

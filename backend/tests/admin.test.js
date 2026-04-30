@@ -146,4 +146,28 @@ describe('Admin user management', () => {
   });
 });
 
+// K-87: Admin user detail endpoint
+describe('GET /api/admin/users/:id', () => {
+  it('401 without token', async () => {
+    const res = await request(app).get('/api/admin/users/9999');
+    expect(res.status).toBe(401);
+  });
+
+  it('200 returns user with listing_count for valid admin user', async () => {
+    const res = await request(app).get('/api/admin/users/9999')
+      .set('Authorization', 'Bearer ' + adminToken);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('user');
+    expect(res.body.user).toHaveProperty('id');
+    expect(res.body.user).toHaveProperty('email');
+    expect(res.body.user).toHaveProperty('listing_count');
+  });
+
+  it('404 for non-existent user', async () => {
+    const res = await request(app).get('/api/admin/users/999999')
+      .set('Authorization', 'Bearer ' + adminToken);
+    expect(res.status).toBe(404);
+  });
+});
+
 afterAll(async () => {});

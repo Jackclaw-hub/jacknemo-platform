@@ -335,11 +335,12 @@
                 <td style="padding:8px 10px"><span style="background:${u.role==='admin'?'#fef3c7':u.role==='provider'?'#dbeafe':'#f0fdf4'};color:${u.role==='admin'?'#92400e':u.role==='provider'?'#1e40af':'#166534'};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">${u.role}</span></td>
                 <td style="padding:8px 10px"><span style="background:${u.is_active!==false?'#dcfce7':'#fee2e2'};color:${u.is_active!==false?'#166534':'#991b1b'};padding:2px 8px;border-radius:10px;font-size:11px">${u.is_active!==false?'Aktiv':'Deaktiviert'}</span></td>
                 <td style="padding:8px 10px;color:#6b7280">${u.created_at ? new Date(u.created_at).toLocaleDateString('de-DE') : '—'}</td>
-                <td style="padding:8px 10px" id="uact-${u.id}">
+                <td style="padding:8px 10px;display:flex;gap:6px;align-items:center" id="uact-${u.id}">
                   ${u.is_active !== false
                     ? `<button onclick="toggleUser(${u.id},false)" style="background:#dc2626;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px">Deaktivieren</button>`
                     : `<button onclick="toggleUser(${u.id},true)" style="background:#059669;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px">Aktivieren</button>`
                   }
+                  <button class="btn-details" onclick="showUserDetail(${u.id})">&#128269; Details</button>
                 </td>
               </tr>`).join('')}
             </tbody>
@@ -539,6 +540,48 @@
       document.getElementById('detail-modal-overlay').classList.remove('open');
     }
 
+    // K-87: Admin user detail modal
+    async function showUserDetail(id) {
+      const overlay = document.getElementById('user-detail-modal-overlay');
+      const body = document.getElementById('udm-body');
+      body.innerHTML = '<p style="color:#6b7280;text-align:center;padding:20px">Lade...</p>';
+      overlay.classList.add('open');
+      try {
+        const data = await api('GET', '/admin/users/' + id, null, auth.getToken());
+        const u = data.user;
+        const created = u.created_at ? new Date(u.created_at).toLocaleDateString('de-DE') : '—';
+        const roleColor = u.role === 'admin' ? '#92400e' : u.role === 'provider' ? '#1e40af' : '#166534';
+        const roleBackground = u.role === 'admin' ? '#fef3c7' : u.role === 'provider' ? '#dbeafe' : '#f0fdf4';
+        const statusColor = u.is_active !== false ? '#166534' : '#991b1b';
+        const statusBg = u.is_active !== false ? '#dcfce7' : '#fee2e2';
+        body.innerHTML = `
+          <h2>${u.name || u.email}</h2>
+          <div class="dm-meta">
+            ID: <strong>${u.id}</strong> &nbsp;·&nbsp;
+            Registriert: <strong>${created}</strong>
+            <br>
+            <span style="background:${roleBackground};color:${roleColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">${u.role}</span>
+            &nbsp;
+            <span style="background:${statusBg};color:${statusColor};padding:2px 8px;border-radius:10px;font-size:11px">${u.is_active !== false ? 'Aktiv' : 'Deaktiviert'}</span>
+          </div>
+          <div class="dm-desc">
+E-Mail: ${u.email}
+Name: ${u.name || '—'}
+Inserate: ${u.listing_count || 0}
+Referral-Code: ${u.referral_code || '—'}
+Empfohlen von: ${u.referred_by || '—'}
+E-Mail verifiziert: ${u.email_verified ? 'Ja' : 'Nein'}
+          </div>
+        `;
+      } catch(ex) {
+        body.innerHTML = '<p style="color:#ef4444;padding:8px">Fehler: ' + ex.message + '</p>';
+      }
+    }
+
+    function closeUserDetailModal() {
+      document.getElementById('user-detail-modal-overlay').classList.remove('open');
+    }
+
     loadPending();
   </script>
 
@@ -547,6 +590,14 @@
     <div class="detail-modal">
       <button class="dm-close" onclick="closeDetailModal()">&#x2715;</button>
       <div id="dm-body"></div>
+    </div>
+  </div>
+
+  <!-- K-87: User detail modal -->
+  <div class="detail-modal-overlay" id="user-detail-modal-overlay" onclick="if(event.target===this)closeUserDetailModal()">
+    <div class="detail-modal">
+      <button class="dm-close" onclick="closeUserDetailModal()">&#x2715;</button>
+      <div id="udm-body"></div>
     </div>
   </div>
 
