@@ -59,6 +59,14 @@ const getRadar = async (req, res) => {
       }
     } catch(e) { /* ratings optional */ }
 
+    // K-81: Attach provider_verified flag from provider_profiles
+    try {
+      const profilesRes = await db.query('SELECT user_id, is_verified FROM provider_profiles');
+      const verifiedMap = {};
+      for (const row of profilesRes.rows) verifiedMap[String(row.user_id)] = !!row.is_verified;
+      listings = listings.map(l => ({ ...l, provider_verified: verifiedMap[String(l.provider_id)] || false }));
+    } catch(e) { /* provider_verified optional */ }
+
     // Score and rank
     const radarResults = scoreListingsForFounder(founder, listings, minScore);
 

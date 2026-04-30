@@ -1,4 +1,5 @@
 const Listing = require('../models/Listing');
+const db = require('../config/database');
 const { notifyContactReceived } = require('../services/notificationService');
 
 const PROVIDER_ROLES = ['equipment_provider', 'service_provider'];
@@ -61,7 +62,14 @@ const getListings = async (req, res) => {
     if (premium === 'true') filters.is_premium = true;
     if (tags) filters.tags = tags;
 
-    const listings = await Listing.findAll(filters);
+    let listings = await Listing.findAll(filters);
+    // K-81: Attach provider_verified flag
+    try {
+      const profilesRes = await db.query('SELECT user_id, is_verified FROM provider_profiles');
+      const verifiedMap = {};
+      for (const row of profilesRes.rows) verifiedMap[String(row.user_id)] = !!row.is_verified;
+      listings = listings.map(l => ({ ...l, provider_verified: verifiedMap[String(l.provider_id)] || false }));
+    } catch(e) { /* provider_verified optional */ }
     res.json({ listings, count: listings.length });
   } catch (err) {
     console.error('getListings error:', err);
