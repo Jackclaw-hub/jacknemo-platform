@@ -247,6 +247,15 @@
           fetch('/api/listings/' + listingId + '/view', { method: 'POST' }).catch(() => {});
         }
 
+        // K-79: Track recently viewed in localStorage (max 5)
+        try {
+          const entry = { id: listingId, title: l.title, type: l.type };
+          const key = 'recently_viewed';
+          const prev = JSON.parse(localStorage.getItem(key) || '[]').filter(e => String(e.id) !== String(listingId));
+          prev.unshift(entry);
+          localStorage.setItem(key, JSON.stringify(prev.slice(0, 5)));
+        } catch(e) { /* storage may be unavailable */ }
+
         // Hide contact button if not logged in or is own listing
         if (!auth.getToken()) {
           document.getElementById('contact-btn').textContent = 'Einloggen zum Kontaktieren';
