@@ -37,4 +37,51 @@ const getAnalytics = async (req, res) => {
   }
 };
 
-module.exports = { getAnalytics };
+// K-74: Weekly trends — last 8 weeks of signups + listings
+const getTrends = async (req, res) => {
+  try {
+    // Build 8-week buckets (Sunday-based ISO weeks)
+    const weeks = [];
+    const now = new Date();
+    for (let i = 7; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i * 7);
+      const start = new Date(d);
+      start.setDate(start.getDate() - start.getDay()); // Sunday
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 7);
+      weeks.push({ start, end, label: start.toISOString().slice(0, 10) });
+    }
+
+    // For mock DB — compute from in-memory data
+    if (typeof db.query !== 'function') {
+      return res.json({ weeks: weeks.map(w => ({ week: w.label, new_users: 0, new_listings: 0 })) });
+    }
+
+    // Try mock-compatible approach: get all with created_at and bucket in JS
+    const [users, listings] = await Promise.all([
+      db.query('SELECT created_at FROM users'),
+      db.query('SELECT created_at FROM listings'),
+    ]);
+
+    const trend = weeks.map(w => {
+      const new_users = users.rows.filter(u => {
+        const d = new Date(u.created_at);
+        return d >= w.start && d < w.end;
+      }).length;
+      const new_listings = listings.rows.filter(l => {
+        const d = new Date(l.created_at);
+        return d >= w.start && d < w.end;
+      }).length;
+      return { week: w.label, new_users, new_listings };
+    });
+
+    res.json({ weeks: trend });
+  } catch (err) {
+    console.error('getTrends error:', err);
+    res.status(500).json({ error: 'Failed to fetch trends' });
+  }
+};
+
+module.exports = { getAnalytics, getTrends };

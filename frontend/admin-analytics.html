@@ -76,6 +76,11 @@
       <h2>Aktivität (letzte 7 Tage)</h2>
       <table id="activity"><thead><tr><th>Datum</th><th>Neue Inserate</th></tr></thead><tbody></tbody></table>
     </div>
+    <!-- K-74: Weekly trends chart -->
+    <div class="card">
+      <h2>Wöchentliche Trends (letzte 8 Wochen)</h2>
+      <div id="trends-chart" style="margin-top:12px"></div>
+    </div>
     <div class="card">
       <h2>Benachrichtigungen</h2>
       <table id="notifs"><thead><tr><th>Typ</th><th>Anzahl</th></tr></thead><tbody></tbody></table>
@@ -116,7 +121,37 @@
       }
     }
 
+    // K-74: Weekly trends bar chart (pure HTML/CSS, no library)
+    async function loadTrends() {
+      try {
+        const data = await api('GET', '/admin/analytics/trends', null, auth.getToken());
+        const weeks = data.weeks || [];
+        if (!weeks.length) return;
+        const maxUsers = Math.max(...weeks.map(w => w.new_users), 1);
+        const maxListings = Math.max(...weeks.map(w => w.new_listings), 1);
+        const maxVal = Math.max(maxUsers, maxListings);
+        const el = document.getElementById('trends-chart');
+        el.innerHTML = `
+          <div style="display:flex;gap:16px;margin-bottom:8px;font-size:12px">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#4f46e5;display:inline-block;border-radius:2px"></span>Nutzer</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#059669;display:inline-block;border-radius:2px"></span>Inserate</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:flex-end;height:120px">
+            ${weeks.map(w => `
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                <div style="display:flex;gap:2px;align-items:flex-end;height:100px;width:100%">
+                  <div style="flex:1;background:#4f46e5;border-radius:2px 2px 0 0;height:${Math.round((w.new_users/maxVal)*100)}%" title="${w.new_users} Nutzer"></div>
+                  <div style="flex:1;background:#059669;border-radius:2px 2px 0 0;height:${Math.round((w.new_listings/maxVal)*100)}%" title="${w.new_listings} Inserate"></div>
+                </div>
+                <div style="font-size:10px;color:#9ca3af;text-align:center;white-space:nowrap">${w.week.slice(5)}</div>
+                <div style="font-size:10px;color:#374151;text-align:center">${w.new_users}u / ${w.new_listings}l</div>
+              </div>`).join('')}
+          </div>`;
+      } catch(e) { /* trends optional */ }
+    }
+
     load();
+    loadTrends();
   </script>
 </body>
 </html>
