@@ -32,6 +32,7 @@ const AuthAPI = {
 
 // Founders
 const FoundersAPI = {
+  getFeed: () => api('GET', '/founders/feed', null, auth.getToken()),
   saveProfile: (data) => api('POST', '/founders/profile', data, auth.getToken()),
   getProfile: () => api('GET', '/founders/profile', null, auth.getToken()),
 };

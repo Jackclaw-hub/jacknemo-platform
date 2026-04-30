@@ -310,6 +310,23 @@ class MockDatabase {
           rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
           return { rows };
         }
+        // K-72: Feed query — created_at > $1 (recent listings)
+        if (sl.includes('created_at > $1')) {
+          const since = params[0];
+          let rows = this.listings.filter(x => x.status === 'active' && x.created_at > since);
+          // optional stage filter (params[1] if present with ANY/stages pattern)
+          // optional geo filter
+          if (params[1]) {
+            const stage = params[1];
+            rows = rows.filter(x => !x.stages || x.stages.length === 0 || x.stages.includes(stage));
+          }
+          if (params[2]) {
+            const geo = params[2];
+            rows = rows.filter(x => x.geo === geo || x.geo === 'national');
+          }
+          rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          return { rows: rows.slice(0, 10) };
+        }
         // K-66: export query — no WHERE clause, no params
         if (!params.length) {
           const sorted = [...this.listings].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));

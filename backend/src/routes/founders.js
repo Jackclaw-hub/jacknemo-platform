@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { upsertProfile, getProfile } = require('../controllers/founderController');
+const { upsertProfile, getProfile, getFeed } = require('../controllers/founderController');
 const { saveSearch, getSavedSearches, deleteSavedSearch } = require('../controllers/savedSearchController');
 const { getReferralCode, getReferralStatsEndpoint } = require('../controllers/referralController');
 const { saveBookmark, getBookmarks, deleteBookmark } = require('../controllers/bookmarksController');
@@ -9,6 +9,9 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 // Founder profile
 router.post('/profile', authenticateToken, requireRole(['founder']), upsertProfile);
 router.get('/profile', authenticateToken, requireRole(['founder']), getProfile);
+
+// K-72: Activity feed
+router.get('/feed', authenticateToken, requireRole(['founder']), getFeed);
 
 // Saved searches (KAN-020)
 router.post('/saved-searches', authenticateToken, requireRole(['founder']), saveSearch);

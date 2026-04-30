@@ -127,6 +127,15 @@
   <!-- K-61: Profile completeness widget -->
   <div id="profile-completeness" style="display:none;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px"></div>
 
+  <!-- K-72: Activity feed — new listings for you -->
+  <div id="feed-section" style="display:none;margin-bottom:24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <h2 style="margin:0;font-size:15px;font-weight:700;color:#111827">&#x1F195; Neu für dich</h2>
+      <span id="feed-count" style="font-size:12px;color:#6b7280"></span>
+    </div>
+    <div id="feed-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px"></div>
+  </div>
+
   <div id="results"><div class="empty">Lade Radar-Ergebnisse...</div></div>
 
   <script src="api-client.js"></script>
@@ -448,8 +457,30 @@
       }
     }
 
+    // K-72: Activity feed
+    async function loadFeed() {
+      try {
+        const data = await FoundersAPI.getFeed();
+        const listings = data.listings || [];
+        if (!listings.length) return;
+        const grid = document.getElementById('feed-grid');
+        const section = document.getElementById('feed-section');
+        document.getElementById('feed-count').textContent = listings.length + ' neue Inserate in den letzten 7 Tagen';
+        grid.innerHTML = listings.map(l =>
+          '<a href="listing.html?id=' + l.id + '" style="text-decoration:none;color:inherit">' +
+          '<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;cursor:pointer;border-top:3px solid #4f46e5" onmouseover="this.style.boxShadow=\'0 2px 10px rgba(0,0,0,.08)\'" onmouseout="this.style.boxShadow=\'none\'">' +
+          '<div style="font-size:11px;color:#4f46e5;font-weight:600;margin-bottom:4px">' + (l.type || '') + (l.city ? ' · ' + l.city : '') + '</div>' +
+          '<div style="font-weight:600;font-size:13px;color:#111827;line-height:1.3;margin-bottom:4px">' + l.title + '</div>' +
+          '<div style="font-size:11px;color:#9ca3af">' + new Date(l.created_at).toLocaleDateString('de-DE') + '</div>' +
+          '</div></a>'
+        ).join('');
+        section.style.display = 'block';
+      } catch(e) { /* feed optional */ }
+    }
+
     restoreFiltersFromURL();
     loadRadar();
+    loadFeed();
   </script>
   <!-- K-51: Referral / Invite section (hidden until code loaded) -->
   <div id="invite-section" style="display:none;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:20px 24px;margin:16px 0;max-width:800px;margin-left:auto;margin-right:auto">
