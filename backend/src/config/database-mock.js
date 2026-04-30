@@ -291,6 +291,10 @@ class MockDatabase {
     // ---- LISTINGS CRUD ----
     if (sl.includes('from listings') || sl.includes('into listings') || (s.startsWith('UPDATE') && sl.includes('listings ')) || (s.startsWith('DELETE') && sl.includes('listings '))) {
       if (s.startsWith('SELECT')) {
+        if (sql.includes('WHERE id = $1') && sql.includes('provider_id = $2')) {
+          const l = this.listings.find(x => x.id == params[0] && x.provider_id == params[1]);
+          return { rows: l ? [l] : [] };
+        }
         if (sql.includes('WHERE id = $1')) { const l = this.listings.find(x => x.id == params[0]); return { rows: l ? [l] : [] }; }
         if (sql.includes('provider_id = $1') && !sql.includes('status')) { return { rows: this.listings.filter(x => x.provider_id == params[0]) }; }
         // Public listings by provider (active only)
@@ -350,7 +354,20 @@ class MockDatabase {
       }
       if (s.startsWith('INSERT')) {
         const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
-        const l = { id: this.nextListingId++, type: params[0], title: params[1], description: params[2], provider_id: params[3], provider_role: params[4], geo: params[5], city: params[6], tags: params[7], stages: params[8], sectors: params[9], starter_friendly: params[10], hourly_rate: params[11], daily_rate: params[12], from_price: params[13], status: params[14], image_url: params[15] || null, featured: false, is_premium: false, premium_expires_at: null, expires_at: expiresAt, view_count: 0, contact_count: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        // K-73: duplicate INSERT has 15 params (no status param — hardcoded 'draft' in SQL)
+        const isDuplicate = sl.includes("'draft'") && params.length === 15;
+        const l = {
+          id: this.nextListingId++,
+          type: params[0], title: params[1], description: params[2],
+          provider_id: params[3], provider_role: params[4],
+          geo: params[5], city: params[6], tags: params[7], stages: params[8], sectors: params[9],
+          starter_friendly: params[10], hourly_rate: params[11], daily_rate: params[12], from_price: params[13],
+          status: isDuplicate ? 'draft' : params[14],
+          image_url: isDuplicate ? params[14] : (params[15] || null),
+          featured: false, is_premium: false, premium_expires_at: null, expires_at: expiresAt,
+          view_count: 0, contact_count: 0,
+          created_at: new Date().toISOString(), updated_at: new Date().toISOString()
+        };
         this.listings.push(l);
         return { rows: [l] };
       }

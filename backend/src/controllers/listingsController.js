@@ -230,4 +230,16 @@ const runListingExpiry = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing, renewListing, runListingExpiry, recordView };
+// K-73: Duplicate a listing as a draft
+const duplicateListing = async (req, res) => {
+  try {
+    const copy = await Listing.duplicate(req.params.id, req.user.id);
+    if (!copy) return res.status(404).json({ error: 'Listing not found or not owned by you' });
+    res.status(201).json({ listing: copy, message: 'Kopie als Entwurf erstellt' });
+  } catch (err) {
+    console.error('duplicateListing error:', err);
+    res.status(500).json({ error: 'Failed to duplicate listing' });
+  }
+};
+
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing, renewListing, runListingExpiry, recordView, duplicateListing };

@@ -52,6 +52,7 @@ const ListingsAPI = {
   contact: (id, message) => api('POST', '/listings/' + id + '/contact', { message }, auth.getToken()),
   publish: (id) => api('PATCH', '/listings/' + id + '/publish', {}, auth.getToken()),
   renew: (id) => api('PATCH', '/listings/' + id + '/renew', {}, auth.getToken()),
+  duplicate: (id) => api('POST', '/listings/' + id + '/duplicate', {}, auth.getToken()),
 };
 
 // K-50: Notifications

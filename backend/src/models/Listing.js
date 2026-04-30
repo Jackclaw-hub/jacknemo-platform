@@ -152,6 +152,28 @@ class Listing {
     return result.rows[0] || null;
   }
 
+  // K-73: Duplicate a listing as a new draft owned by the same provider
+  static async duplicate(id, providerId) {
+    const original = await pool.query('SELECT * FROM listings WHERE id = $1 AND provider_id = $2', [id, providerId]);
+    if (!original.rows[0]) return null;
+    const o = original.rows[0];
+    const result = await pool.query(
+      `INSERT INTO listings
+         (type, title, description, provider_id, provider_role, geo, city,
+          tags, stages, sectors, starter_friendly, hourly_rate, daily_rate, from_price,
+          image_url, status, expires_at, created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'draft',
+               NOW() + INTERVAL '90 days', NOW(), NOW())
+       RETURNING *`,
+      [
+        o.type, 'Kopie von ' + o.title, o.description, o.provider_id, o.provider_role,
+        o.geo, o.city, o.tags, o.stages, o.sectors, o.starter_friendly,
+        o.hourly_rate, o.daily_rate, o.from_price, o.image_url
+      ]
+    );
+    return result.rows[0];
+  }
+
   // K-56: Expire listings older than 90 days — called by admin cron endpoint
   static async expireOldListings() {
     const result = await pool.query(
