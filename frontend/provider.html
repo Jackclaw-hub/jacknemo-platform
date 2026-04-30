@@ -155,10 +155,12 @@
       }
 
       try {
-        const [profRes, listRes, rateRes] = await Promise.allSettled([
+        const [profRes, listRes, rateRes, responseRes] = await Promise.allSettled([
           ProvidersAPI.getProfile(providerId),
           ProvidersAPI.getListings(providerId),
           ProvidersAPI.getRatings(providerId),
+          // K-71: response rate
+          api('GET', '/providers/' + providerId + '/response-rate'),
         ]);
 
         const profile = profRes.status === 'fulfilled' ? profRes.value.profile : null;
@@ -184,6 +186,14 @@
         if (profile.is_verified) badges.push('<span class="badge badge-verified">✓ Verifiziert</span>');
         if (profile.avg_rating) {
           badges.push('<span class="badge badge-rating">' + stars(profile.avg_rating) + ' ' + parseFloat(profile.avg_rating).toFixed(1) + '</span>');
+        }
+        // K-71: Response rate badge
+        const rrData = responseRes.status === 'fulfilled' ? responseRes.value : null;
+        if (rrData && rrData.rate !== null && rrData.total > 0) {
+          const rr = rrData.rate;
+          const rrColor = rr >= 80 ? '#d1fae5' : rr >= 50 ? '#fef3c7' : '#fee2e2';
+          const rrText = rr >= 80 ? '#065f46' : rr >= 50 ? '#92400e' : '#991b1b';
+          badges.push('<span class="badge" style="background:' + rrColor + ';color:' + rrText + '" title="Antwortet auf ' + rrData.replied + ' von ' + rrData.total + ' Nachrichten">&#x1F4E9; ' + rr + '% Antwortrate</span>');
         }
         document.getElementById('prov-badges').innerHTML = badges.join('');
 

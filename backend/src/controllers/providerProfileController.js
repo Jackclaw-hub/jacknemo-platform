@@ -114,4 +114,48 @@ async function getProviderAnalytics(req, res) {
   }
 }
 
-module.exports = { upsertProfile, getProfile, getProviderListings, requestVerification, adminVerifyProvider, getProviderAnalytics };
+// K-71: Provider response rate
+const getResponseRate = async (req, res) => {
+  const providerId = req.params.userId;
+  try {
+    // Get all messages involving this provider
+    const r = await db.query(
+      'SELECT sender_id, recipient_id, listing_id FROM messages WHERE sender_id = $1 OR recipient_id = $1',
+      [providerId]
+    );
+    const msgs = r.rows;
+
+    // Incoming threads: unique (sender_id, listing_id) pairs where provider is recipient
+    const incomingThreads = new Set();
+    msgs.forEach(m => {
+      if (String(m.recipient_id) === String(providerId)) {
+        incomingThreads.add(`${m.sender_id}_${m.listing_id || 'null'}`);
+      }
+    });
+
+    if (incomingThreads.size === 0) {
+      return res.json({ rate: null, total: 0, replied: 0 });
+    }
+
+    // Threads the provider replied to: outgoing messages from provider
+    const repliedThreads = new Set();
+    msgs.forEach(m => {
+      if (String(m.sender_id) === String(providerId)) {
+        repliedThreads.add(`${m.recipient_id}_${m.listing_id || 'null'}`);
+      }
+    });
+
+    let replied = 0;
+    incomingThreads.forEach(key => {
+      if (repliedThreads.has(key)) replied++;
+    });
+
+    const rate = Math.round((replied / incomingThreads.size) * 100);
+    res.json({ rate, total: incomingThreads.size, replied });
+  } catch (e) {
+    console.error('getResponseRate error:', e);
+    res.status(500).json({ error: 'Failed to compute response rate' });
+  }
+};
+
+module.exports = { upsertProfile, getProfile, getProviderListings, requestVerification, adminVerifyProvider, getProviderAnalytics, getResponseRate };
