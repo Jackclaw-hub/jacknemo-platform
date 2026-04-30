@@ -4,6 +4,7 @@ const router = express.Router();
 const { getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, bulkAction } = require('../controllers/adminController');
 const { getAnalytics } = require('../controllers/adminAnalyticsController');
 const { listUsers, disableUser, enableUser } = require('../controllers/adminUserController');
+const { exportListings, exportUsers } = require('../controllers/adminExportController');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 const adminOnly = [authenticateToken, requireRole(['admin'])];
@@ -32,5 +33,9 @@ router.post('/listings/bulk-action', ...adminOnly, bulkAction);
 router.get('/users', ...adminOnly, listUsers);
 router.patch('/users/:id/disable', ...adminOnly, disableUser);
 router.patch('/users/:id/enable', ...adminOnly, enableUser);
+
+// K-66: CSV exports
+router.get('/export/listings.csv', ...adminOnly, exportListings);
+router.get('/export/users.csv', ...adminOnly, exportUsers);
 
 module.exports = router;

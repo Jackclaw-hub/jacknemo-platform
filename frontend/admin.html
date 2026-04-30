@@ -61,6 +61,11 @@
     <button id="tab-verify" onclick="showTab('verify')" style="background:#e5e7eb;color:#374151;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px">Verification queue</button>
     <!-- K-65: Users tab -->
     <button id="tab-users" onclick="showTab('users')" style="background:#e5e7eb;color:#374151;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px">User Management</button>
+    <!-- K-66: CSV exports -->
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button onclick="downloadCSV('listings')" style="background:#f9fafb;border:1px solid #d1d5db;color:#374151;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px">&#11015; Listings CSV</button>
+      <button onclick="downloadCSV('users')" style="background:#f9fafb;border:1px solid #d1d5db;color:#374151;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px">&#11015; Users CSV</button>
+    </div>
   </div>
   <!-- K-60: Search & filter panel -->
   <div class="search-filter-bar" id="search-filter-bar">
@@ -423,6 +428,24 @@
 
     async function loadPending() {
       await loadListings({ status: 'pending' });
+    }
+
+    // K-66: CSV export download
+    async function downloadCSV(type) {
+      const token = auth.getToken();
+      const url = '/api/admin/export/' + type + '.csv';
+      try {
+        const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = type + '-export.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch(e) {
+        alert('Export fehlgeschlagen: ' + e.message);
+      }
     }
 
     loadPending();

@@ -306,6 +306,11 @@ class MockDatabase {
           rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
           return { rows };
         }
+        // K-66: export query — no WHERE clause, no params
+        if (!params.length) {
+          const sorted = [...this.listings].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          return { rows: sorted };
+        }
         let rows = this.listings.filter(x => x.status === params[0]);
         let pi = 1;
         if (sql.includes('type =')) rows = rows.filter(x => x.type === params[pi++]);
