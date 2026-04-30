@@ -207,12 +207,15 @@
       `;
     }
 
+    let _founderProfile = null; // K-85: cached profile for edit form
+
     // K-33: Gate dashboard — redirect to onboarding if profile not complete
     // K-82: Show personalized welcome banner with display_name
     (async () => {
       try {
         const r = await api('GET', '/founders/profile', null, auth.getToken());
         if (!r.profile || !r.profile.company_name) throw new Error('incomplete');
+        _founderProfile = r.profile;
         showCompletenessIndicator(r.profile);
 
         // Welcome banner
@@ -238,6 +241,57 @@
     let radarCache = null;
 
     function logout() { AuthAPI.logout(); location.href = 'auth.html'; }
+
+    // K-85: Founder profile edit
+    function toggleProfileEdit() {
+      const panel = document.getElementById('profile-edit-panel');
+      const open = panel.style.display !== 'none';
+      if (!open) {
+        // Pre-fill form from cached profile
+        const p = _founderProfile || {};
+        document.getElementById('pe-display_name').value = p.display_name || '';
+        document.getElementById('pe-company_name').value = p.company_name || '';
+        document.getElementById('pe-stage').value = p.stage || '';
+        document.getElementById('pe-sector').value = p.sector || '';
+        document.getElementById('pe-city').value = p.city || '';
+        document.getElementById('pe-geo').value = p.geo || 'national';
+        document.getElementById('pe-description').value = p.description || '';
+        document.getElementById('pe-status').textContent = '';
+      }
+      panel.style.display = open ? 'none' : 'block';
+      document.getElementById('profile-edit-toggle').style.borderRadius = open ? '6px' : '8px 8px 0 0';
+    }
+
+    async function saveProfileEdit() {
+      const btn = document.querySelector('#profile-edit-panel button');
+      const status = document.getElementById('pe-status');
+      const data = {
+        display_name: document.getElementById('pe-display_name').value.trim() || null,
+        company_name: document.getElementById('pe-company_name').value.trim(),
+        stage: document.getElementById('pe-stage').value || null,
+        sector: document.getElementById('pe-sector').value || null,
+        city: document.getElementById('pe-city').value.trim(),
+        geo: document.getElementById('pe-geo').value,
+        description: document.getElementById('pe-description').value.trim() || null,
+      };
+      if (!data.company_name) { status.style.color = '#ef4444'; status.textContent = 'Startup-Name darf nicht leer sein.'; return; }
+      status.style.color = '#6b7280';
+      status.textContent = 'Wird gespeichert…';
+      try {
+        const r = await FoundersAPI.saveProfile(data);
+        _founderProfile = r.profile || { ..._founderProfile, ...data };
+        status.style.color = '#059669';
+        status.textContent = '✓ Gespeichert';
+        showCompletenessIndicator(_founderProfile);
+        // Update welcome banner if visible
+        const name = _founderProfile.display_name || _founderProfile.company_name;
+        if (name) document.getElementById('welcome-text') && (document.getElementById('welcome-text').textContent = document.getElementById('welcome-text').textContent.replace(/,.*!/, ', ' + name + '!'));
+        setTimeout(() => { status.textContent = ''; }, 2500);
+      } catch(e) {
+        status.style.color = '#ef4444';
+        status.textContent = 'Fehler: ' + e.message;
+      }
+    }
 
     function scoreClass(pct) {
       if (pct >= 70) return 'high';
@@ -541,6 +595,78 @@
       <button onclick="copyInviteLink()" class="copy-btn" style="padding:8px 16px;background:#4f46e5;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;white-space:nowrap">Link kopieren</button>
     </div>
     <p id="invite-count" style="margin:10px 0 0;font-size:13px;color:#6b7280;font-weight:500">0 erfolgreiche Einladungen</p>
+  </div>
+
+  <!-- K-85: Founder profile edit panel -->
+  <div style="margin-top:24px">
+    <button onclick="toggleProfileEdit()" id="profile-edit-toggle" style="background:#f3f4f6;border:1px solid #d1d5db;color:#374151;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;width:100%;text-align:left">
+      &#x270F;&#xFE0F; Profil bearbeiten
+    </button>
+    <div id="profile-edit-panel" style="display:none;background:#fff;border:1px solid #e5e7eb;border-radius:0 0 8px 8px;padding:20px 24px;margin-top:0">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Dein Name</label>
+          <input id="pe-display_name" type="text" placeholder="Max Müller" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Startup-Name</label>
+          <input id="pe-company_name" type="text" placeholder="FinNext GmbH" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Funding-Stage</label>
+          <select id="pe-stage" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+            <option value="">— Bitte wählen —</option>
+            <option value="idea">Idee / Konzept</option>
+            <option value="pre-seed">Pre-Seed</option>
+            <option value="seed">Seed</option>
+            <option value="series-a">Series A</option>
+            <option value="series-b">Series B+</option>
+            <option value="bootstrapped">Bootstrapped</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Sektor</label>
+          <select id="pe-sector" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+            <option value="">— Bitte wählen —</option>
+            <option value="fintech">Fintech</option>
+            <option value="healthtech">Healthtech</option>
+            <option value="edtech">Edtech</option>
+            <option value="ecommerce">E-Commerce</option>
+            <option value="saas">SaaS / B2B</option>
+            <option value="deeptech">Deeptech</option>
+            <option value="cleantech">Cleantech</option>
+            <option value="mobility">Mobility</option>
+            <option value="proptech">Proptech</option>
+            <option value="mediatech">Media</option>
+            <option value="other">Sonstiges</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Stadt / Region</label>
+          <input id="pe-city" type="text" placeholder="Berlin" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Suchradius</label>
+          <select id="pe-geo" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+            <option value="local">Lokal (&lt;50 km)</option>
+            <option value="regional">Regional (&lt;200 km)</option>
+            <option value="national">National (DE)</option>
+            <option value="dach">DACH-Region</option>
+            <option value="europe">Europa</option>
+            <option value="global">Global / Remote</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Kurzbeschreibung</label>
+        <textarea id="pe-description" rows="2" placeholder="Was macht euer Startup?" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;resize:vertical"></textarea>
+      </div>
+      <div style="margin-top:14px;display:flex;align-items:center;gap:10px">
+        <button onclick="saveProfileEdit()" style="background:#4f46e5;color:#fff;border:none;padding:9px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600">Speichern</button>
+        <button onclick="toggleProfileEdit()" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;padding:9px 14px;border-radius:6px;cursor:pointer;font-size:14px">Abbrechen</button>
+        <span id="pe-status" style="font-size:13px;color:#6b7280"></span>
+      </div>
+    </div>
   </div>
 
   <!-- K-50: Notification panel -->
