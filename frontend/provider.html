@@ -198,6 +198,11 @@
           const rrText = rr >= 80 ? '#065f46' : rr >= 50 ? '#92400e' : '#991b1b';
           badges.push('<span class="badge" style="background:' + rrColor + ';color:' + rrText + '" title="Antwortet auf ' + rrData.replied + ' von ' + rrData.total + ' Nachrichten">&#x1F4E9; ' + rr + '% Antwortrate</span>');
         }
+        // K-121: Active listing count badge — computed before render since listings are already fetched
+        const listings = listRes.status === 'fulfilled' ? (listRes.value.listings || []) : [];
+        if (listings.length) {
+          badges.push('<span class="badge badge-listings">&#x1F4CB; ' + listings.length + ' aktive' + (listings.length !== 1 ? ' Inserate' : 's Inserat') + '</span>');
+        }
         document.getElementById('prov-badges').innerHTML = badges.join('');
 
         // Meta
@@ -209,12 +214,6 @@
         if (sl.linkedin) meta.push('<a href="' + sl.linkedin + '" target="_blank" rel="noopener" style="font-weight:600">in LinkedIn</a>');
         if (sl.twitter) meta.push('<a href="' + sl.twitter + '" target="_blank" rel="noopener" style="font-weight:600">𝕏 Twitter</a>');
         document.getElementById('prov-meta').innerHTML = meta.join('');
-
-        // Listings — K-89: show up to 4, with "Alle anzeigen" toggle
-        const listings = listRes.status === 'fulfilled' ? (listRes.value.listings || []) : [];
-        if (listings.length) {
-          badges.push('<span class="badge badge-listings">&#x1F4CB; ' + listings.length + ' Inserat' + (listings.length !== 1 ? 'e' : '') + '</span>');
-        }
         const grid = document.getElementById('listing-grid');
         const PREVIEW = 4;
         function renderListings(all) {
