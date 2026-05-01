@@ -67,7 +67,7 @@
 
   <div class="container">
     <div class="breadcrumb">
-      <a href="founder-dashboard.html">Radar</a> / <span id="bc-title">Inserat</span>
+      <a href="founder-dashboard.html" id="bc-back">Radar</a> / <span id="bc-title">Inserat</span>
     </div>
 
     <div id="loading" class="card">
@@ -165,12 +165,24 @@
       loadListing();
     }
 
-    // Adjust back link based on role
+    // K-119: Adjust back link — use history.back() for same-origin navigation, else role-based fallback
     const user = auth.getUser();
-    if (user?.role && user.role !== 'founder') {
-      document.getElementById('back-link').href = 'provider-dashboard.html';
-      document.getElementById('back-link').textContent = '← Zum Dashboard';
-    }
+    (function setupBackLink() {
+      const link = document.getElementById('back-link');
+      const ref = document.referrer;
+      const sameOrigin = ref && (ref.startsWith(location.origin) || ref.startsWith(location.protocol + '//' + location.host));
+      const bcBack = document.getElementById('bc-back');
+      if (sameOrigin) {
+        link.href = '#';
+        link.onclick = (e) => { e.preventDefault(); history.back(); };
+        link.textContent = '← Zurück';
+        if (bcBack) { bcBack.href = '#'; bcBack.onclick = (e) => { e.preventDefault(); history.back(); }; }
+      } else if (user?.role && user.role !== 'founder') {
+        link.href = 'provider-dashboard.html';
+        link.textContent = '← Zum Dashboard';
+      }
+      // else: keep default href="founder-dashboard.html"
+    })();
 
     async function loadListing() {
       try {
