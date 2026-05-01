@@ -487,6 +487,7 @@
         document.getElementById('pe-sector').value = p.sector || '';
         document.getElementById('pe-city').value = p.city || '';
         document.getElementById('pe-geo').value = p.geo || 'national';
+        document.getElementById('pe-team_size').value = p.team_size || '';
         document.getElementById('pe-description').value = p.description || '';
         document.getElementById('pe-status').textContent = '';
       }
@@ -504,6 +505,7 @@
         sector: document.getElementById('pe-sector').value || null,
         city: document.getElementById('pe-city').value.trim(),
         geo: document.getElementById('pe-geo').value,
+        team_size: parseInt(document.getElementById('pe-team_size').value, 10) || null,
         description: document.getElementById('pe-description').value.trim() || null,
       };
       if (!data.company_name) { status.style.color = '#ef4444'; status.textContent = 'Startup-Name darf nicht leer sein.'; return; }
@@ -911,6 +913,11 @@
         <div>
           <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Stadt / Region</label>
           <input id="pe-city" type="text" placeholder="Berlin" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+        </div>
+        <!-- K-113: team_size field -->
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Teamgröße</label>
+          <input id="pe-team_size" type="number" min="1" max="9999" placeholder="z. B. 3" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
         </div>
         <div>
           <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Suchradius</label>
