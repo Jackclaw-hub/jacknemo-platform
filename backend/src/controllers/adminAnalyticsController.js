@@ -84,4 +84,17 @@ const getTrends = async (req, res) => {
   }
 };
 
-module.exports = { getAnalytics, getTrends };
+// K-104: Top search terms
+const getSearchTerms = async (req, res) => {
+  try {
+    const r = await db.query(
+      `SELECT query, COUNT(*) as count FROM search_logs GROUP BY query ORDER BY count DESC LIMIT 20`
+    );
+    res.json({ terms: r.rows });
+  } catch (err) {
+    console.error('getSearchTerms error:', err);
+    res.status(500).json({ error: 'Failed to fetch search terms' });
+  }
+};
+
+module.exports = { getAnalytics, getTrends, getSearchTerms };

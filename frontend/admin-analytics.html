@@ -91,6 +91,12 @@
       <h2>Benachrichtigungen</h2>
       <table id="notifs"><thead><tr><th>Typ</th><th>Anzahl</th></tr></thead><tbody></tbody></table>
     </div>
+
+    <!-- K-104: Top search terms -->
+    <div class="card">
+      <h2>Top Suchbegriffe</h2>
+      <div id="search-terms-content"><p style="color:#9ca3af;font-size:13px">Lade...</p></div>
+    </div>
   </div>
 
   <script src="api-client.js"></script>
@@ -184,8 +190,39 @@
       } catch(e) { /* trends optional */ }
     }
 
+    // K-104: Top search terms
+    async function loadSearchTerms() {
+      const el = document.getElementById('search-terms-content');
+      try {
+        const data = await api('GET', '/admin/analytics/search-terms', null, auth.getToken());
+        const terms = data.terms || [];
+        if (!terms.length) {
+          el.innerHTML = '<p style="color:#9ca3af;font-size:13px">Noch keine Suchanfragen aufgezeichnet.</p>';
+          return;
+        }
+        const maxCount = terms[0].count || 1;
+        el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+          '<thead><tr><th style="text-align:left;padding:4px 0;color:#6b7280;font-size:11px;text-transform:uppercase">#</th>' +
+          '<th style="text-align:left;padding:4px 8px;color:#6b7280;font-size:11px;text-transform:uppercase">Suchbegriff</th>' +
+          '<th style="text-align:right;padding:4px 8px;color:#6b7280;font-size:11px;text-transform:uppercase">Suchen</th>' +
+          '<th style="width:35%;padding:4px 8px"></th></tr></thead><tbody>' +
+          terms.map((t, i) => {
+            const pct = Math.round((t.count / maxCount) * 100);
+            return `<tr>
+              <td style="padding:5px 0;color:#9ca3af;font-size:12px">${i + 1}</td>
+              <td style="padding:5px 8px;font-weight:600">${t.query}</td>
+              <td style="text-align:right;padding:5px 8px;color:#4f46e5;font-weight:700">${t.count}</td>
+              <td style="padding:5px 8px"><div style="background:#e0e7ff;border-radius:4px;height:8px"><div style="background:#4f46e5;border-radius:4px;height:8px;width:${pct}%"></div></div></td>
+            </tr>`;
+          }).join('') + '</tbody></table>';
+      } catch(e) {
+        el.innerHTML = '<p style="color:#9ca3af;font-size:13px">Keine Daten</p>';
+      }
+    }
+
     load();
     loadTrends();
+    loadSearchTerms();
   </script>
 </body>
 </html>

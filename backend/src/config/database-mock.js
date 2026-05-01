@@ -31,6 +31,7 @@ class MockDatabase {
     this.nextTemplateId = 1;
     this.notifications = [];
     this.nextNotificationId = 1;
+    this.searchLogs = []; // K-104: search query log
     this.nextUserId = 10000;
     this.nextListingId = 1;
     this.nextMessageId = 1;
@@ -617,6 +618,23 @@ class MockDatabase {
         const idx = this.reports.findIndex(r => r.id == params[1]);
         if (idx >= 0) { this.reports[idx].dismissed = true; }
         return { rows: idx >= 0 ? [this.reports[idx]] : [] };
+      }
+    }
+
+    // ---- SEARCH LOGS (K-104) ----
+    if (sl.includes('search_logs')) {
+      if (s.startsWith('INSERT')) {
+        this.searchLogs.push({ query: params[0], created_at: new Date().toISOString() });
+        return { rows: [] };
+      }
+      if (s.startsWith('SELECT') && sl.includes('group by query')) {
+        const counts = {};
+        this.searchLogs.forEach(l => { counts[l.query] = (counts[l.query] || 0) + 1; });
+        const rows = Object.entries(counts)
+          .map(([query, count]) => ({ query, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 20);
+        return { rows };
       }
     }
 

@@ -51,7 +51,10 @@ const getListings = async (req, res) => {
     const { type, geo, starterFriendly, search, status, premium, tags } = req.query;
 
     if (search && search.trim()) {
-      const listings = await Listing.search(search.trim());
+      const q = search.trim();
+      // K-104: Log search query (fire-and-forget)
+      db.query('INSERT INTO search_logs (query, created_at) VALUES ($1, NOW())', [q.slice(0, 100)]).catch(() => {});
+      const listings = await Listing.search(q);
       return res.json({ listings, count: listings.length });
     }
 
