@@ -108,7 +108,11 @@
           <label>Tags (kommagetrennt)</label>
           <input type="text" id="l-tags" placeholder="3d-druck, prototyping">
           <label>Bild-URL <span style="font-weight:400;color:#9ca3af;font-size:12px">(optional)</span></label>
-          <input type="url" id="l-image" placeholder="https://beispiel.de/bild.jpg">
+          <input type="url" id="l-image" placeholder="https://beispiel.de/bild.jpg" oninput="previewImage('l-image','l-image-preview')">
+          <!-- K-110: Live image preview -->
+          <div id="l-image-preview" style="display:none;margin-top:6px">
+            <img id="l-image-preview-img" src="" alt="Vorschau" style="max-width:100%;max-height:140px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb" onerror="document.getElementById('l-image-preview').style.display='none'">
+          </div>
           <label>Beschreibung</label>
           <textarea id="l-desc" rows="3" placeholder="Kurze Beschreibung..."></textarea>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
@@ -511,6 +515,16 @@
       } catch (ex) {
         alert('Fehler: ' + ex.message);
       }
+    }
+
+    // K-110: Live image URL preview
+    function previewImage(inputId, previewId) {
+      const url = document.getElementById(inputId).value.trim();
+      const wrap = document.getElementById(previewId);
+      const img = document.getElementById(previewId + '-img');
+      if (!url) { wrap.style.display = 'none'; return; }
+      img.src = url;
+      wrap.style.display = 'block';
     }
 
     // K-103: Inline title quick-edit
