@@ -237,7 +237,19 @@
     }
 
     async function reject(id) {
-      const reason = document.getElementById('reason-' + id)?.value || '';
+      const reasonEl = document.getElementById('reason-' + id);
+      const reason = reasonEl?.value?.trim() || '';
+      // K-141: highlight reason input if empty, prompt admin to enter a reason
+      if (!reason && reasonEl) {
+        reasonEl.focus();
+        reasonEl.placeholder = 'Bitte Ablehnungsgrund eingeben…';
+        reasonEl.style.borderColor = '#ef4444';
+        reasonEl.style.boxShadow = '0 0 0 2px #fee2e2';
+        setTimeout(() => {
+          if (reasonEl) { reasonEl.style.borderColor = ''; reasonEl.style.boxShadow = ''; }
+        }, 1500);
+        return;
+      }
       try {
         await AdminAPI.reject(id, reason);
         const msg = document.getElementById('msg-' + id);
