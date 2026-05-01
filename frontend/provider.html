@@ -184,8 +184,11 @@
         // Badges
         const badges = [];
         if (profile.is_verified) badges.push('<span class="badge badge-verified">✓ Verifiziert</span>');
-        if (profile.avg_rating) {
-          badges.push('<span class="badge badge-rating">' + stars(profile.avg_rating) + ' ' + parseFloat(profile.avg_rating).toFixed(1) + '</span>');
+        // K-89: prefer rating from dedicated ratings endpoint (more up-to-date than profile.avg_rating)
+        const ratingsForBadge = rateRes.status === 'fulfilled' ? rateRes.value : null;
+        const avgForBadge = ratingsForBadge?.average || profile.avg_rating;
+        if (avgForBadge && parseFloat(avgForBadge) > 0) {
+          badges.push('<span class="badge badge-rating">' + stars(avgForBadge) + ' ' + parseFloat(avgForBadge).toFixed(1) + '</span>');
         }
         // K-71: Response rate badge
         const rrData = responseRes.status === 'fulfilled' ? responseRes.value : null;
@@ -203,11 +206,15 @@
         if (profile.contact_email) meta.push('<span>&#x2709;&#xFE0F; <a href="mailto:' + profile.contact_email + '">' + profile.contact_email + '</a></span>');
         document.getElementById('prov-meta').innerHTML = meta.join('');
 
-        // Listings
+        // Listings — K-89: show up to 4, with "Alle anzeigen" toggle
         const listings = listRes.status === 'fulfilled' ? (listRes.value.listings || []) : [];
-        const grid = document.getElementById('listing-grid');
         if (listings.length) {
-          grid.innerHTML = listings.map(l => `
+          badges.push('<span class="badge badge-listings">&#x1F4CB; ' + listings.length + ' Inserat' + (listings.length !== 1 ? 'e' : '') + '</span>');
+        }
+        const grid = document.getElementById('listing-grid');
+        const PREVIEW = 4;
+        function renderListings(all) {
+          grid.innerHTML = all.map(l => `
             <a class="listing-card" href="listing.html?id=${l.id}">
               ${l.image_url ? '<img class="listing-thumb" src="' + l.image_url + '" alt="" onerror="this.remove()">' : ''}
               <span class="type-badge">${l.type || '—'}</span>${l.is_premium ? '<span class="premium-chip">⭐ Premium</span>' : ''}
@@ -216,8 +223,23 @@
               ${formatPrice(l) ? '<div class="price">' + formatPrice(l) + '</div>' : ''}
             </a>
           `).join('');
+        }
+        if (listings.length) {
           document.getElementById('listings-section').querySelector('.section-title').textContent =
             'Aktive Inserate (' + listings.length + ')';
+          renderListings(listings.slice(0, PREVIEW));
+          if (listings.length > PREVIEW) {
+            const toggleBtn = document.createElement('button');
+            toggleBtn.textContent = 'Alle ' + listings.length + ' Inserate anzeigen';
+            toggleBtn.style.cssText = 'margin-top:12px;background:none;border:1px solid #4f46e5;color:#4f46e5;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600';
+            let expanded = false;
+            toggleBtn.onclick = () => {
+              expanded = !expanded;
+              renderListings(expanded ? listings : listings.slice(0, PREVIEW));
+              toggleBtn.textContent = expanded ? 'Weniger anzeigen ↑' : 'Alle ' + listings.length + ' Inserate anzeigen';
+            };
+            document.getElementById('listings-section').appendChild(toggleBtn);
+          }
         }
 
         // Ratings
