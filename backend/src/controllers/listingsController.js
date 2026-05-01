@@ -92,12 +92,28 @@ const getListing = async (req, res) => {
   }
 };
 
+// K-120: in-memory view dedup store — key: "ip:listingId", value: timestamp
+const _viewSeen = new Map();
+const VIEW_TTL = 60 * 60 * 1000; // 1 hour
+// Prune stale entries every 10 minutes
+setInterval(() => {
+  const cutoff = Date.now() - VIEW_TTL;
+  for (const [k, ts] of _viewSeen) { if (ts < cutoff) _viewSeen.delete(k); }
+}, 10 * 60 * 1000).unref();
+
 // K-69: Explicit view event — called by frontend once per session
 const recordView = async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id);
     if (!listing) return res.status(404).json({ error: 'Listing not found' });
-    Listing.incrementView(req.params.id).catch(() => {});
+    // K-120: deduplicate — skip increment if same IP viewed this listing within TTL
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    const key = ip + ':' + req.params.id;
+    const lastSeen = _viewSeen.get(key);
+    if (!lastSeen || Date.now() - lastSeen > VIEW_TTL) {
+      _viewSeen.set(key, Date.now());
+      Listing.incrementView(req.params.id).catch(() => {});
+    }
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to record view' });
