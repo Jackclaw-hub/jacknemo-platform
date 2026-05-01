@@ -169,6 +169,15 @@ describe("authRateLimiter", () => {
       expect(nextCalled).toBe(true);
     }
   });
+
+  it("sets X-RateLimit-Limit, X-RateLimit-Remaining, and X-RateLimit-Reset headers", () => {
+    const limiter = createRateLimiter(60000, 10, "Too many");
+    const { req, res } = makeReqRes("7.7.7.7");
+    limiter(req, res, () => {});
+    expect(res._headers["x-ratelimit-limit"]).toBe(10);
+    expect(res._headers["x-ratelimit-remaining"]).toBeGreaterThanOrEqual(0);
+    expect(res._headers["x-ratelimit-reset"]).toBeGreaterThan(0);
+  });
 });
 
 afterAll(async () => {});

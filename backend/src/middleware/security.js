@@ -40,6 +40,7 @@ const createRateLimiter = (windowMs, max, message = 'Too many requests') => {
     store.set(ip, record);
     res.setHeader('X-RateLimit-Limit', max);
     res.setHeader('X-RateLimit-Remaining', Math.max(0, max - record.count));
+    res.setHeader('X-RateLimit-Reset', Math.ceil(record.resetTime / 1000));
     if (record.count > max) {
       const retryAfterSecs = Math.ceil((record.resetTime - now) / 1000);
       res.setHeader('Retry-After', retryAfterSecs);
