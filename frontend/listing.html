@@ -284,6 +284,17 @@
           document.getElementById('contact-btn').onclick = () => { location.href = 'auth.html?tab=login'; };
         }
 
+        // K-143: Refresh stats bar with live counts (non-blocking)
+        api('GET', '/listings/' + l.id + '/stats').then(s => {
+          const el = document.getElementById('detail-stats');
+          if (!el || !s) return;
+          el.innerHTML =
+            '<span>👁 ' + (s.view_count||0) + ' Aufrufe</span>' +
+            '<span>💬 ' + (s.contact_count||0) + ' Kontaktanfragen</span>' +
+            (s.is_featured ? '<span style="color:#b45309">✨ Featured</span>' : '') +
+            (s.is_premium  ? '<span style="color:#92400e">⭐ Premium</span>' : '');
+        }).catch(() => {});
+
         // K-70: Load similar listings (same type, exclude current)
         loadSimilar(l.type, l.id);
       } catch(e) {
