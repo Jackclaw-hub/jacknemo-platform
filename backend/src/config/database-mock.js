@@ -30,6 +30,8 @@ class MockDatabase {
     this.templates = []; // K-68: message templates
     this.nextTemplateId = 1;
     this.founderNotes = []; // K-144
+    this.listingStatusHistory = []; // K-147
+    this.nextHistoryId = 1;
     this.notifications = [];
     this.nextNotificationId = 1;
     this.searchLogs = []; // K-104: search query log
@@ -667,6 +669,21 @@ class MockDatabase {
         const idx = this.reports.findIndex(r => r.id == params[1]);
         if (idx >= 0) { this.reports[idx].dismissed = true; }
         return { rows: idx >= 0 ? [this.reports[idx]] : [] };
+      }
+    }
+
+    // ---- LISTING STATUS HISTORY (K-147) ----
+    if (sl.includes('listing_status_history')) {
+      if (s.startsWith('INSERT')) {
+        const h = { id: this.nextHistoryId++, listing_id: params[0], old_status: params[1], new_status: params[2], changed_by: params[3] || null, changed_at: new Date().toISOString(), changed_by_email: null };
+        this.listingStatusHistory.push(h);
+        return { rows: [h] };
+      }
+      if (s.startsWith('SELECT')) {
+        const rows = this.listingStatusHistory
+          .filter(h => h.listing_id == params[0])
+          .sort((a, b) => new Date(b.changed_at) - new Date(a.changed_at));
+        return { rows };
       }
     }
 

@@ -224,5 +224,24 @@ const getAdminListingDetail = async (req, res) => {
   }
 };
 
+// K-147: Listing status change history
+const getListingHistory = async (req, res) => {
+  try {
+    const r = await db.query(
+      `SELECT lsh.id, lsh.listing_id, lsh.old_status, lsh.new_status, lsh.changed_at,
+              u.email AS changed_by_email
+         FROM listing_status_history lsh
+         LEFT JOIN users u ON u.id = lsh.changed_by
+        WHERE lsh.listing_id = $1
+        ORDER BY lsh.changed_at DESC`,
+      [req.params.id]
+    );
+    res.json({ history: r.rows });
+  } catch (err) {
+    console.error('getListingHistory error:', err);
+    res.status(500).json({ error: 'Failed to fetch listing history' });
+  }
+};
+
 module.exports = {
-  bulkAction, getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, getAdminListingDetail };
+  bulkAction, getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, getAdminListingDetail, getListingHistory };
