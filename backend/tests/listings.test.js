@@ -192,4 +192,50 @@ describe('GET /api/providers/analytics (sparkline)', () => {
   });
 });
 
+// K-93: Contact form with subject field
+describe('POST /api/listings/:id/contact', () => {
+  let founderToken;
+  let listingId;
+
+  beforeAll(async () => {
+    // Register a founder for contact
+    const reg = await request(app).post('/api/auth/register')
+      .send({ email: 'contact-founder@test.com', password: 'password123', role: 'founder', name: 'Contact Founder' });
+    founderToken = reg.body.access_token || reg.body.token;
+    // Create + publish a listing
+    const lRes = await request(app).post('/api/listings')
+      .set('Authorization', 'Bearer ' + providerToken)
+      .send({ title: 'Contact Test Listing', type: 'equipment', city: 'Berlin', description: 'Test', tags: [] });
+    listingId = lRes.body.listing?.id;
+    if (listingId) {
+      await request(app).patch('/api/listings/' + listingId + '/publish')
+        .set('Authorization', 'Bearer ' + providerToken);
+    }
+  });
+
+  it('401 without token', async () => {
+    const res = await request(app).post('/api/listings/' + (listingId || 1) + '/contact')
+      .send({ message: 'Hallo, ich interessiere mich.', subject: 'Anfrage' });
+    expect(res.status).toBe(401);
+  });
+
+  it('200 with subject and message', async () => {
+    if (!listingId) return;
+    const res = await request(app).post('/api/listings/' + listingId + '/contact')
+      .set('Authorization', 'Bearer ' + founderToken)
+      .send({ message: 'Hallo, ich interessiere mich für Ihr Angebot.', subject: 'Kooperationsanfrage' });
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+  });
+
+  it('200 without subject (subject optional)', async () => {
+    if (!listingId) return;
+    const res = await request(app).post('/api/listings/' + listingId + '/contact')
+      .set('Authorization', 'Bearer ' + founderToken)
+      .send({ message: 'Nachricht ohne Betreff aber lang genug.' });
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+  });
+});
+
 afterAll(async () => {});

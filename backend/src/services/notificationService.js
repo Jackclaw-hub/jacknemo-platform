@@ -117,18 +117,19 @@ async function notifyListingRejected(listing, providerEmail, reason) {
   await saveNotification(listing.provider_id, "listing_rejected", subject, text);
 }
 
-async function notifyContactReceived(listing, providerUserId, founderName, message) {
+async function notifyContactReceived(listing, providerUserId, founderName, message, msgSubject) {
   const email = await getUserEmail(providerUserId);
   if (!email) return;
   const subject = `📬 Neue Kontaktanfrage für "${listing.title}" — Startup Radar`;
   const html = base(subject, `
     <h3>Jemand interessiert sich für dein Inserat!</h3>
     <p><strong>${founderName}</strong> hat dich bezüglich <strong>${listing.title}</strong> kontaktiert.</p>
+    ${msgSubject ? `<p><strong>Betreff:</strong> ${msgSubject}</p>` : ""}
     ${message ? `<blockquote style="border-left:3px solid #2563eb;padding:8px 16px;color:#374151">${message}</blockquote>` : ""}
     <a href="https://jacknemo1994.de/messages.html" class="btn">Nachricht lesen →</a>
     <p style="margin-top:24px;color:#6b7280;font-size:14px">Dein Startup Radar Team</p>
   `);
-  const text = `${founderName} hat dich wegen "${listing.title}" kontaktiert. https://jacknemo1994.de/messages.html`;
+  const text = `${founderName} hat dich wegen "${listing.title}" kontaktiert${msgSubject ? ` (Betreff: ${msgSubject})` : ""}. https://jacknemo1994.de/messages.html`;
   await sendEmail(email, subject, html, text);
   await saveNotification(providerUserId, "contact_received", subject, text);
 }

@@ -110,7 +110,8 @@ const contactListing = async (req, res) => {
     // K-59: Send email notification to provider (fire-and-forget)
     const senderName = req.user?.name || req.user?.email || 'Ein Gründer';
     const message = req.body?.message || '';
-    notifyContactReceived(listing, listing.provider_id, senderName, message).catch(() => {});
+    const subject = req.body?.subject || '';
+    notifyContactReceived(listing, listing.provider_id, senderName, message, subject).catch(() => {});
 
     res.json({ ok: true });
   } catch (err) {
