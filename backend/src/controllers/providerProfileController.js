@@ -3,21 +3,29 @@ const { notifyVerificationApproved } = require('../services/notificationService'
 
 const upsertProfile = async (req, res) => {
   try {
-    const { company_name, description, website, contact_email, logo_url } = req.body;
+    const { company_name, description, website, contact_email, logo_url, social_links } = req.body;
+    // social_links: { linkedin, twitter, website2 } — stored as JSON string
+    const socialLinksJson = social_links ? JSON.stringify(social_links) : null;
     const result = await db.query(
-      `INSERT INTO provider_profiles (user_id, company_name, description, website, contact_email, logo_url, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,NOW())
+      `INSERT INTO provider_profiles (user_id, company_name, description, website, contact_email, logo_url, social_links, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())
        ON CONFLICT (user_id) DO UPDATE SET
          company_name = EXCLUDED.company_name,
          description = EXCLUDED.description,
          website = EXCLUDED.website,
          contact_email = EXCLUDED.contact_email,
          logo_url = EXCLUDED.logo_url,
+         social_links = EXCLUDED.social_links,
          updated_at = NOW()
        RETURNING *`,
-      [req.user.id, company_name, description, website, contact_email, logo_url]
+      [req.user.id, company_name, description, website, contact_email, logo_url, socialLinksJson]
     );
-    res.json({ profile: result.rows[0] });
+    const row = result.rows[0];
+    // Parse social_links back to object for response
+    if (row && typeof row.social_links === 'string') {
+      try { row.social_links = JSON.parse(row.social_links); } catch { row.social_links = null; }
+    }
+    res.json({ profile: row });
   } catch (err) {
     console.error('upsertProfile error:', err);
     res.status(500).json({ error: 'Failed to save profile' });

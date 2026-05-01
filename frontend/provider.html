@@ -204,6 +204,10 @@
         const meta = [];
         if (profile.website) meta.push('<a href="' + profile.website + '" target="_blank" rel="noopener">&#x1F517; ' + profile.website.replace(/^https?:\/\//, '') + '</a>');
         if (profile.contact_email) meta.push('<span>&#x2709;&#xFE0F; <a href="mailto:' + profile.contact_email + '">' + profile.contact_email + '</a></span>');
+        // K-97: Social links
+        const sl = profile.social_links || (typeof profile.social_links === 'string' ? JSON.parse(profile.social_links) : null) || {};
+        if (sl.linkedin) meta.push('<a href="' + sl.linkedin + '" target="_blank" rel="noopener" style="font-weight:600">in LinkedIn</a>');
+        if (sl.twitter) meta.push('<a href="' + sl.twitter + '" target="_blank" rel="noopener" style="font-weight:600">𝕏 Twitter</a>');
         document.getElementById('prov-meta').innerHTML = meta.join('');
 
         // Listings — K-89: show up to 4, with "Alle anzeigen" toggle

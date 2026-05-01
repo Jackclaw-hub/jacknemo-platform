@@ -177,16 +177,21 @@ class MockDatabase {
         }
         return { rows: [this.providerProfiles[idx]] };
       }
+      const existing = this.providerProfiles.find(x => x.user_id === params[0]) || {};
+      let socialLinks = params[6] || null;
+      if (typeof socialLinks === 'string') { try { socialLinks = JSON.parse(socialLinks); } catch { socialLinks = null; } }
       const entry = {
+        ...existing,
         user_id: params[0],
         company_name: params[1] || null,
         description: params[2] || null,
         website: params[3] || null,
         contact_email: params[4] || null,
         logo_url: params[5] || null,
-        is_verified: false,
-        verification_status: null,
-        created_at: new Date().toISOString(),
+        social_links: socialLinks,
+        is_verified: existing.is_verified || false,
+        verification_status: existing.verification_status || null,
+        created_at: existing.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
       const idx = this.providerProfiles.findIndex(x => x.user_id === params[0]);

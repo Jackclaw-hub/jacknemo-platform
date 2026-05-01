@@ -178,6 +178,16 @@
         <input type="url" id="p-website" placeholder="https://...">
         <label>Kontakt-E-Mail</label>
         <input type="email" id="p-email" placeholder="info@example.com">
+        <!-- K-97: Social links -->
+        <label style="margin-top:12px;display:block;font-weight:600;font-size:13px;color:#374151">Social Links <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:16px;width:20px;text-align:center" title="LinkedIn">in</span>
+          <input type="url" id="p-linkedin" placeholder="https://linkedin.com/company/..." style="flex:1">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:16px;width:20px;text-align:center" title="Twitter/X">𝕏</span>
+          <input type="url" id="p-twitter" placeholder="https://twitter.com/..." style="flex:1">
+        </div>
         <div class="form-msg" id="p-msg"></div>
         <button type="submit" class="primary" style="margin-top:4px">Profil speichern</button>
       </form>
@@ -535,6 +545,10 @@
           document.getElementById('p-desc').value = p.description || '';
           document.getElementById('p-website').value = p.website || '';
           document.getElementById('p-email').value = p.contact_email || '';
+          // K-97: Social links
+          const sl = p.social_links || {};
+          document.getElementById('p-linkedin').value = sl.linkedin || '';
+          document.getElementById('p-twitter').value = sl.twitter || '';
           const verifyEl = document.getElementById('verify-status');
           if (verifyEl) {
             if (p.is_verified) {
@@ -570,11 +584,15 @@
       const msg = document.getElementById('p-msg');
       msg.style.display = 'none';
       try {
+        const linkedin = document.getElementById('p-linkedin').value.trim();
+        const twitter = document.getElementById('p-twitter').value.trim();
+        const social_links = (linkedin || twitter) ? { linkedin: linkedin || null, twitter: twitter || null } : null;
         await api('POST', '/providers/profile', {
           company_name: document.getElementById('p-company').value,
           description: document.getElementById('p-desc').value,
           website: document.getElementById('p-website').value,
           contact_email: document.getElementById('p-email').value,
+          social_links,
         }, auth.getToken());
         msg.className = 'form-msg success';
         msg.textContent = '&#x2713; Profil gespeichert';
