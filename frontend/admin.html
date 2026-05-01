@@ -516,20 +516,44 @@
         const tags = (l.tags || []).map(t => `<span class="tag">${t}</span>`).join(' ') || '—';
         const expires = l.expires_at ? new Date(l.expires_at).toLocaleDateString('de-DE') : '—';
         const created = l.created_at ? new Date(l.created_at).toLocaleDateString('de-DE') : '—';
+        // Pricing
+        const pricing = [];
+        if (l.hourly_rate) pricing.push('€' + l.hourly_rate + '/Std');
+        if (l.daily_rate)  pricing.push('€' + l.daily_rate  + '/Tag');
+        if (l.from_price)  pricing.push('ab €' + l.from_price);
+        const pricingHtml = pricing.length ? pricing.join(' · ') : '—';
+        // Flags
+        const flags = [];
+        if (l.is_premium)  flags.push('<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:12px">⭐ Premium</span>');
+        if (l.is_featured) flags.push('<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:12px">✨ Featured</span>');
+        if (l.starter_friendly) flags.push('<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:10px;font-size:12px">🌱 Starter</span>');
+        // Stages / sectors
+        const stages = Array.isArray(l.stages) ? l.stages.join(', ') : (l.stages || '—');
+        const sectors = Array.isArray(l.sectors) ? l.sectors.join(', ') : (l.sectors || '—');
         body.innerHTML = `
           <h2>${l.title}</h2>
+          ${flags.length ? '<div style="margin-bottom:8px">' + flags.join(' ') + '</div>' : ''}
           <div class="dm-meta">
             ID: <strong>${l.id}</strong> &nbsp;·&nbsp;
-            Status: <strong>${l.status}</strong> &nbsp;·&nbsp;
-            Typ: <strong>${l.type}</strong> &nbsp;·&nbsp;
-            Geo: <strong>${l.geo}</strong>
-            ${l.city ? '&nbsp;·&nbsp; Stadt: <strong>' + l.city + '</strong>' : ''}
+            Status: <span class="badge badge-${l.status}">${l.status}</span> &nbsp;·&nbsp;
+            Typ: <strong>${l.type}</strong>
+            <br>Geo: <strong>${l.geo}</strong>${l.city ? ' &nbsp;·&nbsp; Stadt: <strong>' + l.city + '</strong>' : ''}
             <br>Provider ID: <strong>${l.provider_id}</strong> &nbsp;·&nbsp;
             Erstellt: <strong>${created}</strong> &nbsp;·&nbsp;
             Läuft ab: <strong>${expires}</strong>
           </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:13px">
+            <div style="background:#f3f4f6;border-radius:6px;padding:8px 12px"><span style="color:#6b7280">👁 Views</span><br><strong>${l.view_count || 0}</strong></div>
+            <div style="background:#f3f4f6;border-radius:6px;padding:8px 12px"><span style="color:#6b7280">📬 Kontakte</span><br><strong>${l.contact_count || 0}</strong></div>
+            <div style="background:#f3f4f6;border-radius:6px;padding:8px 12px"><span style="color:#6b7280">💶 Preise</span><br><strong>${pricingHtml}</strong></div>
+            <div style="background:#f3f4f6;border-radius:6px;padding:8px 12px"><span style="color:#6b7280">🎯 Stages</span><br><strong>${stages}</strong></div>
+          </div>
+          ${sectors !== '—' ? '<div style="font-size:13px;margin-bottom:8px"><span style="color:#6b7280">Sektoren:</span> <strong>' + sectors + '</strong></div>' : ''}
           <div style="margin-bottom:10px">${tags}</div>
           <div class="dm-desc">${l.description || '(keine Beschreibung)'}</div>
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <a href="listing.html?id=${l.id}" target="_blank" style="font-size:13px;color:#4f46e5;border:1px solid #4f46e5;padding:5px 12px;border-radius:4px;text-decoration:none">Öffnen →</a>
+          </div>
         `;
       } catch(ex) {
         body.innerHTML = '<p style="color:#ef4444;padding:8px">Fehler: ' + ex.message + '</p>';
