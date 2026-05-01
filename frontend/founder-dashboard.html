@@ -111,7 +111,7 @@
   <div class="search-bar">
     <!-- K-88: Autocomplete wrapper -->
     <div style="flex:1;position:relative">
-      <input type="text" id="search-input" placeholder="Search listings&#8230; (equipment, services, city)" onkeydown="handleSearchKey(event)" oninput="debounceAutocomplete(this.value)" autocomplete="off" style="width:100%;padding:10px 14px;border:2px solid #4f46e5;border-radius:6px;font-size:15px;box-sizing:border-box">
+      <input type="text" id="search-input" placeholder="Search listings&#8230; (equipment, services, city)" onkeydown="handleSearchKey(event)" oninput="debounceAutocomplete(this.value)" autocomplete="off" style="width:100%;padding:10px 14px;border:2px solid #4f46e5;border-radius:6px;font-size:15px;box-sizing:border-box" title="Tipp: Drücke / um die Suche zu fokussieren">
       <div id="autocomplete-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid #d1d5db;border-top:none;border-radius:0 0 6px 6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;max-height:220px;overflow-y:auto"></div>
     </div>
     <button onclick="runSearch()">&#x1F50D; Search</button>
@@ -841,6 +841,16 @@
     renderSearchHistory(); // K-107: show on load if history exists
     loadRadar();
     loadFeed();
+
+    // K-114: "/" keyboard shortcut to focus search input
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== '/') return;
+      const tag = document.activeElement?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      e.preventDefault();
+      const inp = document.getElementById('search-input');
+      if (inp) { inp.focus(); inp.select(); }
+    });
   </script>
   <!-- K-51: Referral / Invite section (hidden until code loaded) -->
   <div id="invite-section" style="display:none;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:20px 24px;margin:16px 0;max-width:800px;margin-left:auto;margin-right:auto">
