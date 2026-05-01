@@ -371,7 +371,8 @@
             <p style="margin:4px 0;font-size:13px">${l.type} &middot; ${l.geo} &middot; ${l.city || ''}</p>
             <div>${(l.tags||[]).map(t => `<span class="tag">${t}</span>`).join('')}</div>
             <p style="margin:6px 0 0;font-size:12px;color:#6b7280">
-              &#x1F441; ${l.view_count||0} Aufrufe &nbsp;&bull;&nbsp; &#x1F4AC; ${l.contact_count||0} Kontakte
+              &#x1F441; ${l.view_count||0} Aufrufe
+              <span id="contact-badge-${l.id}"></span>
             </p>
             ${l.expires_at ? (() => {
               const exp = new Date(l.expires_at);
@@ -409,6 +410,16 @@
             </div>
           </div>
         `).join('');
+        // K-155: Async inject contact-count badge from /stats endpoint
+        data.listings.forEach(l => {
+          api('GET', '/listings/' + l.id + '/stats').then(s => {
+            const badge = document.getElementById('contact-badge-' + l.id);
+            if (!badge) return;
+            if ((s.contact_count || 0) > 0) {
+              badge.innerHTML = ' &nbsp;&bull;&nbsp; <span style="background:#ede9fe;color:#6d28d9;font-size:11px;padding:1px 7px;border-radius:10px;font-weight:600">&#x1F4EC; ' + s.contact_count + ' Kontakte</span>';
+            }
+          }).catch(() => {});
+        });
         // K-76: Show expiry warning banner for listings expiring within 7 days
         const now = Date.now();
         const sevenDays = 7 * 24 * 60 * 60 * 1000;
