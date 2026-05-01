@@ -48,6 +48,8 @@
     <h1>🛡 Admin Analytics</h1>
     <div>
       <a href="admin.html">← Moderation</a>
+      <!-- K-118: Export CSV -->
+      <button id="export-btn" onclick="exportCSV()" style="background:#059669;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;margin-right:8px" disabled>&#11015; CSV exportieren</button>
       <button onclick="logout()" style="background:none;border:1px solid #ddd;padding:6px 12px;border-radius:4px;cursor:pointer">Logout</button>
     </div>
   </nav>
@@ -104,6 +106,54 @@
     redirectIfNotLoggedIn();
     function logout() { AuthAPI.logout(); location.href = 'auth.html'; }
 
+    // K-118: cached analytics data for CSV export
+    let _analyticsResp = null;
+    let _searchTerms = [];
+
+    function csvEsc(v) {
+      const s = String(v ?? '');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+    function csvRow(arr) { return arr.map(csvEsc).join(','); }
+    function csvSection(title, headers, rows, cols) {
+      const lines = [title, csvRow(headers)];
+      (rows || []).forEach(r => lines.push(csvRow(cols.map(c => r[c] ?? ''))));
+      return lines.join('\n');
+    }
+
+    function exportCSV() {
+      if (!_analyticsResp) return;
+      const r = _analyticsResp;
+      const ts = new Date().toISOString().slice(0, 10);
+      const sections = [
+        '# Startup Radar — Admin Analytics Export ' + ts,
+        '',
+        csvSection('KPIs', ['Metrik', 'Wert'], [
+          { k: 'Inserate gesamt', v: r.listings.total },
+          { k: 'Ausstehend', v: r.listings.pending },
+          { k: 'Approval Rate', v: r.listings.approvalRate },
+          { k: 'Nutzer gesamt', v: r.users.total },
+        ], ['k', 'v']),
+        '',
+        csvSection('Inserate nach Status', ['Status', 'Anzahl'], r.listings.byStatus || [], ['status', 'count']),
+        '',
+        csvSection('Nutzer nach Rolle', ['Rolle', 'Anzahl'], r.users.byRole || [], ['role', 'count']),
+        '',
+        csvSection('Top Provider', ['Name', 'Inserate', 'Views', 'Kontakte'], r.topProviders || [], ['name', 'listing_count', 'total_views', 'total_contacts']),
+        '',
+        csvSection('Aktivität letzte 7 Tage', ['Datum', 'Neue Inserate'], r.recentActivity || [], ['date', 'new_listings']),
+        '',
+        csvSection('Top Suchbegriffe', ['Suchbegriff', 'Anzahl'], _searchTerms, ['query', 'count']),
+      ];
+      const csv = sections.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'analytics-' + ts + '.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
     function tb(id, rows, cols) {
       document.querySelector('#' + id + ' tbody').innerHTML =
         rows.map(r => '<tr>' + cols.map(c => '<td>' + (r[c] ?? '—') + '</td>').join('') + '</tr>').join('') || '<tr><td colspan="10">Keine Daten</td></tr>';
@@ -128,6 +178,10 @@
         tb('top-providers', resp.topProviders, ['name', 'listing_count', 'total_views', 'total_contacts']);
         tb('activity', resp.recentActivity, ['date', 'new_listings']);
         tb('notifs', resp.notifications, ['type', 'count']);
+        // K-118: cache for CSV export
+        _analyticsResp = resp;
+        const expBtn = document.getElementById('export-btn');
+        if (expBtn) expBtn.disabled = false;
 
         // K-91: Listing status breakdown stacked bar
         const statusColors = { active: '#10b981', pending: '#f59e0b', expired: '#6b7280', draft: '#93c5fd' };
@@ -200,6 +254,7 @@
           el.innerHTML = '<p style="color:#9ca3af;font-size:13px">Noch keine Suchanfragen aufgezeichnet.</p>';
           return;
         }
+        _searchTerms = terms; // K-118: cache for CSV export
         const maxCount = terms[0].count || 1;
         el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
           '<thead><tr><th style="text-align:left;padding:4px 0;color:#6b7280;font-size:11px;text-transform:uppercase">#</th>' +
