@@ -81,6 +81,12 @@ const CollectionsAPI = {
   create: (name) => api('POST', '/founders/collections', { name }, auth.getToken()),
 };
 
+// K-161: Recently viewed listings
+const RecentViewsAPI = {
+  record: (listing_id, title, type) => api('POST', '/founders/recently-viewed', { listing_id, title, type }, auth.getToken()),
+  getAll: () => api('GET', '/founders/recently-viewed', null, auth.getToken()),
+};
+
 // Radar
 const RadarAPI = {
   getResults: (params = {}) => {

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { upsertProfile, getProfile, getFeed, getContactHistory, upsertNote, getNote } = require('../controllers/founderController');
+const { upsertProfile, getProfile, getFeed, getContactHistory, upsertNote, getNote, recordRecentView, getRecentViews } = require('../controllers/founderController');
 const { saveSearch, getSavedSearches, deleteSavedSearch } = require('../controllers/savedSearchController');
 const { getReferralCode, getReferralStatsEndpoint } = require('../controllers/referralController');
 const { saveBookmark, getBookmarks, deleteBookmark, getCollections, createCollection, assignCollection } = require('../controllers/bookmarksController');
@@ -37,5 +37,9 @@ router.patch('/bookmarks/:listing_id/collection', authenticateToken, requireRole
 // K-158: Bookmark collections
 router.get('/collections', authenticateToken, requireRole(['founder']), getCollections);
 router.post('/collections', authenticateToken, requireRole(['founder']), createCollection);
+
+// K-161: Recently viewed listings (persisted)
+router.post('/recently-viewed', authenticateToken, requireRole(['founder']), recordRecentView);
+router.get('/recently-viewed', authenticateToken, requireRole(['founder']), getRecentViews);
 
 module.exports = router;

@@ -275,21 +275,29 @@
     // Apply stored view on load
     setView(localStorage.getItem('radar_view') || 'grid');
 
-    // K-79: Recently viewed listings widget
-    function showRecentlyViewed() {
+    // K-79 / K-161: Recently viewed listings widget — API first, localStorage fallback
+    function renderRecentItems(items) {
+      if (!items.length) return;
+      const el = document.getElementById('recently-viewed');
+      el.style.display = 'block';
+      el.innerHTML = '<div style="font-size:12px;color:#6b7280;margin-bottom:6px;font-weight:600">Zuletzt angesehen:</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px">' +
+        items.map(e =>
+          `<a href="listing.html?id=${e.id}" style="display:inline-flex;align-items:center;gap:4px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:16px;padding:4px 12px;font-size:12px;color:#374151;text-decoration:none;white-space:nowrap" title="${(e.title||'').replace(/"/g,'&quot;')}">` +
+          `<span style="color:#6b7280;font-size:10px">${e.type || ''}</span> ${(e.title || '').slice(0,32)}${(e.title||'').length > 32 ? '…' : ''}</a>`
+        ).join('') +
+        '</div>';
+    }
+    async function showRecentlyViewed() {
+      try {
+        const data = await RecentViewsAPI.getAll();
+        const items = data.recent || [];
+        if (items.length) { renderRecentItems(items); return; }
+      } catch(e) { /* fall through to localStorage */ }
       try {
         const items = JSON.parse(localStorage.getItem('recently_viewed') || '[]');
-        if (!items.length) return;
-        const el = document.getElementById('recently-viewed');
-        el.style.display = 'block';
-        el.innerHTML = '<div style="font-size:12px;color:#6b7280;margin-bottom:6px;font-weight:600">Zuletzt angesehen:</div>' +
-          '<div style="display:flex;flex-wrap:wrap;gap:6px">' +
-          items.map(e =>
-            `<a href="listing.html?id=${e.id}" style="display:inline-flex;align-items:center;gap:4px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:16px;padding:4px 12px;font-size:12px;color:#374151;text-decoration:none;white-space:nowrap" title="${(e.title||'').replace(/"/g,'&quot;')}">` +
-            `<span style="color:#6b7280;font-size:10px">${e.type || ''}</span> ${(e.title || '').slice(0,32)}${(e.title||'').length > 32 ? '…' : ''}</a>`
-          ).join('') +
-          '</div>';
-      } catch(e) { /* localStorage unavailable */ }
+        renderRecentItems(items);
+      } catch(e) {}
     }
     showRecentlyViewed();
 

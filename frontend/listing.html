@@ -269,13 +269,18 @@
           fetch('/api/listings/' + listingId + '/view', { method: 'POST' }).catch(() => {});
         }
 
-        // K-79: Track recently viewed in localStorage (max 5)
+        // K-79 / K-161: Track recently viewed in localStorage + API (founder only)
         try {
           const entry = { id: listingId, title: l.title, type: l.type };
           const key = 'recently_viewed';
           const prev = JSON.parse(localStorage.getItem(key) || '[]').filter(e => String(e.id) !== String(listingId));
           prev.unshift(entry);
           localStorage.setItem(key, JSON.stringify(prev.slice(0, 5)));
+          // K-161: persist to API for founders
+          const user = auth.getUser();
+          if (user && user.role === 'founder') {
+            RecentViewsAPI.record(listingId, l.title, l.type).catch(() => {});
+          }
         } catch(e) { /* storage may be unavailable */ }
 
         // Hide contact button if not logged in or is own listing

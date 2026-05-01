@@ -116,4 +116,40 @@ const getNote = async (req, res) => {
   }
 };
 
-module.exports = { upsertProfile, getProfile, getFeed, getContactHistory, upsertNote, getNote };
+// K-161: Record a listing as recently viewed by this founder
+const recordRecentView = async (req, res) => {
+  const { listing_id, title, type } = req.body;
+  if (!listing_id) return res.status(400).json({ error: 'listing_id required' });
+  try {
+    await db.query(
+      `INSERT INTO founder_recent_views (founder_id, listing_id, title, type, viewed_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (founder_id, listing_id) DO UPDATE SET viewed_at = NOW(), title = $3, type = $4`,
+      [req.user.id, listing_id, title || null, type || null]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('recordRecentView error:', err);
+    res.status(500).json({ error: 'Failed to record view' });
+  }
+};
+
+// K-161: Get last 10 recently viewed listings for this founder
+const getRecentViews = async (req, res) => {
+  try {
+    const r = await db.query(
+      `SELECT listing_id AS id, title, type, viewed_at
+         FROM founder_recent_views
+        WHERE founder_id = $1
+        ORDER BY viewed_at DESC
+        LIMIT 10`,
+      [req.user.id]
+    );
+    res.json({ recent: r.rows });
+  } catch (err) {
+    console.error('getRecentViews error:', err);
+    res.status(500).json({ error: 'Failed to fetch recent views' });
+  }
+};
+
+module.exports = { upsertProfile, getProfile, getFeed, getContactHistory, upsertNote, getNote, recordRecentView, getRecentViews };

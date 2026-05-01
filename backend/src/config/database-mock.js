@@ -27,6 +27,7 @@ class MockDatabase {
     this.bookmarks = []; // saved_listings
     this.bookmarkCollections = []; // K-158
     this.nextCollectionId = 1;
+    this.recentViews = []; // K-161: founder_recent_views
     this.reports = []; // K-67: listing reports
     this.nextReportId = 1;
     this.templates = []; // K-68: message templates
@@ -640,6 +641,27 @@ class MockDatabase {
         const col = { id: this.nextCollectionId++, user_id: userId, name, created_at: new Date().toISOString() };
         this.bookmarkCollections.push(col);
         return { rows: [col] };
+      }
+    }
+
+    // K-161: ---- FOUNDER RECENT VIEWS ----
+    if (sl.includes('founder_recent_views')) {
+      if (s.startsWith('INSERT')) {
+        const founderId = params[0], listingId = params[1], title = params[2], type = params[3];
+        const existing = this.recentViews.findIndex(r => r.founder_id == founderId && r.listing_id == listingId);
+        const entry = { founder_id: founderId, listing_id: listingId, title, type, viewed_at: new Date().toISOString() };
+        if (existing >= 0) this.recentViews[existing] = entry;
+        else this.recentViews.push(entry);
+        return { rows: [] };
+      }
+      if (s.startsWith('SELECT')) {
+        const founderId = params[0];
+        const rows = this.recentViews
+          .filter(r => r.founder_id == founderId)
+          .sort((a, b) => new Date(b.viewed_at) - new Date(a.viewed_at))
+          .slice(0, 10)
+          .map(r => ({ id: r.listing_id, title: r.title, type: r.type, viewed_at: r.viewed_at }));
+        return { rows };
       }
     }
 
