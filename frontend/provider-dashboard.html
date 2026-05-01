@@ -230,13 +230,19 @@
       const el = document.getElementById('notif-list');
       if (!el) return;
       if (!notifications.length) { el.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:24px;font-size:14px">Keine Benachrichtigungen</p>'; return; }
-      el.innerHTML = notifications.map(n =>
-        '<div style="padding:12px 16px;border-bottom:1px solid #f9fafb;background:' + (n.read_at ? '#fff' : '#f0f4ff') + ';cursor:pointer" onclick="readNotif(' + n.id + ', this)">' +
-        '<div style="font-size:13px;font-weight:600;color:#1f2937">' + (n.subject||'') + '</div>' +
-        '<div style="font-size:12px;color:#6b7280;margin-top:2px">' + (n.body||'').slice(0,80) + ((n.body||'').length>80?'…':'') + '</div>' +
-        '<div style="font-size:11px;color:#9ca3af;margin-top:4px">' + new Date(n.created_at).toLocaleDateString('de-DE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + '</div>' +
-        '</div>'
-      ).join('');
+      el.innerHTML = notifications.map(n => {
+        // K-106: reply shortcut for contact_received notifications
+        const isContact = n.type === 'contact_received';
+        const replyBtn = isContact
+          ? '<a href="messages.html" style="display:inline-block;margin-top:6px;font-size:12px;color:#4f46e5;text-decoration:none;border:1px solid #c4b5fd;padding:2px 10px;border-radius:10px;background:#f5f3ff" onclick="closeNotifPanel()">&#x1F4AC; Antworten →</a>'
+          : '';
+        return '<div style="padding:12px 16px;border-bottom:1px solid #f9fafb;background:' + (n.read_at ? '#fff' : '#f0f4ff') + ';cursor:pointer" onclick="readNotif(' + n.id + ', this)">' +
+          '<div style="font-size:13px;font-weight:600;color:#1f2937">' + (n.subject||'') + '</div>' +
+          '<div style="font-size:12px;color:#6b7280;margin-top:2px">' + (n.body||'').slice(0,80) + ((n.body||'').length>80?'…':'') + '</div>' +
+          replyBtn +
+          '<div style="font-size:11px;color:#9ca3af;margin-top:4px">' + new Date(n.created_at).toLocaleDateString('de-DE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + '</div>' +
+          '</div>';
+      }).join('');
     }
     function toggleNotifPanel() {
       const panel = document.getElementById('notif-panel');
