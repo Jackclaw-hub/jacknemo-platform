@@ -203,6 +203,8 @@
           Typ: <strong>${l.type}</strong> · Geo: <strong>${l.geo}</strong>
           ${l.city ? '· Stadt: <strong>' + l.city + '</strong>' : ''}
           · Provider ID: ${l.provider_id}
+          <!-- K-124: provider email chip filled async -->
+          <span id="prov-email-${l.provider_id}" style="display:none;background:#f3f4f6;color:#6b7280;font-size:11px;padding:1px 7px;border-radius:8px;margin-left:4px"></span>
         </div>
         <div>${(l.tags||[]).map(t => `<span class="tag">${t}</span>`).join('')}</div>
         <div class="actions">
@@ -465,6 +467,29 @@
       } catch(e) { alert('Fehler: ' + e.message); }
     }
 
+    // K-124: Batch-load provider emails after listing cards are rendered
+    const _emailCache = {};
+    async function loadProviderEmails(listings) {
+      const uniqueIds = [...new Set(listings.map(l => l.provider_id).filter(Boolean))];
+      await Promise.allSettled(uniqueIds.map(async (id) => {
+        if (_emailCache[id] !== undefined) {
+          fillProviderEmail(id, _emailCache[id]);
+          return;
+        }
+        try {
+          const data = await api('GET', '/admin/users/' + id, null, auth.getToken());
+          const email = data.user?.email || null;
+          _emailCache[id] = email;
+          fillProviderEmail(id, email);
+        } catch(_) { _emailCache[id] = null; }
+      }));
+    }
+    function fillProviderEmail(providerId, email) {
+      if (!email) return;
+      const el = document.getElementById('prov-email-' + providerId);
+      if (el) { el.textContent = email; el.style.display = 'inline'; }
+    }
+
     // K-60: Search/filter
     let searchTimer = null;
     function debounceSearch() {
@@ -497,6 +522,7 @@
           el.innerHTML = '<div class="empty">Keine Inserate gefunden 🎉</div>';
         } else {
           el.innerHTML = listings.map(renderListing).join('');
+          loadProviderEmails(listings); // K-124: async fill provider emails
         }
         // K-115: reset bulk bar on reload
         const sa = document.getElementById('select-all-cb');
