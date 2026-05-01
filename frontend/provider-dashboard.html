@@ -815,7 +815,7 @@
             const perf = calcPerfBadge(l.sparkline);
             const perfHtml = perf ? `<span style="display:inline-block;background:${perf.bg};color:${perf.color};font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;white-space:nowrap">${perf.label}</span>` : '<span style="color:#d1d5db;font-size:11px">—</span>';
             return `<tr>
-              <td style="padding:6px 0;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.title}${badge}</td>
+              <td style="padding:6px 0;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="listing.html?id=${l.id}" style="color:#4f46e5;text-decoration:none;font-weight:500" title="${(l.title||'').replace(/"/g,'&quot;')}">${l.title}</a>${badge}</td>
               <td style="text-align:right;padding:6px 8px;font-weight:600">${l.view_count || 0}</td>
               <td style="text-align:right;padding:6px 8px;color:#059669;font-weight:600">${l.contact_count || 0}</td>
               <td style="padding:6px 8px;vertical-align:middle">${spark}</td>
