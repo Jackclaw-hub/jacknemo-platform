@@ -48,4 +48,35 @@ async function getFeed(req, res) {
   }
 }
 
-module.exports = { upsertProfile, getProfile, getFeed };
+// K-90: Contact history — listings the founder has sent messages about
+async function getContactHistory(req, res) {
+  try {
+    // All messages sent by this founder
+    const msgRes = await db.query(
+      `SELECT DISTINCT listing_id, MAX(created_at) AS last_contact
+         FROM messages
+        WHERE sender_id = $1 AND listing_id IS NOT NULL
+        GROUP BY listing_id
+        ORDER BY last_contact DESC
+        LIMIT 20`,
+      [req.user.id]
+    );
+    if (!msgRes.rows.length) return res.json({ contacts: [] });
+
+    // Fetch listing details for each distinct listing_id
+    const contacts = [];
+    for (const row of msgRes.rows) {
+      try {
+        const lr = await db.query('SELECT id, title, type, provider_id, status FROM listings WHERE id = $1', [row.listing_id]);
+        const listing = lr.rows[0];
+        if (listing) contacts.push({ ...listing, last_contact: row.last_contact });
+      } catch(_) {}
+    }
+    res.json({ contacts });
+  } catch (e) {
+    console.error('getContactHistory error:', e);
+    res.status(500).json({ error: 'Failed to load contact history' });
+  }
+}
+
+module.exports = { upsertProfile, getProfile, getFeed, getContactHistory };
