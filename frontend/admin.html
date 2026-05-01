@@ -467,6 +467,31 @@
       } catch(e) { alert('Fehler: ' + e.message); }
     }
 
+    // K-129: Batch-load report flags after listing cards are rendered
+    async function loadReportFlags(listings) {
+      try {
+        const data = await api('GET', '/admin/reports', null, auth.getToken());
+        const groups = data.groups || [];
+        if (!groups.length) return;
+        const countMap = {};
+        groups.forEach(g => { countMap[g.listing_id] = g.count || 0; });
+        listings.forEach(l => {
+          const count = countMap[l.id];
+          if (!count) return;
+          const card = document.getElementById('card-' + l.id);
+          if (!card) return;
+          const h3 = card.querySelector('h3');
+          if (!h3) return;
+          const badge = document.createElement('span');
+          badge.title = count + ' offene Meldung(en) — zum Meldungen-Tab wechseln';
+          badge.style.cssText = 'background:#fee2e2;color:#991b1b;font-size:11px;padding:1px 7px;border-radius:8px;margin-left:6px;cursor:pointer;font-weight:600';
+          badge.textContent = '🚩 ' + count;
+          badge.onclick = () => showTab('reports');
+          h3.appendChild(badge);
+        });
+      } catch(_) { /* report flags are optional */ }
+    }
+
     // K-124: Batch-load provider emails after listing cards are rendered
     const _emailCache = {};
     async function loadProviderEmails(listings) {
@@ -523,6 +548,7 @@
         } else {
           el.innerHTML = listings.map(renderListing).join('');
           loadProviderEmails(listings); // K-124: async fill provider emails
+          loadReportFlags(listings);    // K-129: async inject report flag badges
         }
         // K-115: reset bulk bar on reload
         const sa = document.getElementById('select-all-cb');
