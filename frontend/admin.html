@@ -648,7 +648,29 @@
           <div style="margin-top:12px;display:flex;gap:8px">
             <a href="listing.html?id=${l.id}" target="_blank" style="font-size:13px;color:#4f46e5;border:1px solid #4f46e5;padding:5px 12px;border-radius:4px;text-decoration:none">Öffnen →</a>
           </div>
+          <div id="dm-history" style="margin-top:16px;font-size:12px;color:#9ca3af">Lade Historie…</div>
         `;
+        // K-149: Load and render status history asynchronously
+        api('GET', '/admin/listings/' + id + '/history', null, auth.getToken()).then(hData => {
+          const histEl = document.getElementById('dm-history');
+          if (!histEl) return;
+          const rows = hData.history || [];
+          if (!rows.length) { histEl.innerHTML = '<div style="font-size:12px;color:#9ca3af;margin-top:4px">Keine Statusänderungen aufgezeichnet.</div>'; return; }
+          histEl.innerHTML = '<div style="font-weight:600;color:#374151;font-size:12px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em">Statushistorie</div>' +
+            '<div style="border-left:2px solid #e5e7eb;padding-left:12px">' +
+            rows.map(h =>
+              `<div style="margin-bottom:8px;position:relative">` +
+              `<span style="position:absolute;left:-17px;top:3px;width:8px;height:8px;border-radius:50%;background:#e5e7eb;display:inline-block"></span>` +
+              `<span style="background:#fee2e2;color:#991b1b;padding:1px 6px;border-radius:4px;font-size:11px">${h.old_status || '—'}</span>` +
+              ` → <span style="background:#d1fae5;color:#065f46;padding:1px 6px;border-radius:4px;font-size:11px">${h.new_status}</span>` +
+              `<span style="color:#9ca3af;font-size:11px;margin-left:6px">${new Date(h.changed_at).toLocaleDateString('de-DE')}` +
+              (h.changed_by_email ? ' · ' + h.changed_by_email : '') + `</span></div>`
+            ).join('') +
+            '</div>';
+        }).catch(() => {
+          const histEl = document.getElementById('dm-history');
+          if (histEl) histEl.innerHTML = '';
+        });
       } catch(ex) {
         body.innerHTML = '<p style="color:#ef4444;padding:8px">Fehler: ' + ex.message + '</p>';
       }
