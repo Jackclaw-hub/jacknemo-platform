@@ -5,7 +5,7 @@ const { apiRateLimiter, validateListing } = require('../middleware/security');
 const { listingsWriteLimiter } = require('../middleware/rateLimiter');
 const {
   createListing, getListings, getListing, contactListing,
-  updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing,
+  updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing, pauseListing,
   renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings
 } = require('../controllers/listingsController');
 const { reportListing, getReportCount } = require('../controllers/reportController');
@@ -81,6 +81,9 @@ router.delete('/:id/premium', authenticateToken, demoteListing);
 
 // K-43: Publish draft listing
 router.patch('/:id/publish', authenticateToken, publishListing);
+
+// K-103: Pause active listing → draft
+router.patch('/:id/pause', authenticateToken, pauseListing);
 
 // K-56: Renew listing (provider) / expire old listings (admin)
 router.patch('/:id/renew', authenticateToken, renewListing);

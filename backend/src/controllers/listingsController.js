@@ -212,6 +212,29 @@ const publishListing = async (req, res) => {
   }
 };
 
+// K-103: Pause an active listing (active → draft) — provider only
+const pauseListing = async (req, res) => {
+  try {
+    if (!PROVIDER_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only providers can pause listings' });
+    }
+    const db = require('../config/database');
+    const r = await db.query('SELECT * FROM listings WHERE id = $1', [req.params.id]);
+    const listing = r.rows[0];
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    if (listing.provider_id != req.user.id) return res.status(403).json({ error: 'Not your listing' });
+    if (listing.status !== 'active') return res.status(409).json({ error: 'Only active listings can be paused' });
+    const upd = await db.query(
+      "UPDATE listings SET status = 'draft', updated_at = NOW() WHERE id = $1 RETURNING *",
+      [req.params.id]
+    );
+    res.json({ listing: upd.rows[0], message: 'Listing paused' });
+  } catch (err) {
+    console.error('pauseListing error:', err);
+    res.status(500).json({ error: 'Failed to pause listing' });
+  }
+};
+
 // K-56: Renew a listing — provider extends expiry by 90 days (reactivates expired)
 const renewListing = async (req, res) => {
   try {
@@ -301,4 +324,4 @@ const getRelatedListings = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings };
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing, pauseListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings };

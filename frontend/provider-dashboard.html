@@ -332,7 +332,15 @@
         if (!data.listings?.length) { el.innerHTML = '<em>Noch keine Inserate.</em>'; return; }
         el.innerHTML = data.listings.map(l => `
           <div class="listing-item" id="listing-${l.id}">
-            <strong>${l.title}</strong>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <strong id="title-display-${l.id}" style="cursor:pointer" title="Doppelklick zum Bearbeiten" ondblclick="quickEditTitle(${l.id}, '${(l.title||'').replace(/'/g,"&#39;")}')">${l.title}</strong>
+              <button onclick="quickEditTitle(${l.id}, '${(l.title||'').replace(/'/g,"&#39;")}')" style="background:none;border:none;cursor:pointer;font-size:12px;color:#9ca3af;padding:0 2px" title="Titel bearbeiten">✏️</button>
+            </div>
+            <div id="title-edit-wrap-${l.id}" style="display:none;margin:4px 0;display:none">
+              <input type="text" id="title-edit-${l.id}" style="padding:5px 8px;border:1px solid #4f46e5;border-radius:4px;font-size:14px;width:240px" onkeydown="if(event.key==='Enter')saveQuickTitle(${l.id});if(event.key==='Escape')cancelQuickTitle(${l.id})">
+              <button onclick="saveQuickTitle(${l.id})" style="background:#4f46e5;color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-left:4px">✓</button>
+              <button onclick="cancelQuickTitle(${l.id})" style="background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;padding:5px 8px;border-radius:4px;cursor:pointer;font-size:12px;margin-left:3px">✕</button>
+            </div>
             <span class="status-badge status-${l.status}">${l.status}</span>
             <p style="margin:4px 0;font-size:13px">${l.type} &middot; ${l.geo} &middot; ${l.city || ''}</p>
             <div>${(l.tags||[]).map(t => `<span class="tag">${t}</span>`).join('')}</div>
@@ -343,6 +351,7 @@
             <div class="listing-actions">
               ${l.status === 'draft' ? `<button onclick="publishListing(${l.id})" style="padding:4px 12px;background:#4f46e5;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px">&#x1F4E4; Veröffentlichen</button>` : ''}
               ${l.status === 'expired' ? `<button class="btn-renew" onclick="renewListing(${l.id})">&#x1F504; Erneuern (+90 Tage)</button>` : ''}
+              ${l.status === 'active' ? `<button onclick="pauseListing(${l.id})" style="padding:4px 12px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:4px;cursor:pointer;font-size:12px" title="Inserat pausieren (→ Entwurf)">⏸ Pausieren</button>` : ''}
               <button class="btn-edit" onclick="toggleEdit(${l.id})">&#x270E; Bearbeiten</button>
               <button onclick="duplicateListing(${l.id})" style="padding:4px 12px;background:#f9fafb;color:#374151;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:12px" title="Als Entwurf kopieren">&#x2398; Duplizieren</button>
               <button class="btn-delete" onclick="deleteListing(${l.id}, '${(l.title||'').replace(/'/g,'')}')">&#x1F5D1; Löschen</button>
@@ -495,6 +504,53 @@
         loadMyListings();
       } catch (ex) {
         alert('Fehler: ' + ex.message);
+      }
+    }
+
+    // K-103: Inline title quick-edit
+    function quickEditTitle(id, currentTitle) {
+      document.getElementById('title-display-' + id).style.display = 'none';
+      const wrap = document.getElementById('title-edit-wrap-' + id);
+      wrap.style.display = 'block';
+      const inp = document.getElementById('title-edit-' + id);
+      inp.value = currentTitle;
+      inp.focus();
+      inp.select();
+    }
+
+    function cancelQuickTitle(id) {
+      document.getElementById('title-edit-wrap-' + id).style.display = 'none';
+      document.getElementById('title-display-' + id).style.display = '';
+    }
+
+    async function saveQuickTitle(id) {
+      const inp = document.getElementById('title-edit-' + id);
+      const newTitle = inp.value.trim();
+      if (!newTitle) { inp.style.border = '1px solid #ef4444'; return; }
+      try {
+        const res = await fetch('/api/listings/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + auth.getToken() },
+          body: JSON.stringify({ title: newTitle })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Fehler');
+        document.getElementById('title-display-' + id).textContent = newTitle;
+        cancelQuickTitle(id);
+      } catch(ex) {
+        inp.style.border = '1px solid #ef4444';
+        showToast('Fehler: ' + ex.message, 'error');
+      }
+    }
+
+    // K-103: Pause active listing → draft
+    async function pauseListing(id) {
+      try {
+        await ListingsAPI.pause(id);
+        showToast('Inserat pausiert (Entwurf)', 'success');
+        loadMyListings();
+      } catch(ex) {
+        showToast('Fehler: ' + ex.message, 'error');
       }
     }
 
