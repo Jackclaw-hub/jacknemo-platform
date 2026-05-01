@@ -798,7 +798,23 @@
         const data = await RadarAPI.getResults(params);
         const el = document.getElementById('results');
         if (!data.listings || data.listings.length === 0) {
-          el.innerHTML = '<div class="empty">Keine Matches gefunden. Passe deine Filter an.</div>';
+          // K-125: Show active filters and inline reset button
+          const activeFilters = [
+            type  ? 'Typ: ' + type   : null,
+            stage ? 'Stage: ' + stage : null,
+            geo   ? 'Geo: ' + geo     : null,
+            city  ? 'Stadt: ' + city  : null,
+          ].filter(Boolean);
+          const filterHint = activeFilters.length
+            ? '<div style="font-size:12px;color:#9ca3af;margin-top:6px">Aktive Filter: ' + activeFilters.map(f => '<span style="background:#e0e7ff;color:#3730a3;padding:1px 7px;border-radius:8px;margin:0 3px">' + f + '</span>').join('') + '</div>'
+            : '';
+          el.innerHTML = '<div class="empty" style="padding:32px 20px">' +
+            '<div style="font-size:24px;margin-bottom:8px">🔍</div>' +
+            '<div style="font-weight:600;margin-bottom:4px">Keine Matches gefunden</div>' +
+            '<div style="font-size:13px;color:#9ca3af">Passe deine Filter an oder setze sie zurück.</div>' +
+            filterHint +
+            (activeFilters.length ? '<button onclick="resetFilters()" style="margin-top:12px;background:#4f46e5;color:#fff;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px">Filter zurücksetzen</button>' : '') +
+            '</div>';
           // K-109: clear count badge
           document.getElementById('mode-label').innerHTML = 'Radar Results';
           document.getElementById('status').textContent = '';
