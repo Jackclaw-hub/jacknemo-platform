@@ -343,6 +343,16 @@ class MockDatabase {
           rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
           return { rows: rows.slice(0, 10) };
         }
+        // K-122: full-text search with title/city rank weighting
+        if (sl.includes('lower(title) like') && sl.includes('lower(description) like')) {
+          const term = (params[0] || '').replace(/%/g, '').toLowerCase();
+          const active = this.listings.filter(x => x.status === 'active');
+          const titleMatch = active.filter(x => (x.title || '').toLowerCase().includes(term) || (x.city || '').toLowerCase().includes(term));
+          const descOnly  = active.filter(x => !(x.title || '').toLowerCase().includes(term) && !(x.city || '').toLowerCase().includes(term) && (x.description || '').toLowerCase().includes(term));
+          titleMatch.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          descOnly.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          return { rows: [...titleMatch, ...descOnly] };
+        }
         // K-66: export query — no WHERE clause, no params
         if (!params.length) {
           const sorted = [...this.listings].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));

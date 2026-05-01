@@ -50,11 +50,19 @@ class Listing {
   }
 
   static async search(term) {
+    // K-122: title/city matches ranked above description-only matches
     const like = `%${term.toLowerCase()}%`;
     const result = await pool.query(
-      `SELECT * FROM listings WHERE status = 'active' AND (
-        LOWER(title) LIKE $1 OR LOWER(description) LIKE $1 OR LOWER(city) LIKE $1
-      ) ORDER BY created_at DESC`,
+      `SELECT *, CASE
+          WHEN LOWER(title) LIKE $1 THEN 0
+          WHEN LOWER(city)  LIKE $1 THEN 1
+          ELSE 2
+        END AS _rank
+       FROM listings
+       WHERE status = 'active' AND (
+         LOWER(title) LIKE $1 OR LOWER(description) LIKE $1 OR LOWER(city) LIKE $1
+       )
+       ORDER BY _rank, created_at DESC`,
       [like]
     );
     return result.rows;
