@@ -382,6 +382,7 @@
               ${l.status === 'active' ? `<button onclick="pauseListing(${l.id})" style="padding:4px 12px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:4px;cursor:pointer;font-size:12px" title="Inserat pausieren (→ Entwurf)">⏸ Pausieren</button>` : ''}
               <button class="btn-edit" onclick="toggleEdit(${l.id})">&#x270E; Bearbeiten</button>
               <button onclick="duplicateListing(${l.id})" style="padding:4px 12px;background:#f9fafb;color:#374151;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:12px" title="Als Entwurf kopieren">&#x2398; Duplizieren</button>
+              <button id="copy-btn-${l.id}" onclick="copyListingUrl(${l.id})" style="padding:4px 12px;background:#f9fafb;color:#374151;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:12px" title="Link kopieren">&#x1F517; Link</button>
               <button class="btn-delete" onclick="deleteListing(${l.id}, '${(l.title||'').replace(/'/g,'')}')">&#x1F5D1; Löschen</button>
             </div>
             <div class="edit-form" id="edit-form-${l.id}">
@@ -533,6 +534,16 @@
       } catch (ex) {
         alert('Fehler: ' + ex.message);
       }
+    }
+
+    // K-130: Copy listing URL to clipboard
+    function copyListingUrl(id) {
+      const url = location.origin + '/listing.html?id=' + id;
+      const btn = document.getElementById('copy-btn-' + id);
+      navigator.clipboard.writeText(url).then(() => {
+        if (btn) { const orig = btn.innerHTML; btn.innerHTML = '✓ Kopiert!'; btn.style.color = '#059669'; setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 2000); }
+        else showToast('Link kopiert!', 'success');
+      }).catch(() => showToast('Kopieren fehlgeschlagen', 'error'));
     }
 
     // K-110: Live image URL preview
