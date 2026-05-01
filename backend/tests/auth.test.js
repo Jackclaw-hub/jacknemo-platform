@@ -102,4 +102,73 @@ describe("POST /api/auth/change-password", () => {
   });
 });
 
+// K-111: Auth brute-force rate limiter
+describe("authRateLimiter", () => {
+  const { createRateLimiter } = require("../src/middleware/security");
+
+  function makeReqRes(ip = "5.5.5.5") {
+    const req = { ip, connection: { remoteAddress: ip }, headers: {} };
+    const res = {
+      _headers: {},
+      _status: null,
+      _body: null,
+      setHeader(k, v) { this._headers[k.toLowerCase()] = v; },
+      status(s) { this._status = s; return this; },
+      json(b) { this._body = b; return this; },
+    };
+    return { req, res };
+  }
+
+  it("allows requests under limit", async () => {
+    const limiter = createRateLimiter(60000, 3, "Too many");
+    for (let i = 0; i < 3; i++) {
+      const { req, res } = makeReqRes();
+      let nextCalled = false;
+      limiter(req, res, () => { nextCalled = true; });
+      expect(nextCalled).toBe(true);
+      expect(res._status).toBeNull();
+    }
+  });
+
+  it("returns 429 after limit exceeded", () => {
+    const limiter = createRateLimiter(60000, 2, "Too many login attempts");
+    const ip = "9.9.9.9";
+    // Exhaust limit
+    for (let i = 0; i < 2; i++) {
+      const { req, res } = makeReqRes(ip);
+      limiter(req, res, () => {});
+    }
+    // One more — should 429
+    const { req, res } = makeReqRes(ip);
+    limiter(req, res, () => {});
+    expect(res._status).toBe(429);
+    expect(res._body.error).toBe("Too many requests");
+    expect(res._body.message).toBe("Too many login attempts");
+    expect(res._body.retryAfter).toBeGreaterThan(0);
+  });
+
+  it("sets Retry-After HTTP header on 429", () => {
+    const limiter = createRateLimiter(60000, 1, "Too many login attempts");
+    const ip = "8.8.8.8";
+    const { req: r1, res: rs1 } = makeReqRes(ip);
+    limiter(r1, rs1, () => {});
+    // Second call triggers 429
+    const { req, res } = makeReqRes(ip);
+    limiter(req, res, () => {});
+    expect(res._status).toBe(429);
+    expect(res._headers["retry-after"]).toBeGreaterThan(0);
+  });
+
+  it("bypasses localhost in non-prod", () => {
+    const limiter = createRateLimiter(60000, 1, "Too many");
+    const ip = "127.0.0.1";
+    for (let i = 0; i < 5; i++) {
+      const { req, res } = makeReqRes(ip);
+      let nextCalled = false;
+      limiter(req, res, () => { nextCalled = true; });
+      expect(nextCalled).toBe(true);
+    }
+  });
+});
+
 afterAll(async () => {});

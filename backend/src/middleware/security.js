@@ -41,7 +41,9 @@ const createRateLimiter = (windowMs, max, message = 'Too many requests') => {
     res.setHeader('X-RateLimit-Limit', max);
     res.setHeader('X-RateLimit-Remaining', Math.max(0, max - record.count));
     if (record.count > max) {
-      return res.status(429).json({ error: 'Too many requests', message, retryAfter: Math.ceil((record.resetTime - now) / 1000) });
+      const retryAfterSecs = Math.ceil((record.resetTime - now) / 1000);
+      res.setHeader('Retry-After', retryAfterSecs);
+      return res.status(429).json({ error: 'Too many requests', message, retryAfter: retryAfterSecs });
     }
     next();
   };
@@ -146,6 +148,7 @@ module.exports = {
   sanitizeBody,
   checkBlacklist,
   blacklistToken,
+  createRateLimiter,
   authRateLimiter,
   apiRateLimiter,
   registrationRateLimiter,
