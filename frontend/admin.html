@@ -98,6 +98,19 @@
     <button class="reset-btn" onclick="resetFilters()">Zurücksetzen</button>
   </div>
   <div id="summary">Lade ausstehende Inserate...</div>
+
+  <!-- K-115: Bulk action bar — shown when ≥1 checkbox checked -->
+  <div id="bulk-bar" style="display:none;position:sticky;top:0;z-index:100;background:#1e1b4b;color:#fff;border-radius:8px;padding:10px 16px;margin-bottom:12px;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(0,0,0,.2)">
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;user-select:none">
+      <input type="checkbox" id="select-all-cb" onchange="toggleSelectAll(this.checked)" style="width:16px;height:16px;cursor:pointer">
+      Alle auswählen
+    </label>
+    <span id="bulk-count" style="font-size:13px;font-weight:700;flex:1"></span>
+    <button onclick="bulkApprove()" style="background:#10b981;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">✓ Alle genehmigen</button>
+    <button onclick="bulkReject()" style="background:#ef4444;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">✗ Alle ablehnen</button>
+    <button onclick="clearSelection()" style="background:none;border:1px solid rgba(255,255,255,.4);color:#fff;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px">Auswahl aufheben</button>
+  </div>
+
   <div id="listings"></div>
   <div id="verify-section" style="display:none">
     <div id="verify-summary"></div>
@@ -416,8 +429,15 @@
     }
 
     function clearSelection() {
-      document.querySelectorAll('.bulk-cb:checked').forEach(cb => { cb.checked = false; });
+      document.querySelectorAll('.bulk-cb').forEach(cb => { cb.checked = false; });
+      const sa = document.getElementById('select-all-cb');
+      if (sa) sa.checked = false;
       document.getElementById('bulk-bar').style.display = 'none';
+    }
+
+    function toggleSelectAll(checked) {
+      document.querySelectorAll('.bulk-cb').forEach(cb => { cb.checked = checked; });
+      updateBulkBar();
     }
 
     async function bulkApprove() {
@@ -478,6 +498,10 @@
         } else {
           el.innerHTML = listings.map(renderListing).join('');
         }
+        // K-115: reset bulk bar on reload
+        const sa = document.getElementById('select-all-cb');
+        if (sa) sa.checked = false;
+        document.getElementById('bulk-bar').style.display = 'none';
       } catch(ex) {
         document.getElementById('summary').textContent = 'Fehler beim Laden: ' + ex.message;
       }
