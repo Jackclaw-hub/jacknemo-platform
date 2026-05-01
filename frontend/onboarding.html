@@ -97,6 +97,16 @@
       </div>
     </div>
 
+    <!-- K-101: Resume banner -->
+    <div id="resume-banner" style="display:none;background:#ede9fe;border:1px solid #c4b5fd;border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:14px;color:#3730a3">
+      <strong>&#x1F4BE; Du hast angefangen, dein Profil auszufüllen.</strong><br>
+      <span style="font-size:13px;color:#4f46e5">Möchtest du dort weitermachen, wo du aufgehört hast?</span>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button onclick="resumeProgress()" style="background:#4f46e5;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">Weiter &#x2192;</button>
+        <button onclick="clearProgress()" style="background:#fff;color:#6b7280;border:1px solid #d1d5db;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px">Von vorne anfangen</button>
+      </div>
+    </div>
+
     <div class="card">
       <!-- Step 1: Company Info -->
       <div class="step-form active" id="step-0">
@@ -361,13 +371,15 @@
 
       if (step < TOTAL_STEPS - 1) {
         // Move to next step
+        saveProgress(step + 1, saved); // K-101: persist after each step
         document.getElementById('step-' + step).classList.remove('active');
         current = step + 1;
         document.getElementById('step-' + current).classList.add('active');
         setProgress(current);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        // Final step — show done screen
+        // Final step — show done screen; clear saved progress
+        clearProgress(); // K-101: wipe saved progress on completion
         document.getElementById('step-' + step).classList.remove('active');
         document.getElementById('step-done').classList.add('active');
         setProgress(TOTAL_STEPS);
@@ -402,8 +414,77 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    // K-101: localStorage progress persistence
+    const LS_KEY = 'onboarding_progress';
+
+    function saveProgress(step, data) {
+      try { localStorage.setItem(LS_KEY, JSON.stringify({ step, data })); } catch(_) {}
+    }
+
+    function clearProgress() {
+      localStorage.removeItem(LS_KEY);
+      document.getElementById('resume-banner').style.display = 'none';
+    }
+
+    function fillStep(step, data) {
+      if (step >= 0) {
+        if (data.display_name != null) document.getElementById('display_name').value = data.display_name || '';
+        if (data.company_name != null) document.getElementById('company_name').value = data.company_name || '';
+        if (data.stage)       document.getElementById('stage').value = data.stage;
+        if (data.team_size)   document.getElementById('team_size').value = data.team_size;
+        if (data.founded_year) document.getElementById('founded_year').value = data.founded_year;
+        if (data.description != null) document.getElementById('description').value = data.description || '';
+      }
+      if (step >= 1) {
+        if (data.sector) document.getElementById('sector').value = data.sector;
+        if (data.investment_range) document.getElementById('investment_range').value = data.investment_range;
+        if (Array.isArray(data.investment_types)) {
+          document.querySelectorAll('#investment_types input[type=checkbox]').forEach(cb => {
+            cb.checked = data.investment_types.includes(cb.value);
+          });
+        }
+      }
+      if (step >= 2) {
+        if (data.city) document.getElementById('city').value = data.city;
+        if (data.geo)  document.getElementById('geo').value = data.geo;
+        if (data.notify_freq) document.getElementById('notify_freq').value = data.notify_freq;
+        if (Array.isArray(data.provider_types)) {
+          document.querySelectorAll('#provider_types input[type=checkbox]').forEach(cb => {
+            cb.checked = data.provider_types.includes(cb.value);
+          });
+        }
+      }
+    }
+
+    function resumeProgress() {
+      try {
+        const prog = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+        if (!prog) return;
+        document.getElementById('resume-banner').style.display = 'none';
+        const targetStep = Math.min(prog.step, TOTAL_STEPS - 1);
+        // Fill all steps up to target
+        fillStep(targetStep, prog.data || {});
+        Object.assign(saved, prog.data || {});
+        // Jump to target step
+        document.getElementById('step-' + current).classList.remove('active');
+        current = targetStep;
+        document.getElementById('step-' + current).classList.add('active');
+        setProgress(current);
+      } catch(_) {}
+    }
+
     // Init
     setProgress(0);
+
+    // Check for saved progress on load
+    (function checkResume() {
+      try {
+        const prog = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+        if (prog && prog.step > 0 && prog.data && Object.keys(prog.data).length > 0) {
+          document.getElementById('resume-banner').style.display = 'block';
+        }
+      } catch(_) {}
+    })();
   </script>
 </body>
 </html>
