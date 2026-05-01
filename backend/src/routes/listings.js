@@ -5,7 +5,7 @@ const { apiRateLimiter, validateListing } = require('../middleware/security');
 const { listingsWriteLimiter } = require('../middleware/rateLimiter');
 const {
   createListing, getListings, getListing, contactListing,
-  updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, promoteListing, demoteListing, publishListing, pauseListing,
+  updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, getListingStats, promoteListing, demoteListing, publishListing, pauseListing,
   renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings
 } = require('../controllers/listingsController');
 const { reportListing, getReportCount } = require('../controllers/reportController');
@@ -97,6 +97,9 @@ router.post('/admin/expire', authenticateToken, runListingExpiry);
 // K-67: Report abuse
 router.post('/:id/report', authenticateToken, reportListing);
 router.get('/:id/reports/count', authenticateToken, getReportCount);
+
+// K-140: Public stats
+router.get('/:id/stats', getListingStats);
 
 // K-69: Explicit view tracking (session-deduplicated by frontend)
 router.post('/:id/view', recordView);

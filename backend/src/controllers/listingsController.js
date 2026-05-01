@@ -92,6 +92,23 @@ const getListing = async (req, res) => {
   }
 };
 
+// K-140: Public stats endpoint
+const getListingStats = async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    res.json({
+      id: listing.id,
+      view_count:    listing.view_count    || 0,
+      contact_count: listing.contact_count || 0,
+      is_premium:    listing.is_premium    || false,
+      is_featured:   listing.is_featured   || false,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+};
+
 // K-120: in-memory view dedup store — key: "ip:listingId", value: timestamp
 const _viewSeen = new Map();
 const VIEW_TTL = 60 * 60 * 1000; // 1 hour
@@ -385,4 +402,4 @@ const getMyListingById = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, promoteListing, demoteListing, publishListing, pauseListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings };
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, getListingStats, promoteListing, demoteListing, publishListing, pauseListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings };
