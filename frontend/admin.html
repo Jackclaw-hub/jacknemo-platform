@@ -198,6 +198,7 @@
           <div style="flex:1">
           <h3 style="margin:0">${l.title}</h3>
           <span style="font-size:12px;background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:12px">${l.status}</span>
+          ${l.created_at ? '<span style="font-size:11px;color:#9ca3af;margin-left:6px">' + new Date(l.created_at).toLocaleDateString('de-DE', {day:'2-digit',month:'short',year:'numeric'}) + '</span>' : ''}
         </div>
         <div class="meta">
           Typ: <strong>${l.type}</strong> · Geo: <strong>${l.geo}</strong>
