@@ -724,6 +724,30 @@ class MockDatabase {
       }
     }
 
+    // K-157: Top providers JOIN query
+    if (sl.includes('from users') && sl.includes('join listings') && sl.includes('listing_count')) {
+      const limit = params[0] || 10;
+      const providerRoles = ['equipment_provider', 'service_provider', 'provider'];
+      const provMap = {};
+      this.listings.forEach(l => {
+        if (!l.provider_id) return;
+        if (!provMap[l.provider_id]) provMap[l.provider_id] = { listing_count: 0, active_count: 0, total_views: 0 };
+        provMap[l.provider_id].listing_count++;
+        if (l.status === 'active') provMap[l.provider_id].active_count++;
+        provMap[l.provider_id].total_views += (l.view_count || 0);
+      });
+      const rows = Object.entries(provMap)
+        .map(([uid, stats]) => {
+          const u = this.users.find(u => u.id == uid);
+          if (!u || !providerRoles.includes(u.role)) return null;
+          return { email: u.email, name: u.name, ...stats };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.listing_count - a.listing_count)
+        .slice(0, limit);
+      return { rows };
+    }
+
     return { rows: [] };
   }
 

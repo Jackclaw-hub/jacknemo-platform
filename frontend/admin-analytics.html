@@ -107,6 +107,12 @@
       <h2>Top Suchbegriffe</h2>
       <div id="search-terms-content"><p style="color:#9ca3af;font-size:13px">Lade...</p></div>
     </div>
+
+    <!-- K-157: Top providers by listing count -->
+    <div class="card" style="grid-column:1/-1">
+      <h2>Top Anbieter (nach Inserate)</h2>
+      <div id="top-providers-v2"><p style="color:#9ca3af;font-size:13px">Lade...</p></div>
+    </div>
   </div>
 
   <script src="api-client.js"></script>
@@ -298,9 +304,42 @@
       }
     }
 
+    // K-157: Top providers by listing count
+    async function loadTopProviders() {
+      const el = document.getElementById('top-providers-v2');
+      try {
+        const data = await api('GET', '/admin/analytics/top-providers', null, auth.getToken());
+        const providers = data.providers || [];
+        if (!providers.length) {
+          el.innerHTML = '<p style="color:#9ca3af;font-size:13px">Noch keine Anbieter.</p>';
+          return;
+        }
+        el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+          '<thead><tr style="border-bottom:1px solid #e5e7eb">' +
+          '<th style="text-align:left;padding:6px 8px;color:#6b7280;font-size:11px;text-transform:uppercase">Anbieter</th>' +
+          '<th style="text-align:right;padding:6px 8px;color:#6b7280;font-size:11px;text-transform:uppercase">Inserate</th>' +
+          '<th style="text-align:right;padding:6px 8px;color:#6b7280;font-size:11px;text-transform:uppercase">Aktiv</th>' +
+          '<th style="text-align:right;padding:6px 8px;color:#6b7280;font-size:11px;text-transform:uppercase">Views</th>' +
+          '</tr></thead><tbody>' +
+          providers.map((p, i) => `<tr style="border-bottom:1px solid #f3f4f6">
+            <td style="padding:7px 8px">
+              <div style="font-weight:600;font-size:13px">${p.name || ''}</div>
+              <div style="font-size:11px;color:#6b7280">${p.email}</div>
+            </td>
+            <td style="text-align:right;padding:7px 8px;font-weight:700;color:#4f46e5">${p.listing_count}</td>
+            <td style="text-align:right;padding:7px 8px;color:#059669">${p.active_count || 0}</td>
+            <td style="text-align:right;padding:7px 8px;color:#6b7280">${p.total_views || 0}</td>
+          </tr>`).join('') +
+          '</tbody></table>';
+      } catch(e) {
+        el.innerHTML = '<p style="color:#9ca3af;font-size:13px">Keine Daten</p>';
+      }
+    }
+
     load();
     setTrendsPreset(30); // K-135: default to last 30 days
     loadSearchTerms();
+    loadTopProviders(); // K-157
   </script>
 </body>
 </html>

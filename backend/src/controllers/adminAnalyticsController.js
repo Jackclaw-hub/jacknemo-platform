@@ -139,4 +139,28 @@ const getStatsOverview = async (req, res) => {
   }
 };
 
-module.exports = { getAnalytics, getTrends, getSearchTerms, getStatsOverview };
+// K-157: Top providers ranked by total listing count
+const getTopProviders = async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
+    const r = await db.query(
+      `SELECT u.email, u.name,
+              COUNT(l.id)                                             AS listing_count,
+              COUNT(l.id) FILTER (WHERE l.status = 'active')        AS active_count,
+              COALESCE(SUM(l.view_count), 0)                        AS total_views
+         FROM users u
+         JOIN listings l ON l.provider_id = u.id
+        WHERE u.role IN ('equipment_provider', 'service_provider', 'provider')
+        GROUP BY u.id, u.email, u.name
+        ORDER BY listing_count DESC
+        LIMIT $1`,
+      [limit]
+    );
+    res.json({ providers: r.rows });
+  } catch (err) {
+    console.error('getTopProviders error:', err);
+    res.status(500).json({ error: 'Failed to fetch top providers' });
+  }
+};
+
+module.exports = { getAnalytics, getTrends, getSearchTerms, getStatsOverview, getTopProviders };
