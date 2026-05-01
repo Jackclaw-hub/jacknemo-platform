@@ -86,8 +86,16 @@
 
     <!-- K-74: Weekly trends chart -->
     <div class="card">
-      <h2>Wöchentliche Trends (letzte 8 Wochen)</h2>
-      <div id="trends-chart" style="margin-top:12px"></div>
+      <h2>Wöchentliche Trends</h2>
+      <!-- K-135: Date range filter -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <label style="font-size:12px;color:#6b7280">Von <input type="date" id="trends-from" onchange="loadTrends()" style="margin-left:4px;padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px"></label>
+        <label style="font-size:12px;color:#6b7280">Bis <input type="date" id="trends-to" onchange="loadTrends()" style="margin-left:4px;padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px"></label>
+        <button onclick="setTrendsPreset(7)"  style="padding:3px 10px;font-size:12px;border:1px solid #d1d5db;border-radius:4px;background:#f9fafb;cursor:pointer">7d</button>
+        <button onclick="setTrendsPreset(30)" style="padding:3px 10px;font-size:12px;border:1px solid #d1d5db;border-radius:4px;background:#f9fafb;cursor:pointer">30d</button>
+        <button onclick="setTrendsPreset(90)" style="padding:3px 10px;font-size:12px;border:1px solid #d1d5db;border-radius:4px;background:#f9fafb;cursor:pointer">90d</button>
+      </div>
+      <div id="trends-chart" style="margin-top:4px"></div>
     </div>
     <div class="card">
       <h2>Benachrichtigungen</h2>
@@ -215,10 +223,25 @@
       }
     }
 
+    // K-135: Set from/to date inputs and reload
+    function setTrendsPreset(days) {
+      const to = new Date();
+      const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      document.getElementById('trends-from').value = from.toISOString().slice(0, 10);
+      document.getElementById('trends-to').value   = to.toISOString().slice(0, 10);
+      loadTrends();
+    }
+
     // K-74: Weekly trends bar chart (pure HTML/CSS, no library)
     async function loadTrends() {
       try {
-        const data = await api('GET', '/admin/analytics/trends', null, auth.getToken());
+        const from = document.getElementById('trends-from')?.value;
+        const to   = document.getElementById('trends-to')?.value;
+        const q = new URLSearchParams();
+        if (from) q.set('from', from);
+        if (to)   q.set('to', to);
+        const qs = q.toString() ? '?' + q.toString() : '';
+        const data = await api('GET', '/admin/analytics/trends' + qs, null, auth.getToken());
         const weeks = data.weeks || [];
         if (!weeks.length) return;
         const maxUsers = Math.max(...weeks.map(w => w.new_users), 1);
@@ -276,7 +299,7 @@
     }
 
     load();
-    loadTrends();
+    setTrendsPreset(30); // K-135: default to last 30 days
     loadSearchTerms();
   </script>
 </body>

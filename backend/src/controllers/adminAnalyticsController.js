@@ -38,20 +38,25 @@ const getAnalytics = async (req, res) => {
 };
 
 // K-74: Weekly trends — last 8 weeks of signups + listings
+// K-135: supports ?from=YYYY-MM-DD&to=YYYY-MM-DD query params
 const getTrends = async (req, res) => {
   try {
-    // Build 8-week buckets (Sunday-based ISO weeks)
-    const weeks = [];
     const now = new Date();
-    for (let i = 7; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i * 7);
-      const start = new Date(d);
-      start.setDate(start.getDate() - start.getDay()); // Sunday
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(start);
+    // K-135: parse date range; default last 8 weeks
+    const toDate  = req.query.to   ? new Date(req.query.to)   : now;
+    const fromDate = req.query.from ? new Date(req.query.from) : new Date(toDate.getTime() - 56 * 24 * 60 * 60 * 1000);
+    // Build weekly buckets within the range
+    const weeks = [];
+    const cursor = new Date(fromDate);
+    cursor.setDate(cursor.getDate() - cursor.getDay()); // snap to Sunday
+    cursor.setHours(0, 0, 0, 0);
+    while (cursor <= toDate) {
+      const start = new Date(cursor);
+      const end = new Date(cursor);
       end.setDate(end.getDate() + 7);
       weeks.push({ start, end, label: start.toISOString().slice(0, 10) });
+      cursor.setDate(cursor.getDate() + 7);
+      if (weeks.length > 52) break; // safety cap
     }
 
     // For mock DB — compute from in-memory data
