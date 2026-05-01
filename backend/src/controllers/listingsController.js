@@ -167,6 +167,30 @@ const deleteListing = async (req, res) => {
   }
 };
 
+// K-134: Partial tag update for a listing
+const updateListingTags = async (req, res) => {
+  try {
+    if (!PROVIDER_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only providers can update listings' });
+    }
+    const { tags } = req.body;
+    if (!Array.isArray(tags)) return res.status(400).json({ error: 'tags must be an array' });
+    const db = require('../config/database');
+    const check = await db.query('SELECT id, provider_id FROM listings WHERE id = $1', [req.params.id]);
+    const listing = check.rows[0];
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    if (String(listing.provider_id) !== String(req.user.id)) return res.status(403).json({ error: 'Not your listing' });
+    const r = await db.query(
+      'UPDATE listings SET tags = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      [JSON.stringify(tags), req.params.id]
+    );
+    res.json({ listing: r.rows[0], message: 'Tags updated' });
+  } catch (err) {
+    console.error('updateListingTags error:', err);
+    res.status(500).json({ error: 'Failed to update tags' });
+  }
+};
+
 const getMyListings = async (req, res) => {
   try {
     if (!PROVIDER_ROLES.includes(req.user.role)) {
@@ -361,4 +385,4 @@ const getMyListingById = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, getMyListingById, promoteListing, demoteListing, publishListing, pauseListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings };
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, promoteListing, demoteListing, publishListing, pauseListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings };

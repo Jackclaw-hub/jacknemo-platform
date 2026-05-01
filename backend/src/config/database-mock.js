@@ -459,6 +459,14 @@ class MockDatabase {
           this.listings[idx].updated_at = new Date().toISOString();
           return { rows: [this.listings[idx]] };
         }
+        // K-134: Tags-only update — SET tags = $1 WHERE id = $2
+        if (sl.includes('set tags =') && params.length === 2) {
+          const idx = this.listings.findIndex(x => x.id == params[1]);
+          if (idx < 0) return { rows: [] };
+          try { this.listings[idx].tags = JSON.parse(params[0]); } catch(_) { this.listings[idx].tags = params[0]; }
+          this.listings[idx].updated_at = new Date().toISOString();
+          return { rows: [this.listings[idx]] };
+        }
         // General field update — parse SET clause to apply changes
         const id = params[params.length - 2]; const pid = params[params.length - 1];
         const idx = this.listings.findIndex(x => x.id == id && x.provider_id == pid);

@@ -94,6 +94,31 @@ describe('GET /api/listings/me/listings/:id', () => {
   });
 });
 
+// K-134: PATCH /api/listings/:id/tags
+describe('PATCH /api/listings/:id/tags', () => {
+  it('401 when not authenticated', async () => {
+    const res = await request(app).patch('/api/listings/1/tags').send({ tags: ['a'] });
+    expect(res.status).toBe(401);
+  });
+
+  it('400 when tags is not an array', async () => {
+    expect(draftListingId).toBeDefined();
+    const res = await request(app).patch(`/api/listings/${draftListingId}/tags`)
+      .set('Authorization', 'Bearer ' + providerToken)
+      .send({ tags: 'not-an-array' });
+    expect(res.status).toBe(400);
+  });
+
+  it('200 updates tags on own listing', async () => {
+    expect(draftListingId).toBeDefined();
+    const res = await request(app).patch(`/api/listings/${draftListingId}/tags`)
+      .set('Authorization', 'Bearer ' + providerToken)
+      .send({ tags: ['newtag1', 'newtag2'] });
+    expect(res.status).toBe(200);
+    expect(res.body.listing.tags).toEqual(['newtag1', 'newtag2']);
+  });
+});
+
 describe('PATCH /api/listings/:id/publish', () => {
   it('401 when not authenticated', async () => {
     const res = await request(app).patch('/api/listings/999/publish');

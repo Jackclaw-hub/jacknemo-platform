@@ -5,7 +5,7 @@ const { apiRateLimiter, validateListing } = require('../middleware/security');
 const { listingsWriteLimiter } = require('../middleware/rateLimiter');
 const {
   createListing, getListings, getListing, contactListing,
-  updateListing, deleteListing, getMyListings, getMyListingById, promoteListing, demoteListing, publishListing, pauseListing,
+  updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, promoteListing, demoteListing, publishListing, pauseListing,
   renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings
 } = require('../controllers/listingsController');
 const { reportListing, getReportCount } = require('../controllers/reportController');
@@ -80,6 +80,9 @@ router.post('/:id/contact', authenticateToken, contactListing);
 // Admin: premium management (K-20)
 router.patch('/:id/premium', authenticateToken, promoteListing);
 router.delete('/:id/premium', authenticateToken, demoteListing);
+
+// K-134: Partial tag update
+router.patch('/:id/tags', authenticateToken, updateListingTags);
 
 // K-43: Publish draft listing
 router.patch('/:id/publish', authenticateToken, publishListing);
