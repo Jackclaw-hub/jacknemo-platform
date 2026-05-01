@@ -214,10 +214,19 @@
         const panel = document.getElementById('search-history-panel');
         const chips = document.getElementById('search-history-chips');
         if (!hist.length) { panel.style.display = 'none'; return; }
-        chips.innerHTML = hist.map(h =>
-          `<span style="display:inline-block;background:#f3f4f6;border:1px solid #e5e7eb;color:#374151;padding:2px 10px;border-radius:12px;cursor:pointer;margin:2px 3px 2px 0;font-size:12px" onclick="applyHistorySearch('${h.replace(/'/g,"&#39;")}')">${h}</span>`
+        chips.innerHTML = hist.map((h, i) =>
+          `<span id="sh-chip-${i}" style="display:inline-block;background:#f3f4f6;border:1px solid #e5e7eb;color:#374151;padding:2px 10px;border-radius:12px;cursor:pointer;margin:2px 3px 2px 0;font-size:12px" onclick="applyHistorySearch('${h.replace(/'/g,"&#39;")}')">${h}</span>`
         ).join('');
         panel.style.display = 'block';
+        // K-152: Async inject match count into first 5 history chips
+        hist.slice(0, 5).forEach((h, i) => {
+          api('GET', '/listings?search=' + encodeURIComponent(h)).then(data => {
+            const chip = document.getElementById('sh-chip-' + i);
+            if (!chip) return;
+            const count = (data.listings || []).length;
+            chip.innerHTML = h + ' <span style="background:rgba(0,0,0,0.08);color:#6b7280;font-size:10px;padding:0 5px;border-radius:8px;font-weight:700;margin-left:2px">' + count + '</span>';
+          }).catch(() => {});
+        });
       } catch(_) {}
     }
     function applyHistorySearch(q) {
