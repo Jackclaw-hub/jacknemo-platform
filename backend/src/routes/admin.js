@@ -2,7 +2,7 @@ const { adminVerifyProvider } = require('../controllers/providerProfileControlle
 const express = require('express');
 const router = express.Router();
 const { getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, bulkAction, getAdminListingDetail } = require('../controllers/adminController');
-const { getAnalytics, getTrends, getSearchTerms } = require('../controllers/adminAnalyticsController');
+const { getAnalytics, getTrends, getSearchTerms, getStatsOverview } = require('../controllers/adminAnalyticsController');
 const { listUsers, disableUser, enableUser, getUserDetail } = require('../controllers/adminUserController');
 const { exportListings, exportUsers } = require('../controllers/adminExportController');
 const { getReports, dismissReport } = require('../controllers/reportController');
@@ -18,6 +18,7 @@ router.put('/listings/:id/reject', ...adminOnly, rejectListing);
 router.get('/analytics', ...adminOnly, getAnalytics);
 router.get('/analytics/trends', ...adminOnly, getTrends);
 router.get('/analytics/search-terms', ...adminOnly, getSearchTerms); // K-104
+router.get('/stats/overview', ...adminOnly, getStatsOverview); // K-137
 router.put('/listings/:id/feature', ...adminOnly, featureListing);
 router.put('/listings/:id/unfeature', ...adminOnly, unfeatureListing);
 

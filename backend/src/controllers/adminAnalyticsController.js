@@ -102,4 +102,41 @@ const getSearchTerms = async (req, res) => {
   }
 };
 
-module.exports = { getAnalytics, getTrends, getSearchTerms };
+// K-137: Quick overview stats for admin dashboard widget
+const getStatsOverview = async (req, res) => {
+  try {
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const [listingByStatus, userByRole, todayListings, todayUsers] = await Promise.all([
+      db.query("SELECT status, COUNT(*) as count FROM listings GROUP BY status"),
+      db.query("SELECT role, COUNT(*) as count FROM users GROUP BY role"),
+      db.query("SELECT COUNT(*) as count FROM listings WHERE created_at >= $1", [todayStart.toISOString()]),
+      db.query("SELECT COUNT(*) as count FROM users WHERE created_at >= $1", [todayStart.toISOString()]),
+    ]);
+    const byStatus = {};
+    (listingByStatus.rows || []).forEach(r => { byStatus[r.status] = parseInt(r.count, 10) || 0; });
+    const byRole = {};
+    (userByRole.rows || []).forEach(r => { byRole[r.role] = parseInt(r.count, 10) || 0; });
+    res.json({
+      listings: {
+        active:  byStatus.active  || 0,
+        pending: byStatus.pending || 0,
+        rejected: byStatus.rejected || 0,
+        expired: byStatus.expired || 0,
+        total: Object.values(byStatus).reduce((s, v) => s + v, 0),
+      },
+      users: {
+        total: Object.values(byRole).reduce((s, v) => s + v, 0),
+        byRole,
+      },
+      today: {
+        new_listings: parseInt(todayListings.rows[0]?.count, 10) || 0,
+        new_users:    parseInt(todayUsers.rows[0]?.count, 10)    || 0,
+      },
+    });
+  } catch (err) {
+    console.error('getStatsOverview error:', err);
+    res.status(500).json({ error: 'Failed to fetch stats overview' });
+  }
+};
+
+module.exports = { getAnalytics, getTrends, getSearchTerms, getStatsOverview };

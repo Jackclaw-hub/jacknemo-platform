@@ -84,6 +84,16 @@ class MockDatabase {
           }
           return { rows: result.slice(offset, offset + limit) };
         }
+        // K-137: GROUP BY role
+        if (sl.includes('group by role') && !params.length) {
+          const m = {}; this.users.forEach(u => { m[u.role] = (m[u.role] || 0) + 1; });
+          return { rows: Object.entries(m).map(([role, count]) => ({ role, count: String(count) })) };
+        }
+        // K-137: COUNT users created since date
+        if (sl.includes('count(*)') && sl.includes('created_at >= $1')) {
+          const cnt = this.users.filter(u => u.created_at >= params[0]).length;
+          return { rows: [{ count: String(cnt) }] };
+        }
         if (sl.includes('count(*)')) return { rows: [{ count: String(this.users.length) }] };
         return { rows: this.users };
       }
@@ -303,6 +313,16 @@ class MockDatabase {
           return { rows: l ? [l] : [] };
         }
         if (sql.includes('WHERE id = $1')) { const l = this.listings.find(x => x.id == params[0]); return { rows: l ? [l] : [] }; }
+        // K-137: GROUP BY status
+        if (sl.includes('group by status') && !params.length) {
+          const m = {}; this.listings.forEach(l => { m[l.status] = (m[l.status] || 0) + 1; });
+          return { rows: Object.entries(m).map(([status, count]) => ({ status, count: String(count) })) };
+        }
+        // K-137: COUNT listings created since date
+        if (sl.includes('count(*)') && sl.includes('created_at >= $1')) {
+          const cnt = this.listings.filter(x => x.created_at >= params[0]).length;
+          return { rows: [{ count: String(cnt) }] };
+        }
         // K-117: COUNT for founder listing_count
         if (sl.includes('count(*)') && sl.includes('provider_id = $1')) {
           const cnt = this.listings.filter(x => x.provider_id == params[0]).length;
