@@ -407,6 +407,32 @@ const getRelatedListings = async (req, res) => {
   }
 };
 
+// K-156: Similar listings — scored by type match + tag overlap, up to 5
+const getSimilarListings = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const current = await Listing.findById(id);
+    if (!current) return res.status(404).json({ error: 'Listing not found' });
+    const currentTags = Array.isArray(current.tags) ? current.tags : [];
+    const all = await Listing.findAll({});
+    const scored = all
+      .filter(l => l.status === 'active' && String(l.id) !== String(id))
+      .map(l => {
+        const lTags = Array.isArray(l.tags) ? l.tags : [];
+        const tagOverlap = lTags.filter(t => currentTags.includes(t)).length;
+        const typeMatch = l.type === current.type ? 2 : 0;
+        return { l, score: typeMatch + tagOverlap };
+      })
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map(({ l }) => ({ id: l.id, title: l.title, type: l.type, city: l.city, geo: l.geo, tags: l.tags, view_count: l.view_count }));
+    res.json({ similar: scored });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch similar listings', similar: [] });
+  }
+};
+
 // K-131: Get single owned listing for authenticated provider
 const getMyListingById = async (req, res) => {
   try {
@@ -425,4 +451,4 @@ const getMyListingById = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, getListingStats, promoteListing, demoteListing, publishListing, pauseListing, resumeListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings };
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, getListingStats, promoteListing, demoteListing, publishListing, pauseListing, resumeListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings, getSimilarListings };
