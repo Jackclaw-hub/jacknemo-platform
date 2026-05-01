@@ -139,7 +139,7 @@
 
     <div>
       <div class="card">
-        <h2>Meine Inserate</h2>
+        <h2>Meine Inserate <span id="pending-badge" style="display:none;background:#fef3c7;color:#92400e;font-size:12px;font-weight:600;padding:2px 9px;border-radius:10px;vertical-align:middle;margin-left:6px"></span></h2>
         <div class="sse-status" id="sse-status">&#x25CB; Connecting for live updates...</div>
         <div id="my-listings"><em>Lade...</em></div>
       </div>
@@ -345,7 +345,15 @@
       try {
         const data = await ListingsAPI.getMine();
         const el = document.getElementById('my-listings');
-        if (!data.listings?.length) { el.innerHTML = '<em>Noch keine Inserate.</em>'; return; }
+        if (!data.listings?.length) {
+          el.innerHTML = '<em>Noch keine Inserate.</em>';
+          const pb = document.getElementById('pending-badge'); if (pb) pb.style.display = 'none';
+          return;
+        }
+        // K-136: Pending count badge
+        const pendingCount = (data.listings || []).filter(l => l.status === 'pending').length;
+        const pb = document.getElementById('pending-badge');
+        if (pb) { if (pendingCount > 0) { pb.textContent = pendingCount + ' ausstehend'; pb.style.display = 'inline'; } else { pb.style.display = 'none'; } }
         el.innerHTML = data.listings.map(l => `
           <div class="listing-item" id="listing-${l.id}">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
