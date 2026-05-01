@@ -55,6 +55,7 @@ const ListingsAPI = {
   contact: (id, message, subject) => api('POST', '/listings/' + id + '/contact', { message, subject }, auth.getToken()),
   publish: (id) => api('PATCH', '/listings/' + id + '/publish', {}, auth.getToken()),
   pause: (id) => api('PATCH', '/listings/' + id + '/pause', {}, auth.getToken()),
+  resume: (id) => api('PATCH', '/listings/' + id + '/resume', {}, auth.getToken()),
   renew: (id) => api('PATCH', '/listings/' + id + '/renew', {}, auth.getToken()),
   duplicate: (id) => api('POST', '/listings/' + id + '/duplicate', {}, auth.getToken()),
 };

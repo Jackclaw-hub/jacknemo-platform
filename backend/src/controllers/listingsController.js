@@ -272,7 +272,7 @@ const publishListing = async (req, res) => {
   }
 };
 
-// K-103: Pause an active listing (active → draft) — provider only
+// K-103 / K-153: Pause an active listing (active → paused) — provider only
 const pauseListing = async (req, res) => {
   try {
     if (!PROVIDER_ROLES.includes(req.user.role)) {
@@ -285,13 +285,36 @@ const pauseListing = async (req, res) => {
     if (listing.provider_id != req.user.id) return res.status(403).json({ error: 'Not your listing' });
     if (listing.status !== 'active') return res.status(409).json({ error: 'Only active listings can be paused' });
     const upd = await db.query(
-      "UPDATE listings SET status = 'draft', updated_at = NOW() WHERE id = $1 RETURNING *",
+      "UPDATE listings SET status = 'paused', updated_at = NOW() WHERE id = $1 RETURNING *",
       [req.params.id]
     );
     res.json({ listing: upd.rows[0], message: 'Listing paused' });
   } catch (err) {
     console.error('pauseListing error:', err);
     res.status(500).json({ error: 'Failed to pause listing' });
+  }
+};
+
+// K-153: Resume a paused listing (paused → active) — provider only
+const resumeListing = async (req, res) => {
+  try {
+    if (!PROVIDER_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only providers can resume listings' });
+    }
+    const db = require('../config/database');
+    const r = await db.query('SELECT * FROM listings WHERE id = $1', [req.params.id]);
+    const listing = r.rows[0];
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    if (listing.provider_id != req.user.id) return res.status(403).json({ error: 'Not your listing' });
+    if (listing.status !== 'paused') return res.status(409).json({ error: 'Only paused listings can be resumed' });
+    const upd = await db.query(
+      "UPDATE listings SET status = 'active', updated_at = NOW() WHERE id = $1 RETURNING *",
+      [req.params.id]
+    );
+    res.json({ listing: upd.rows[0], message: 'Listing resumed' });
+  } catch (err) {
+    console.error('resumeListing error:', err);
+    res.status(500).json({ error: 'Failed to resume listing' });
   }
 };
 
@@ -402,4 +425,4 @@ const getMyListingById = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, getListingStats, promoteListing, demoteListing, publishListing, pauseListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings };
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, getListingStats, promoteListing, demoteListing, publishListing, pauseListing, resumeListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings };
