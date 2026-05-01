@@ -845,6 +845,17 @@
             </tr>`;
           }).join('') +
           '</table>';
+
+        // K-148: Premium summary line below table
+        const premiumListings = listings.filter(l => l.is_premium);
+        if (premiumListings.length) {
+          const premiumViews = premiumListings.reduce((s, l) => s + (l.view_count || 0), 0);
+          chart.innerHTML += `<div style="margin-top:10px;font-size:12px;color:#92400e;background:#fef3c7;padding:6px 12px;border-radius:6px;display:flex;gap:12px;align-items:center">` +
+            `<span>⭐ <strong>${premiumListings.length}</strong> Premium-Inserat${premiumListings.length > 1 ? 'e' : ''}</span>` +
+            `<span style="color:#6b7280">·</span>` +
+            `<span><strong>${premiumViews}</strong> Views durch Premium</span>` +
+            `</div>`;
+        }
       } catch(e) { /* analytics optional */ }
     }
   </script>
