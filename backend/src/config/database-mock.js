@@ -29,6 +29,7 @@ class MockDatabase {
     this.nextReportId = 1;
     this.templates = []; // K-68: message templates
     this.nextTemplateId = 1;
+    this.founderNotes = []; // K-144
     this.notifications = [];
     this.nextNotificationId = 1;
     this.searchLogs = []; // K-104: search query log
@@ -666,6 +667,26 @@ class MockDatabase {
         const idx = this.reports.findIndex(r => r.id == params[1]);
         if (idx >= 0) { this.reports[idx].dismissed = true; }
         return { rows: idx >= 0 ? [this.reports[idx]] : [] };
+      }
+    }
+
+    // ---- FOUNDER NOTES (K-144) ----
+    if (sl.includes('founder_notes')) {
+      if (s.startsWith('INSERT')) {
+        // ON CONFLICT (listing_id, founder_id) DO UPDATE
+        const idx = this.founderNotes.findIndex(n => n.listing_id == params[0] && n.founder_id == params[1]);
+        if (idx >= 0) {
+          this.founderNotes[idx].note = params[2];
+          this.founderNotes[idx].updated_at = new Date().toISOString();
+          return { rows: [this.founderNotes[idx]] };
+        }
+        const n = { listing_id: params[0], founder_id: params[1], note: params[2], updated_at: new Date().toISOString() };
+        this.founderNotes.push(n);
+        return { rows: [n] };
+      }
+      if (s.startsWith('SELECT')) {
+        const n = this.founderNotes.find(n => n.listing_id == params[0] && n.founder_id == params[1]);
+        return { rows: n ? [n] : [] };
       }
     }
 

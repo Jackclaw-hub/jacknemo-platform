@@ -84,4 +84,36 @@ async function getContactHistory(req, res) {
   }
 }
 
-module.exports = { upsertProfile, getProfile, getFeed, getContactHistory };
+// K-144: Private founder notes per listing
+const upsertNote = async (req, res) => {
+  try {
+    const { note } = req.body;
+    if (typeof note !== 'string') return res.status(400).json({ error: 'note must be a string' });
+    const r = await db.query(
+      `INSERT INTO founder_notes (listing_id, founder_id, note, updated_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (listing_id, founder_id) DO UPDATE SET note = $3, updated_at = NOW()
+       RETURNING *`,
+      [req.params.id, req.user.id, note]
+    );
+    res.json({ note: r.rows[0] });
+  } catch (err) {
+    console.error('upsertNote error:', err);
+    res.status(500).json({ error: 'Failed to save note' });
+  }
+};
+
+const getNote = async (req, res) => {
+  try {
+    const r = await db.query(
+      'SELECT * FROM founder_notes WHERE listing_id = $1 AND founder_id = $2',
+      [req.params.id, req.user.id]
+    );
+    res.json({ note: r.rows[0] || null });
+  } catch (err) {
+    console.error('getNote error:', err);
+    res.status(500).json({ error: 'Failed to fetch note' });
+  }
+};
+
+module.exports = { upsertProfile, getProfile, getFeed, getContactHistory, upsertNote, getNote };

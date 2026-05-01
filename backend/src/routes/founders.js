@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { upsertProfile, getProfile, getFeed, getContactHistory } = require('../controllers/founderController');
+const { upsertProfile, getProfile, getFeed, getContactHistory, upsertNote, getNote } = require('../controllers/founderController');
 const { saveSearch, getSavedSearches, deleteSavedSearch } = require('../controllers/savedSearchController');
 const { getReferralCode, getReferralStatsEndpoint } = require('../controllers/referralController');
 const { saveBookmark, getBookmarks, deleteBookmark } = require('../controllers/bookmarksController');
@@ -23,6 +23,10 @@ router.delete('/saved-searches/:id', authenticateToken, requireRole(['founder'])
 // Referral system (KAN-026)
 router.get('/referral-code', authenticateToken, requireRole(['founder']), getReferralCode);
 router.get('/referral-stats', authenticateToken, requireRole(['founder']), getReferralStatsEndpoint);
+
+// K-144: Private notes per listing
+router.post('/listings/:id/note', authenticateToken, requireRole(['founder']), upsertNote);
+router.get('/listings/:id/note', authenticateToken, requireRole(['founder']), getNote);
 
 // K-48: Bookmarks
 router.post('/bookmarks', authenticateToken, requireRole(['founder']), saveBookmark);
