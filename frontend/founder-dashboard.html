@@ -115,6 +115,13 @@
     <button onclick="runSearch()">&#x1F50D; Search</button>
   </div>
 
+  <!-- K-107: Search history panel -->
+  <div id="search-history-panel" style="display:none;margin-bottom:8px;font-size:12px">
+    <span style="color:#9ca3af;margin-right:6px">Zuletzt gesucht:</span>
+    <span id="search-history-chips"></span>
+    <button onclick="clearSearchHistory()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:11px;margin-left:8px;text-decoration:underline">löschen</button>
+  </div>
+
   <div id="back-wrap" style="display:none">
     <button class="back-btn" onclick="exitSearch()">&#8592; Back to Radar Results</button>
   </div>
@@ -187,6 +194,38 @@
   <script>
     redirectIfNotLoggedIn();
     const user = auth.getUser();
+
+    // K-107: Search history
+    const SEARCH_HIST_KEY = 'search_history';
+    function pushSearchHistory(q) {
+      if (!q) return;
+      try {
+        let hist = JSON.parse(localStorage.getItem(SEARCH_HIST_KEY) || '[]');
+        hist = [q, ...hist.filter(h => h !== q)].slice(0, 10);
+        localStorage.setItem(SEARCH_HIST_KEY, JSON.stringify(hist));
+        renderSearchHistory();
+      } catch(_) {}
+    }
+    function renderSearchHistory() {
+      try {
+        const hist = JSON.parse(localStorage.getItem(SEARCH_HIST_KEY) || '[]');
+        const panel = document.getElementById('search-history-panel');
+        const chips = document.getElementById('search-history-chips');
+        if (!hist.length) { panel.style.display = 'none'; return; }
+        chips.innerHTML = hist.map(h =>
+          `<span style="display:inline-block;background:#f3f4f6;border:1px solid #e5e7eb;color:#374151;padding:2px 10px;border-radius:12px;cursor:pointer;margin:2px 3px 2px 0;font-size:12px" onclick="applyHistorySearch('${h.replace(/'/g,"&#39;")}')">${h}</span>`
+        ).join('');
+        panel.style.display = 'block';
+      } catch(_) {}
+    }
+    function applyHistorySearch(q) {
+      document.getElementById('search-input').value = q;
+      runSearch();
+    }
+    function clearSearchHistory() {
+      localStorage.removeItem(SEARCH_HIST_KEY);
+      document.getElementById('search-history-panel').style.display = 'none';
+    }
 
     // K-102: Filter presets
     const PRESETS = {
@@ -654,6 +693,7 @@
     async function runSearch() {
       const q = document.getElementById('search-input').value.trim();
       if (!q) return;
+      pushSearchHistory(q); // K-107
       document.getElementById('back-wrap').style.display = 'block';
       document.getElementById('radar-filters').style.display = 'none';
       document.getElementById('mode-label').textContent = 'Search results for "' + q + '"';
@@ -761,6 +801,7 @@
     }
 
     restoreFiltersFromURL();
+    renderSearchHistory(); // K-107: show on load if history exists
     loadRadar();
     loadFeed();
   </script>
