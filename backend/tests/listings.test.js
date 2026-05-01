@@ -69,6 +69,31 @@ describe('GET /api/listings/me/listings', () => {
   });
 });
 
+// K-131: GET /api/listings/me/listings/:id
+describe('GET /api/listings/me/listings/:id', () => {
+  it('401 when not authenticated', async () => {
+    const res = await request(app).get('/api/listings/me/listings/1');
+    expect(res.status).toBe(401);
+  });
+
+  it('200 returns own listing by id', async () => {
+    expect(draftListingId).toBeDefined();
+    const res = await request(app).get('/api/listings/me/listings/' + draftListingId)
+      .set('Authorization', 'Bearer ' + providerToken);
+    expect(res.status).toBe(200);
+    expect(res.body.listing).toBeDefined();
+    expect(String(res.body.listing.id)).toBe(String(draftListingId));
+  });
+
+  it('403 when listing belongs to another provider', async () => {
+    expect(draftListingId).toBeDefined();
+    const otherToken = require('jsonwebtoken').sign({ id: 9999, role: 'equipment_provider', email: 'other@test.com' }, process.env.JWT_SECRET || 'testsecret');
+    const res = await request(app).get('/api/listings/me/listings/' + draftListingId)
+      .set('Authorization', 'Bearer ' + otherToken);
+    expect(res.status).toBe(403);
+  });
+});
+
 describe('PATCH /api/listings/:id/publish', () => {
   it('401 when not authenticated', async () => {
     const res = await request(app).patch('/api/listings/999/publish');

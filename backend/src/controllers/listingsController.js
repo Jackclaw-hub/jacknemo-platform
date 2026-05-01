@@ -343,4 +343,22 @@ const getRelatedListings = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing, pauseListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings };
+// K-131: Get single owned listing for authenticated provider
+const getMyListingById = async (req, res) => {
+  try {
+    if (!PROVIDER_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only providers have listings' });
+    }
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    if (String(listing.provider_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'Not your listing' });
+    }
+    res.json({ listing });
+  } catch (err) {
+    console.error('getMyListingById error:', err);
+    res.status(500).json({ error: 'Failed to fetch listing' });
+  }
+};
+
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, getMyListingById, promoteListing, demoteListing, publishListing, pauseListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings };

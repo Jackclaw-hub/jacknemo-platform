@@ -5,7 +5,7 @@ const { apiRateLimiter, validateListing } = require('../middleware/security');
 const { listingsWriteLimiter } = require('../middleware/rateLimiter');
 const {
   createListing, getListings, getListing, contactListing,
-  updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing, pauseListing,
+  updateListing, deleteListing, getMyListings, getMyListingById, promoteListing, demoteListing, publishListing, pauseListing,
   renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings
 } = require('../controllers/listingsController');
 const { reportListing, getReportCount } = require('../controllers/reportController');
@@ -68,6 +68,8 @@ router.get('/events', (req, res) => {
 
 // Must be before /:id to avoid being matched as id="me"
 router.get('/me/listings', authenticateToken, getMyListings);
+// K-131: Single owned listing by id (provider ownership check)
+router.get('/me/listings/:id', authenticateToken, getMyListingById);
 
 // Public routes
 router.get('/suggest', suggestListings); // K-88: autocomplete — must be before /:id
