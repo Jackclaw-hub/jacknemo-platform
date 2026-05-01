@@ -197,6 +197,10 @@
     redirectIfNotLoggedIn();
     const user = auth.getUser();
 
+    // K-158: Bookmark state — module-level sets for reactivity
+    let _savedIds = new Set();
+    let _collections = [];
+
     // K-107: Search history
     const SEARCH_HIST_KEY = 'search_history';
     function pushSearchHistory(q) {
@@ -599,7 +603,7 @@
         '<a href="listing.html?id=' + l.id + '" style="display:inline-block;margin-left:8px;margin-top:8px;font-size:13px;color:#6b7280;text-decoration:none;">Details →</a>' +
         (l.provider_id ? '<a href="provider.html?id=' + l.provider_id + '" style="display:inline-block;margin-left:8px;margin-top:8px;font-size:13px;color:#9ca3af;text-decoration:none;">Anbieter →</a>' : '') +
         '<button id="bm-btn-' + l.id + '" onclick="toggleBookmark(' + l.id + ')" style="margin-left:8px;background:none;border:none;cursor:pointer;font-size:18px;vertical-align:middle;padding:0;" title="Speichern">' +
-          (savedIds.has(String(l.id)) ? '❤️' : '🤍') +
+          (_savedIds.has(String(l.id)) ? '❤️' : '🤍') +
         '</button>' +
         '<button onclick="toggleNote(' + l.id + ')" style="margin-left:6px;background:none;border:none;cursor:pointer;font-size:15px;vertical-align:middle;padding:0;" title="Notiz">📝</button>' +
         '<div id="note-wrap-' + l.id + '" style="display:none;margin-top:8px">' +
@@ -915,6 +919,116 @@
     renderSearchHistory(); // K-107: show on load if history exists
     loadRadar();
     loadFeed();
+    initBookmarks(); // K-158
+
+    // K-158: Bookmark & collection management
+    async function initBookmarks() {
+      try {
+        const [bmData, colData] = await Promise.all([
+          BookmarksAPI.getAll(),
+          CollectionsAPI.getAll(),
+        ]);
+        _savedIds = new Set((bmData.bookmarks || []).map(b => String(b.listing_id)));
+        _collections = colData.collections || [];
+      } catch(e) { /* bookmarks optional */ }
+    }
+
+    async function toggleBookmark(id) {
+      const btn = document.getElementById('bm-btn-' + id);
+      if (_savedIds.has(String(id))) {
+        await BookmarksAPI.remove(id).catch(() => {});
+        _savedIds.delete(String(id));
+        if (btn) btn.innerHTML = '🤍';
+      } else {
+        await BookmarksAPI.save(id).catch(() => {});
+        _savedIds.add(String(id));
+        if (btn) btn.innerHTML = '❤️';
+      }
+    }
+
+    async function showBookmarks() {
+      const panel = document.getElementById('bookmarks-panel');
+      panel.style.display = 'block';
+      try {
+        const [bmData, colData] = await Promise.all([
+          BookmarksAPI.getAll(),
+          CollectionsAPI.getAll(),
+        ]);
+        const bms = bmData.bookmarks || [];
+        _collections = colData.collections || [];
+        _savedIds = new Set(bms.map(b => String(b.listing_id)));
+
+        const colOptions = _collections.map(c =>
+          `<option value="${c.id}">${c.name}</option>`
+        ).join('');
+
+        // Collection filter chips
+        const filterBar = _collections.length
+          ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">' +
+            '<span id="bm-filter-all" style="background:#4f46e5;color:#fff;padding:3px 12px;border-radius:12px;cursor:pointer;font-size:12px;font-weight:600" onclick="filterBmCollection(null)">Alle (' + bms.length + ')</span>' +
+            _collections.map(c => {
+              const cnt = bms.filter(b => String(b.collection_id) === String(c.id)).length;
+              return `<span id="bm-filter-${c.id}" style="background:#e0e7ff;color:#3730a3;padding:3px 12px;border-radius:12px;cursor:pointer;font-size:12px" onclick="filterBmCollection(${c.id})">${c.name} (${cnt})</span>`;
+            }).join('') +
+            '</div>'
+          : '';
+
+        panel.innerHTML = `
+          <button onclick="document.getElementById('bookmarks-panel').style.display='none'" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280">✕</button>
+          <h3 style="margin:0 0 12px;font-size:16px">❤️ Gespeicherte Inserate</h3>
+          ${filterBar}
+          <div style="display:flex;gap:6px;margin-bottom:14px">
+            <input id="new-col-name" type="text" placeholder="Neue Kollektion…" style="flex:1;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+            <button onclick="createCollection()" style="padding:6px 12px;background:#4f46e5;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">+ Kollektion</button>
+          </div>
+          <div id="bm-list">
+            ${bms.length === 0 ? '<p style="color:#9ca3af;text-align:center;padding:20px">Noch keine gespeicherten Inserate.</p>' :
+              bms.map(b => `
+                <div class="bm-item" data-col="${b.collection_id || ''}" style="border:1px solid #e5e7eb;border-radius:6px;padding:10px 12px;margin-bottom:8px;background:#fff">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                    <a href="listing.html?id=${b.listing_id}" style="font-weight:600;font-size:13px;color:#111827;text-decoration:none">${b.title || '#' + b.listing_id}</a>
+                    <button onclick="removeBookmark(${b.listing_id})" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;padding:0;line-height:1">✕</button>
+                  </div>
+                  <div style="font-size:11px;color:#6b7280;margin:2px 0">${b.type || ''}${b.city ? ' · ' + b.city : ''}${b.geo ? ' (' + b.geo + ')' : ''}</div>
+                  <select onchange="assignBmCollection(${b.listing_id}, this.value)" style="margin-top:6px;font-size:11px;padding:2px 6px;border:1px solid #e5e7eb;border-radius:4px;color:#374151;background:#f9fafb">
+                    <option value="">— Kollektion wählen —</option>
+                    ${_collections.map(c => `<option value="${c.id}" ${String(b.collection_id) === String(c.id) ? 'selected' : ''}>${c.name}</option>`).join('')}
+                  </select>
+                </div>`).join('')}
+          </div>`;
+      } catch(e) {
+        document.getElementById('bookmarks-panel').innerHTML = '<button onclick="document.getElementById(\'bookmarks-panel\').style.display=\'none\'" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer">✕</button><p style="color:#ef4444;margin-top:40px">Fehler beim Laden.</p>';
+      }
+    }
+
+    function filterBmCollection(colId) {
+      document.querySelectorAll('#bm-list .bm-item').forEach(el => {
+        const itemCol = el.dataset.col || '';
+        el.style.display = (colId === null || String(itemCol) === String(colId)) ? '' : 'none';
+      });
+    }
+
+    async function removeBookmark(listingId) {
+      await BookmarksAPI.remove(listingId).catch(() => {});
+      _savedIds.delete(String(listingId));
+      const btn = document.getElementById('bm-btn-' + listingId);
+      if (btn) btn.innerHTML = '🤍';
+      showBookmarks();
+    }
+
+    async function createCollection() {
+      const inp = document.getElementById('new-col-name');
+      const name = inp?.value?.trim();
+      if (!name) return;
+      await CollectionsAPI.create(name).catch(() => {});
+      inp.value = '';
+      showBookmarks();
+    }
+
+    async function assignBmCollection(listingId, collectionId) {
+      await BookmarksAPI.assignCollection(listingId, collectionId || null).catch(() => {});
+      showBookmarks();
+    }
 
     // K-114: "/" keyboard shortcut to focus search input
     document.addEventListener('keydown', (e) => {

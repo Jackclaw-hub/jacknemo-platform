@@ -72,6 +72,13 @@ const BookmarksAPI = {
   save: (listing_id) => api('POST', '/founders/bookmarks', { listing_id }, auth.getToken()),
   getAll: () => api('GET', '/founders/bookmarks', null, auth.getToken()),
   remove: (listing_id) => api('DELETE', '/founders/bookmarks/' + listing_id, null, auth.getToken()),
+  assignCollection: (listing_id, collection_id) => api('PATCH', '/founders/bookmarks/' + listing_id + '/collection', { collection_id }, auth.getToken()),
+};
+
+// K-158: Bookmark collections
+const CollectionsAPI = {
+  getAll: () => api('GET', '/founders/collections', null, auth.getToken()),
+  create: (name) => api('POST', '/founders/collections', { name }, auth.getToken()),
 };
 
 // Radar

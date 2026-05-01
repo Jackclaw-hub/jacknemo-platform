@@ -25,6 +25,8 @@ class MockDatabase {
     this.messages = [];
     this.ratings = [];
     this.bookmarks = []; // saved_listings
+    this.bookmarkCollections = []; // K-158
+    this.nextCollectionId = 1;
     this.reports = []; // K-67: listing reports
     this.nextReportId = 1;
     this.templates = []; // K-68: message templates
@@ -612,10 +614,32 @@ class MockDatabase {
         }).filter(r => r.title); // only if listing still exists
         return { rows };
       }
+      if (s.startsWith('UPDATE') && sl.includes('collection_id')) {
+        // K-158: assign collection to bookmark
+        const collectionId = params[0], userId = params[1], listingId = params[2];
+        const bm = this.bookmarks.find(b => b.user_id == userId && b.listing_id == listingId);
+        if (!bm) return { rows: [] };
+        bm.collection_id = collectionId || null;
+        return { rows: [bm] };
+      }
       if (s.startsWith('DELETE')) {
         const userId = params[0], listingId = params[1];
         this.bookmarks = this.bookmarks.filter(b => !(b.user_id == userId && b.listing_id == listingId));
         return { rows: [] };
+      }
+    }
+
+    // K-158: ---- BOOKMARK COLLECTIONS ----
+    if (sl.includes('bookmark_collections')) {
+      if (s.startsWith('SELECT')) {
+        const userId = params[0];
+        return { rows: this.bookmarkCollections.filter(c => c.user_id == userId) };
+      }
+      if (s.startsWith('INSERT')) {
+        const userId = params[0], name = params[1];
+        const col = { id: this.nextCollectionId++, user_id: userId, name, created_at: new Date().toISOString() };
+        this.bookmarkCollections.push(col);
+        return { rows: [col] };
       }
     }
 

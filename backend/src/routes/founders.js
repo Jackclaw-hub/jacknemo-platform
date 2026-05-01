@@ -3,7 +3,7 @@ const router = express.Router();
 const { upsertProfile, getProfile, getFeed, getContactHistory, upsertNote, getNote } = require('../controllers/founderController');
 const { saveSearch, getSavedSearches, deleteSavedSearch } = require('../controllers/savedSearchController');
 const { getReferralCode, getReferralStatsEndpoint } = require('../controllers/referralController');
-const { saveBookmark, getBookmarks, deleteBookmark } = require('../controllers/bookmarksController');
+const { saveBookmark, getBookmarks, deleteBookmark, getCollections, createCollection, assignCollection } = require('../controllers/bookmarksController');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 // Founder profile
@@ -32,5 +32,10 @@ router.get('/listings/:id/note', authenticateToken, requireRole(['founder']), ge
 router.post('/bookmarks', authenticateToken, requireRole(['founder']), saveBookmark);
 router.get('/bookmarks', authenticateToken, requireRole(['founder']), getBookmarks);
 router.delete('/bookmarks/:listing_id', authenticateToken, requireRole(['founder']), deleteBookmark);
+router.patch('/bookmarks/:listing_id/collection', authenticateToken, requireRole(['founder']), assignCollection);
+
+// K-158: Bookmark collections
+router.get('/collections', authenticateToken, requireRole(['founder']), getCollections);
+router.post('/collections', authenticateToken, requireRole(['founder']), createCollection);
 
 module.exports = router;
