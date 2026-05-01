@@ -217,6 +217,7 @@
           <button class="btn-reject" onclick="reject(${l.id})">✗ Ablehnen</button>
           <button class="btn-feature ${l.is_featured ? '' : 'unfeatured'}" onclick="toggleFeature(${l.id}, ${l.is_featured ? 1 : 0})">${l.is_featured ? '\u2B50 Unfeature' : '\u2606 Feature'}</button>
           <button class="btn-details" onclick="showListingDetail(${l.id})">&#128269; Details</button>
+          <button onclick="previewListing(${l.id})" style="padding:6px 14px;background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:4px;cursor:pointer;font-size:13px" title="Public listing view">&#128065; Vorschau</button>
         </div>
         </div>
         <div id="msg-${l.id}"></div>
@@ -680,6 +681,21 @@
       document.getElementById('detail-modal-overlay').classList.remove('open');
     }
 
+    // K-154: Listing preview modal
+    function previewListing(id) {
+      const url = 'listing.html?id=' + id;
+      const overlay = document.getElementById('preview-modal-overlay');
+      document.getElementById('preview-iframe').src = url;
+      document.getElementById('preview-modal-title').textContent = 'Vorschau — Inserat #' + id;
+      document.getElementById('preview-open-link').href = url;
+      overlay.style.display = 'flex';
+    }
+    function closePreviewModal() {
+      const overlay = document.getElementById('preview-modal-overlay');
+      overlay.style.display = 'none';
+      document.getElementById('preview-iframe').src = '';
+    }
+
     // K-87: Admin user detail modal
     async function showUserDetail(id) {
       const overlay = document.getElementById('user-detail-modal-overlay');
@@ -752,6 +768,10 @@ E-Mail verifiziert: ${u.email_verified ? 'Ja' : 'Nein'}
       const cards = Array.from(document.querySelectorAll('#listings .card[id^="card-"]'));
       if (!cards.length) return;
       if (e.key === 'Escape') {
+        // Close preview modal first if open
+        if (document.getElementById('preview-modal-overlay').style.display === 'flex') {
+          closePreviewModal(); return;
+        }
         if (_focusedCardIdx >= 0 && cards[_focusedCardIdx]) {
           cards[_focusedCardIdx].style.outline = '';
           _focusedCardIdx = -1;
@@ -788,6 +808,20 @@ E-Mail verifiziert: ${u.email_verified ? 'Ja' : 'Nein'}
     <div class="detail-modal">
       <button class="dm-close" onclick="closeUserDetailModal()">&#x2715;</button>
       <div id="udm-body"></div>
+    </div>
+  </div>
+
+  <!-- K-154: Listing preview modal -->
+  <div id="preview-modal-overlay" onclick="if(event.target===this)closePreviewModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1100;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:12px;width:92vw;max-width:980px;height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.25);position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #e5e7eb;background:#f9fafb">
+        <span id="preview-modal-title" style="font-weight:600;font-size:14px;color:#374151">Vorschau</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <a id="preview-open-link" href="#" target="_blank" style="font-size:13px;color:#4f46e5;border:1px solid #4f46e5;padding:4px 12px;border-radius:4px;text-decoration:none">&#8599; Öffnen</a>
+          <button onclick="closePreviewModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9ca3af;line-height:1">&#x2715;</button>
+        </div>
+      </div>
+      <iframe id="preview-iframe" src="" style="flex:1;border:none;width:100%"></iframe>
     </div>
   </div>
 
