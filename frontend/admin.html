@@ -111,6 +111,7 @@
     <span id="bulk-count" style="font-size:13px;font-weight:700;flex:1"></span>
     <button onclick="bulkApprove()" style="background:#10b981;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">✓ Alle genehmigen</button>
     <button onclick="bulkReject()" style="background:#ef4444;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">✗ Alle ablehnen</button>
+    <button onclick="exportSelectedJSON()" style="background:none;border:1px solid rgba(255,255,255,.4);color:#fff;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px">&#x2B07; JSON Export</button>
     <button onclick="clearSelection()" style="background:none;border:1px solid rgba(255,255,255,.4);color:#fff;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px">Auswahl aufheben</button>
   </div>
 
@@ -459,6 +460,22 @@
       updateBulkBar();
     }
 
+    // K-160: Export selected listings as JSON download
+    function exportSelectedJSON() {
+      const selectedIds = new Set(
+        Array.from(document.querySelectorAll('.bulk-cb:checked')).map(cb => String(cb.value))
+      );
+      if (!selectedIds.size) return;
+      const selected = _loadedListings.filter(l => selectedIds.has(String(l.id)));
+      const blob = new Blob([JSON.stringify(selected, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'listings-export-' + new Date().toISOString().slice(0, 10) + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
     async function bulkApprove() {
       const ids = Array.from(document.querySelectorAll('.bulk-cb:checked')).map(cb => parseInt(cb.value));
       if (!ids.length) return;
@@ -553,10 +570,13 @@
       loadListings({ status: 'pending' });
     }
 
+    let _loadedListings = []; // K-160: cache for JSON export
+
     async function loadListings(filters = { status: 'pending' }) {
       try {
         const data = await AdminAPI.getListings(filters);
         const listings = data.listings || data;
+        _loadedListings = listings; // K-160
         const el = document.getElementById('listings');
         const statusLabel = filters.status === 'all' ? 'alle' : filters.status || 'ausstehende';
         document.getElementById('summary').textContent = listings.length + ' ' + statusLabel + ' Inserate';
