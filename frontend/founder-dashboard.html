@@ -102,6 +102,8 @@
     <div>
       <div id="welcome-text" style="font-size:18px;font-weight:700;color:#3730a3"></div>
       <div id="welcome-sub" style="font-size:13px;color:#6b7280;margin-top:2px"></div>
+      <!-- K-112: Sector tag pills -->
+      <div id="welcome-sector-tags" style="display:none;margin-top:8px;flex-wrap:wrap;gap:6px"></div>
     </div>
     <button onclick="document.getElementById('welcome-banner').style.display='none'" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:16px;padding:4px">&#x2715;</button>
   </div>
@@ -333,6 +335,17 @@
           document.getElementById('welcome-sub').textContent = r.profile.company_name
             ? r.profile.company_name + ' · ' + (r.profile.stage || '') + (r.profile.city ? ' · ' + r.profile.city : '')
             : 'Dein Founder-Dashboard';
+          // K-112: sector tag pills — clickable filters
+          const sector = r.profile.sector;
+          if (sector) {
+            const tagsEl = document.getElementById('welcome-sector-tags');
+            tagsEl.innerHTML =
+              '<span style="font-size:11px;color:#6b7280;align-self:center;margin-right:2px">Filter:</span>' +
+              '<span onclick="applyHistorySearch(\'' + sector.replace(/'/g, "\\'") + '\')" ' +
+                'style="display:inline-flex;align-items:center;gap:4px;background:#4f46e5;color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;cursor:pointer" ' +
+                'title="Nach ' + sector + ' suchen">🏷 ' + sector + '</span>';
+            tagsEl.style.display = 'flex';
+          }
           banner.style.display = 'flex';
         }
       } catch (_) {
@@ -505,6 +518,21 @@
         // Update welcome banner if visible
         const name = _founderProfile.display_name || _founderProfile.company_name;
         if (name) document.getElementById('welcome-text') && (document.getElementById('welcome-text').textContent = document.getElementById('welcome-text').textContent.replace(/,.*!/, ', ' + name + '!'));
+        // K-112: refresh sector tag pill
+        const tagsEl = document.getElementById('welcome-sector-tags');
+        if (tagsEl) {
+          const sec = _founderProfile.sector;
+          if (sec) {
+            tagsEl.innerHTML =
+              '<span style="font-size:11px;color:#6b7280;align-self:center;margin-right:2px">Filter:</span>' +
+              '<span onclick="applyHistorySearch(\'' + sec.replace(/'/g, "\\'") + '\')" ' +
+                'style="display:inline-flex;align-items:center;gap:4px;background:#4f46e5;color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;cursor:pointer" ' +
+                'title="Nach ' + sec + ' suchen">🏷 ' + sec + '</span>';
+            tagsEl.style.display = 'flex';
+          } else {
+            tagsEl.style.display = 'none';
+          }
+        }
         setTimeout(() => { status.textContent = ''; }, 2500);
       } catch(e) {
         status.style.color = '#ef4444';
