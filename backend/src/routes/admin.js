@@ -1,7 +1,7 @@
 const { adminVerifyProvider } = require('../controllers/providerProfileController');
 const express = require('express');
 const router = express.Router();
-const { getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, bulkAction } = require('../controllers/adminController');
+const { getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, bulkAction, getAdminListingDetail } = require('../controllers/adminController');
 const { getAnalytics, getTrends, getSearchTerms } = require('../controllers/adminAnalyticsController');
 const { listUsers, disableUser, enableUser, getUserDetail } = require('../controllers/adminUserController');
 const { exportListings, exportUsers } = require('../controllers/adminExportController');
@@ -31,6 +31,8 @@ router.patch('/providers/:userId/verify', ...adminOnly, adminVerifyProvider);
 
 // K-55: Bulk action
 router.post('/listings/bulk-action', ...adminOnly, bulkAction);
+// K-126: Admin listing detail (enriched)
+router.get('/listings/:id/detail', ...adminOnly, getAdminListingDetail);
 
 // K-65: User management
 router.get('/users', ...adminOnly, listUsers);

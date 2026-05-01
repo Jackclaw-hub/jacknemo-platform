@@ -621,6 +621,11 @@ class MockDatabase {
         return { rows: [report] };
       }
       if (s.startsWith('SELECT')) {
+        // K-126: COUNT for admin listing detail
+        if (sl.includes('count(*)') && sl.includes('listing_id = $1')) {
+          const cnt = this.reports.filter(r => r.listing_id == params[0] && !r.dismissed).length;
+          return { rows: [{ count: String(cnt) }] };
+        }
         if (sl.includes('listing_id = $1') && !sl.includes('dismissed')) {
           return { rows: this.reports.filter(r => r.listing_id == params[0]) };
         }

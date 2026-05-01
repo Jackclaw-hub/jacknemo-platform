@@ -561,7 +561,7 @@
       body.innerHTML = '<p style="color:#6b7280;text-align:center;padding:20px">Lade...</p>';
       overlay.classList.add('open');
       try {
-        const data = await ListingsAPI.getById(id);
+        const data = await api('GET', '/admin/listings/' + id + '/detail', null, auth.getToken()); // K-126
         const l = data.listing || data;
         const tags = (l.tags || []).map(t => `<span class="tag">${t}</span>`).join(' ') || '—';
         const expires = l.expires_at ? new Date(l.expires_at).toLocaleDateString('de-DE') : '—';
@@ -588,9 +588,11 @@
             Status: <span class="badge badge-${l.status}">${l.status}</span> &nbsp;·&nbsp;
             Typ: <strong>${l.type}</strong>
             <br>Geo: <strong>${l.geo}</strong>${l.city ? ' &nbsp;·&nbsp; Stadt: <strong>' + l.city + '</strong>' : ''}
-            <br>Provider ID: <strong>${l.provider_id}</strong> &nbsp;·&nbsp;
+            <br>Provider ID: <strong>${l.provider_id}</strong>${l.provider_email ? ' &nbsp;<span style="background:#f3f4f6;color:#6b7280;font-size:11px;padding:1px 7px;border-radius:8px">' + l.provider_email + '</span>' : ''} &nbsp;·&nbsp;
             Erstellt: <strong>${created}</strong> &nbsp;·&nbsp;
             Läuft ab: <strong>${expires}</strong>
+            ${l.rejection_reason ? '<br><span style="color:#991b1b;font-size:12px">⚠ Abgelehnt: ' + l.rejection_reason + '</span>' : ''}
+            ${l.report_count > 0 ? '<br><span style="color:#b45309;font-size:12px">🚩 ' + l.report_count + ' offene Meldung(en)</span>' : ''}
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:13px">
             <div style="background:#f3f4f6;border-radius:6px;padding:8px 12px"><span style="color:#6b7280">👁 Views</span><br><strong>${l.view_count || 0}</strong></div>

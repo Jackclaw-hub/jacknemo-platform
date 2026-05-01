@@ -201,5 +201,28 @@ const bulkAction = async (req, res) => {
   res.json({ ...results, message: `${results.succeeded.length} ${action}d, ${results.failed.length} failed` });
 };
 
+// K-126: Admin listing detail — enriched with provider email and report count
+const getAdminListingDetail = async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    // Provider email
+    const providerEmail = await getProviderEmail(listing.provider_id);
+    // Report count
+    let reportCount = 0;
+    try {
+      const rr = await db.query(
+        "SELECT COUNT(*) AS count FROM listing_reports WHERE listing_id = $1 AND dismissed = false",
+        [listing.id]
+      );
+      reportCount = parseInt(rr.rows[0]?.count, 10) || 0;
+    } catch(_) {}
+    res.json({ listing: { ...listing, provider_email: providerEmail, report_count: reportCount } });
+  } catch (err) {
+    console.error('getAdminListingDetail error:', err);
+    res.status(500).json({ error: 'Failed to fetch listing detail' });
+  }
+};
+
 module.exports = {
-  bulkAction, getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry };
+  bulkAction, getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, getAdminListingDetail };
