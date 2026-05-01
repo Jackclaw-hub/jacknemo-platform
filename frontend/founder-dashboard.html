@@ -54,6 +54,9 @@
     .saved-searches { margin-top: 8px; }
     .saved-search-chip { display: inline-block; background: #ede9fe; color: #5b21b6; padding: 3px 10px; border-radius: 12px; font-size: 12px; margin: 2px; cursor: pointer; }
     .saved-search-chip:hover { background: #ddd6fe; }
+    /* K-102: Filter presets */
+    .preset-btn { background: #f3f4f6; border: 1px solid #e5e7eb; color: #374151; padding: 4px 12px; border-radius: 16px; cursor: pointer; font-size: 12px; font-weight: 500; }
+    .preset-btn:hover, .preset-btn.active { background: #ede9fe; border-color: #c4b5fd; color: #4f46e5; }
 
     /* K-95: Grid / list view toggle */
     .view-toggle-btn { background: none; border: 1px solid #e5e7eb; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; color: #6b7280; }
@@ -118,6 +121,15 @@
 
   <div id="mode-label" class="mode-label">Radar Results</div>
 
+  <!-- K-102: Filter presets -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="filter-presets">
+    <span style="font-size:12px;color:#9ca3af;align-self:center;margin-right:2px">Schnell:</span>
+    <button onclick="applyPreset('all')" class="preset-btn" id="preset-all">Alle</button>
+    <button onclick="applyPreset('seed')" class="preset-btn" id="preset-seed">&#x1F331; Seed-ready</button>
+    <button onclick="applyPreset('remote')" class="preset-btn" id="preset-remote">&#x1F30D; Remote</button>
+    <button onclick="applyPreset('local')" class="preset-btn" id="preset-local">&#x1F4CD; Lokal</button>
+  </div>
+
   <div class="filters" id="radar-filters">
     <!-- K-64: type filter -->
     <select id="f-type" onchange="loadRadar()">
@@ -175,6 +187,27 @@
   <script>
     redirectIfNotLoggedIn();
     const user = auth.getUser();
+
+    // K-102: Filter presets
+    const PRESETS = {
+      all:    { type: '', stage: '', geo: '', city: '' },
+      seed:   { type: '', stage: 'seed', geo: 'national', city: '' },
+      remote: { type: '', stage: '', geo: 'national', city: '' },
+      local:  { type: '', stage: '', geo: 'local', city: '' },
+    };
+    function applyPreset(name) {
+      const p = PRESETS[name];
+      if (!p) return;
+      document.getElementById('f-type').value  = p.type;
+      document.getElementById('f-stage').value = p.stage;
+      document.getElementById('f-geo').value   = p.geo;
+      document.getElementById('f-city').value  = p.city;
+      // Toggle active class
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      const btn = document.getElementById('preset-' + name);
+      if (btn) btn.classList.add('active');
+      loadRadar();
+    }
 
     // K-95: Grid / list view toggle — persisted in localStorage
     function setView(mode) {
@@ -675,6 +708,7 @@
     function resetFilters() {
       ['f-type', 'f-stage', 'f-geo'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('f-city').value = '';
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
       loadRadar();
     }
 
