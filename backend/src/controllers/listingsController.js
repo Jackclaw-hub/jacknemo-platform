@@ -284,4 +284,21 @@ const suggestListings = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings };
+// K-100: Related listings — up to 4 active listings of same type, excluding current
+const getRelatedListings = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const current = await Listing.findById(id);
+    if (!current) return res.status(404).json({ error: 'Listing not found' });
+    const all = await Listing.findAll({});
+    const related = all
+      .filter(l => l.status === 'active' && String(l.id) !== String(id) && l.type === current.type)
+      .slice(0, 4)
+      .map(l => ({ id: l.id, title: l.title, type: l.type, city: l.city, geo: l.geo, view_count: l.view_count }));
+    res.json({ related });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch related listings', related: [] });
+  }
+};
+
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings };

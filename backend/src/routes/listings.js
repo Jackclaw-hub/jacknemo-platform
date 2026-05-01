@@ -6,7 +6,7 @@ const { listingsWriteLimiter } = require('../middleware/rateLimiter');
 const {
   createListing, getListings, getListing, contactListing,
   updateListing, deleteListing, getMyListings, promoteListing, demoteListing, publishListing,
-  renewListing, runListingExpiry, recordView, duplicateListing, suggestListings
+  renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings
 } = require('../controllers/listingsController');
 const { reportListing, getReportCount } = require('../controllers/reportController');
 
@@ -95,6 +95,9 @@ router.post('/:id/view', recordView);
 
 // K-73: Duplicate listing as draft
 router.post('/:id/duplicate', authenticateToken, duplicateListing);
+
+// K-100: Related listings
+router.get('/:id/related', getRelatedListings);
 
 // Protected routes (provider only)
 router.post('/', authenticateToken, listingsWriteLimiter, validateListing, createListing);
