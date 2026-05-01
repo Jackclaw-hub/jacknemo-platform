@@ -76,6 +76,12 @@
       <h2>Aktivität (letzte 7 Tage)</h2>
       <table id="activity"><thead><tr><th>Datum</th><th>Neue Inserate</th></tr></thead><tbody></tbody></table>
     </div>
+    <!-- K-91: Listing status breakdown stacked bar -->
+    <div class="card">
+      <h2>Inserate nach Status</h2>
+      <div id="status-chart" style="margin-top:14px"></div>
+    </div>
+
     <!-- K-74: Weekly trends chart -->
     <div class="card">
       <h2>Wöchentliche Trends (letzte 8 Wochen)</h2>
@@ -116,6 +122,34 @@
         tb('top-providers', resp.topProviders, ['name', 'listing_count', 'total_views', 'total_contacts']);
         tb('activity', resp.recentActivity, ['date', 'new_listings']);
         tb('notifs', resp.notifications, ['type', 'count']);
+
+        // K-91: Listing status breakdown stacked bar
+        const statusColors = { active: '#10b981', pending: '#f59e0b', expired: '#6b7280', draft: '#93c5fd' };
+        const byStatus = resp.listings.byStatus || [];
+        const total = byStatus.reduce((s, r) => s + (r.count || 0), 0) || 1;
+        const chartEl = document.getElementById('status-chart');
+        if (byStatus.length) {
+          const bar = byStatus.map(r => {
+            const pct = Math.max(1, Math.round(((r.count || 0) / total) * 100));
+            const color = statusColors[r.status] || '#e5e7eb';
+            return `<div style="flex:${pct};background:${color};height:32px;min-width:2px;position:relative" title="${r.status}: ${r.count}">
+              ${pct > 8 ? '<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.3)">' + r.count + '</span>' : ''}
+            </div>`;
+          }).join('');
+          const legend = byStatus.map(r => {
+            const color = statusColors[r.status] || '#e5e7eb';
+            return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#374151">
+              <span style="width:10px;height:10px;background:${color};border-radius:2px;display:inline-block"></span>
+              ${r.status} (${r.count})
+            </span>`;
+          }).join('');
+          chartEl.innerHTML = `
+            <div style="display:flex;border-radius:6px;overflow:hidden;margin-bottom:10px">${bar}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:12px">${legend}</div>
+          `;
+        } else {
+          chartEl.innerHTML = '<p style="color:#9ca3af;font-size:13px">Keine Daten</p>';
+        }
       } catch(ex) {
         document.getElementById('loading').textContent = 'Fehler: ' + ex.message;
       }
