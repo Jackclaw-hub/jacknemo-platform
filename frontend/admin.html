@@ -720,6 +720,37 @@ E-Mail verifiziert: ${u.email_verified ? 'Ja' : 'Nein'}
         ).join('');
       } catch(_) {}
     })();
+
+    // K-145: J/K keyboard navigation between listing cards
+    let _focusedCardIdx = -1;
+    document.addEventListener('keydown', (e) => {
+      const active = document.activeElement;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) return;
+      if (e.key !== 'j' && e.key !== 'k' && e.key !== 'Enter' && e.key !== 'Escape') return;
+      const cards = Array.from(document.querySelectorAll('#listings .card[id^="card-"]'));
+      if (!cards.length) return;
+      if (e.key === 'Escape') {
+        if (_focusedCardIdx >= 0 && cards[_focusedCardIdx]) {
+          cards[_focusedCardIdx].style.outline = '';
+          _focusedCardIdx = -1;
+        }
+        return;
+      }
+      if (e.key === 'Enter' && _focusedCardIdx >= 0 && cards[_focusedCardIdx]) {
+        const idMatch = cards[_focusedCardIdx].id.match(/card-(\d+)/);
+        if (idMatch) showListingDetail(parseInt(idMatch[1], 10));
+        return;
+      }
+      const prev = _focusedCardIdx;
+      if (e.key === 'j') _focusedCardIdx = Math.min(_focusedCardIdx + 1, cards.length - 1);
+      if (e.key === 'k') _focusedCardIdx = Math.max(_focusedCardIdx - 1, 0);
+      if (prev >= 0 && cards[prev]) cards[prev].style.outline = '';
+      if (cards[_focusedCardIdx]) {
+        cards[_focusedCardIdx].style.outline = '2px solid #4f46e5';
+        cards[_focusedCardIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+      e.preventDefault();
+    });
   </script>
 
   <!-- K-83: Listing detail modal -->
