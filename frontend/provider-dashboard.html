@@ -182,6 +182,12 @@
         <input type="url" id="p-website" placeholder="https://...">
         <label>Kontakt-E-Mail</label>
         <input type="email" id="p-email" placeholder="info@example.com">
+        <!-- K-123: Logo URL with live preview -->
+        <label>Logo-URL <span style="font-weight:400;color:#9ca3af;font-size:12px">(optional)</span></label>
+        <input type="url" id="p-logo" placeholder="https://beispiel.de/logo.png" oninput="previewImage('p-logo','p-logo-preview')">
+        <div id="p-logo-preview" style="display:none;margin-top:6px;margin-bottom:4px">
+          <img id="p-logo-preview-img" src="" alt="Logo-Vorschau" style="max-width:80px;max-height:80px;object-fit:contain;border-radius:6px;border:1px solid #e5e7eb" onerror="document.getElementById('p-logo-preview').style.display='none'">
+        </div>
         <!-- K-97: Social links -->
         <label style="margin-top:12px;display:block;font-weight:600;font-size:13px;color:#374151">Social Links <span style="font-weight:400;color:#9ca3af">(optional)</span></label>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
@@ -633,6 +639,9 @@
           document.getElementById('p-desc').value = p.description || '';
           document.getElementById('p-website').value = p.website || '';
           document.getElementById('p-email').value = p.contact_email || '';
+          // K-123: logo URL pre-fill + live preview on load
+          document.getElementById('p-logo').value = p.logo_url || '';
+          previewImage('p-logo', 'p-logo-preview');
           // K-97: Social links
           const sl = p.social_links || {};
           document.getElementById('p-linkedin').value = sl.linkedin || '';
@@ -680,6 +689,7 @@
           description: document.getElementById('p-desc').value,
           website: document.getElementById('p-website').value,
           contact_email: document.getElementById('p-email').value,
+          logo_url: document.getElementById('p-logo').value.trim() || null,
           social_links,
         }, auth.getToken());
         msg.className = 'form-msg success';
