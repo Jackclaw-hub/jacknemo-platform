@@ -14,6 +14,11 @@ async function getProfile(req, res) {
   try {
     const profile = await FounderProfile.findByUserId(req.user.id);
     if (!profile) return res.status(404).json({ error: 'Profile not found' });
+    // K-117: include listing_count (listings created by this user)
+    try {
+      const cr = await db.query('SELECT COUNT(*) AS count FROM listings WHERE provider_id = $1', [req.user.id]);
+      profile.listing_count = parseInt(cr.rows[0]?.count, 10) || 0;
+    } catch (_) { profile.listing_count = 0; }
     res.json({ profile });
   } catch (err) {
     res.status(500).json({ error: 'Failed to get profile' });

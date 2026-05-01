@@ -303,6 +303,11 @@ class MockDatabase {
           return { rows: l ? [l] : [] };
         }
         if (sql.includes('WHERE id = $1')) { const l = this.listings.find(x => x.id == params[0]); return { rows: l ? [l] : [] }; }
+        // K-117: COUNT for founder listing_count
+        if (sl.includes('count(*)') && sl.includes('provider_id = $1')) {
+          const cnt = this.listings.filter(x => x.provider_id == params[0]).length;
+          return { rows: [{ count: String(cnt) }] };
+        }
         if (sql.includes('provider_id = $1') && !sql.includes('status')) { return { rows: this.listings.filter(x => x.provider_id == params[0]) }; }
         // Public listings by provider (active only)
         if (sql.includes('provider_id = $1') && sql.includes('status = $2')) {
