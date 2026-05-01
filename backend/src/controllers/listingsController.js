@@ -109,14 +109,14 @@ const getListingStats = async (req, res) => {
   }
 };
 
-// K-120: in-memory view dedup store — key: "ip:listingId", value: timestamp
+// K-120 / K-159: in-memory view dedup store — key: "ip:listingId", value: timestamp
 const _viewSeen = new Map();
-const VIEW_TTL = 60 * 60 * 1000; // 1 hour
-// Prune stale entries every 10 minutes
+const VIEW_TTL = 24 * 60 * 60 * 1000; // 24 hours — one view per IP per day
+// Prune stale entries every hour
 setInterval(() => {
   const cutoff = Date.now() - VIEW_TTL;
   for (const [k, ts] of _viewSeen) { if (ts < cutoff) _viewSeen.delete(k); }
-}, 10 * 60 * 1000).unref();
+}, 60 * 60 * 1000).unref();
 
 // K-69: Explicit view event — called by frontend once per session
 const recordView = async (req, res) => {

@@ -288,4 +288,34 @@ describe('POST /api/listings/:id/contact', () => {
   });
 });
 
+// K-159: View dedup — same IP should only increment once per 24h
+describe('POST /api/listings/:id/view — deduplication', () => {
+  let viewListingId;
+
+  beforeAll(async () => {
+    const lRes = await request(app).post('/api/listings')
+      .set('Authorization', 'Bearer ' + providerToken)
+      .send({ title: 'View Dedup Listing', type: 'equipment', city: 'Hamburg', description: 'x', tags: [] });
+    viewListingId = lRes.body.listing?.id;
+  });
+
+  it('increments view_count on first view', async () => {
+    if (!viewListingId) return;
+    const res = await request(app).post('/api/listings/' + viewListingId + '/view');
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    const stats = await request(app).get('/api/listings/' + viewListingId + '/stats');
+    expect(stats.body.view_count).toBeGreaterThanOrEqual(1);
+  });
+
+  it('does not double-increment on repeat view from same IP', async () => {
+    if (!viewListingId) return;
+    const before = (await request(app).get('/api/listings/' + viewListingId + '/stats')).body.view_count || 0;
+    // Fire view again from same IP (supertest uses 127.0.0.1 which bypasses rate limit but not dedup)
+    await request(app).post('/api/listings/' + viewListingId + '/view');
+    const after = (await request(app).get('/api/listings/' + viewListingId + '/stats')).body.view_count || 0;
+    expect(after).toBe(before); // no increment — same IP within 24h
+  });
+});
+
 afterAll(async () => {});
