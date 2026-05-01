@@ -273,7 +273,7 @@
               <div>
                 <h3 style="margin:0 0 4px;font-size:14px">${g.listing_title || 'Inserat #' + g.listing_id}</h3>
                 <div class="meta">ID: ${g.listing_id} · Status: ${g.listing_status || '—'} · <strong>${g.count} Meldung(en)</strong></div>
-                <div style="margin-top:6px;font-size:12px;color:#6b7280">${(g.reports||[]).map(r => `<span style="background:#fff7ed;padding:2px 6px;border-radius:4px;margin-right:4px">${r.reason}</span>`).join('')}</div>
+                <div style="margin-top:6px;font-size:12px;color:#6b7280">${(g.reports||[]).map(r => `<span style="background:#fff7ed;padding:2px 6px;border-radius:4px;margin-right:4px" title="${r.reporter_email || 'Nutzer #' + r.reporter_id}">${r.reason}${r.reporter_email ? ' · <em>' + r.reporter_email + '</em>' : ''}</span>`).join('')}</div>
               </div>
               <div style="display:flex;gap:8px;flex-shrink:0">
                 <a href="listing.html?id=${g.listing_id}" target="_blank" style="font-size:12px;color:#4f46e5;padding:5px 10px;border:1px solid #4f46e5;border-radius:4px;text-decoration:none">Ansehen</a>

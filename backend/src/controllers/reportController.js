@@ -30,7 +30,7 @@ const reportListing = async (req, res) => {
   }
 };
 
-// GET /admin/reports — list open (undismissed) reports with listing info
+// GET /admin/reports — list open (undismissed) reports with listing info + reporter email
 const getReports = async (req, res) => {
   try {
     const r = await db.query(
@@ -41,14 +41,41 @@ const getReports = async (req, res) => {
         WHERE lr.dismissed = false
         ORDER BY lr.created_at DESC`
     );
-    // Also count open reports per listing
+
+    // K-94: Enrich with reporter emails — sequential queries (mock DB JOIN-safe)
+    const emailCache = {};
+    async function getEmail(userId) {
+      if (!userId) return null;
+      if (emailCache[userId] !== undefined) return emailCache[userId];
+      try {
+        const er = await db.query('SELECT email FROM users WHERE id = $1', [userId]);
+        emailCache[userId] = er.rows[0]?.email || null;
+      } catch { emailCache[userId] = null; }
+      return emailCache[userId];
+    }
+
+    // Build groups and collect unique reporter IDs
     const byListing = {};
     r.rows.forEach(row => {
       if (!byListing[row.listing_id]) byListing[row.listing_id] = { ...row, count: 0, reports: [] };
       byListing[row.listing_id].count++;
       byListing[row.listing_id].reports.push({ id: row.id, reason: row.reason, reporter_id: row.reporter_id, created_at: row.created_at });
     });
-    res.json({ groups: Object.values(byListing), total: r.rows.length });
+
+    // Fetch emails for all unique reporter IDs
+    const allReporterIds = [...new Set(r.rows.map(row => row.reporter_id).filter(Boolean))];
+    await Promise.all(allReporterIds.map(id => getEmail(id)));
+
+    // Attach reporter_email to each report entry
+    const groups = Object.values(byListing).map(g => ({
+      ...g,
+      reports: g.reports.map(rep => ({
+        ...rep,
+        reporter_email: emailCache[rep.reporter_id] || null,
+      })),
+    }));
+
+    res.json({ groups, total: r.rows.length });
   } catch (e) {
     console.error('getReports error:', e);
     res.status(500).json({ error: 'Failed to fetch reports' });

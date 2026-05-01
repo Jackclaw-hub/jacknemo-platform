@@ -170,4 +170,33 @@ describe('GET /api/admin/users/:id', () => {
   });
 });
 
+// K-94: Reports table shows listing_title + reporter_email
+describe('GET /api/admin/reports', () => {
+  it('401 without token', async () => {
+    const res = await request(app).get('/api/admin/reports');
+    expect(res.status).toBe(401);
+  });
+
+  it('200 returns groups array with total', async () => {
+    const res = await request(app).get('/api/admin/reports')
+      .set('Authorization', 'Bearer ' + adminToken);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('groups');
+    expect(res.body).toHaveProperty('total');
+    expect(Array.isArray(res.body.groups)).toBe(true);
+  });
+
+  it('each report entry has reporter_email field', async () => {
+    const res = await request(app).get('/api/admin/reports')
+      .set('Authorization', 'Bearer ' + adminToken);
+    expect(res.status).toBe(200);
+    for (const g of res.body.groups) {
+      expect(g).toHaveProperty('listing_title');
+      for (const r of g.reports || []) {
+        expect(r).toHaveProperty('reporter_email');
+      }
+    }
+  });
+});
+
 afterAll(async () => {});
