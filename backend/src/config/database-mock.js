@@ -416,6 +416,19 @@ class MockDatabase {
         if (sql.includes('geo =')) rows = rows.filter(x => x.geo === params[pi++]);
         if (sql.includes('starter_friendly =')) rows = rows.filter(x => x.starter_friendly === params[pi++]);
         if (sql.includes('is_premium =')) rows = rows.filter(x => x.is_premium === params[pi++]);
+        // K-168: stage filter — stages JSONB array contains value
+        if (sql.includes('stages::jsonb')) {
+          const stageVal = JSON.parse(params[pi++])[0];
+          rows = rows.filter(x => {
+            const stagesArr = Array.isArray(x.stages) ? x.stages : (typeof x.stages === 'string' ? JSON.parse(x.stages || '[]') : []);
+            return stagesArr.includes(stageVal);
+          });
+        }
+        // K-168: city filter — case-insensitive substring
+        if (sql.includes("LOWER(city) LIKE")) {
+          const cityTerm = params[pi++].replace(/%/g, '').toLowerCase();
+          rows = rows.filter(x => (x.city || '').toLowerCase().includes(cityTerm));
+        }
         // K-49: tag filter — handled post-query by Listing.findAll() JS layer; mock doesn't need SQL-level filter
         rows.sort((a, b) => {
           const aPremium = a.is_premium && (!a.premium_expires_at || a.premium_expires_at > new Date().toISOString());

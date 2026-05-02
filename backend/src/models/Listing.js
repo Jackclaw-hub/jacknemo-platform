@@ -25,13 +25,17 @@ class Listing {
     return result.rows[0];
   }
 
-  static async findAll({ type, geo, starterFriendly, tags, status = 'active' } = {}) {
+  static async findAll({ type, geo, starterFriendly, tags, stage, city, status = 'active' } = {}) {
     let query = 'SELECT * FROM listings WHERE status = $1';
     const values = [status];
     let idx = 2;
     if (type) { query += ` AND type = $${idx++}`; values.push(type); }
     if (geo)  { query += ` AND geo = $${idx++}`;  values.push(geo); }
     if (starterFriendly === true) { query += ` AND starter_friendly = $${idx++}`; values.push(true); }
+    // K-168: stage filter — JSONB array contains value
+    if (stage) { query += ` AND stages::jsonb @> $${idx++}::jsonb`; values.push(JSON.stringify([stage])); }
+    // K-168: city filter — case-insensitive substring
+    if (city)  { query += ` AND LOWER(city) LIKE $${idx++}`; values.push('%' + city.toLowerCase() + '%'); }
     // tags: comma-separated string or array — filter in-memory after query (mock + PG compatible)
     query += ' ORDER BY created_at DESC';
     const result = await pool.query(query, values);
