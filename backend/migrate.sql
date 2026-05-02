@@ -160,4 +160,61 @@ CREATE TABLE IF NOT EXISTS listing_views (
   viewed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- ---- SAVED SEARCHES ----
+CREATE TABLE IF NOT EXISTS saved_searches (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  name VARCHAR(128) NOT NULL,
+  filters JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ---- FOUNDER MATCH HISTORY (radar interactions) ----
+CREATE TABLE IF NOT EXISTS founder_match_history (
+  id SERIAL PRIMARY KEY,
+  founder_id INTEGER NOT NULL,
+  listing_id INTEGER NOT NULL,
+  score NUMERIC(5,4),
+  action VARCHAR(32),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ---- REFERRAL CODES ----
+CREATE TABLE IF NOT EXISTS referral_codes (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL UNIQUE,
+  code VARCHAR(32) NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ---- REFERRAL USES ----
+CREATE TABLE IF NOT EXISTS referral_uses (
+  id SERIAL PRIMARY KEY,
+  referrer_id INTEGER NOT NULL,
+  new_user_id INTEGER NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ---- LISTING STATUS HISTORY ----
+CREATE TABLE IF NOT EXISTS listing_status_history (
+  id SERIAL PRIMARY KEY,
+  listing_id INTEGER NOT NULL,
+  changed_by INTEGER,
+  old_status VARCHAR(32),
+  new_status VARCHAR(32),
+  note TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ---- PROVIDER RATINGS: ensure conflict constraint exists ----
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'provider_ratings_provider_id_founder_id_key'
+  ) THEN
+    ALTER TABLE provider_ratings ADD CONSTRAINT provider_ratings_provider_id_founder_id_key
+      UNIQUE (provider_id, founder_id);
+  END IF;
+END $$;
+
 SELECT 'Migration complete' AS status;
