@@ -437,6 +437,10 @@ class MockDatabase {
           if (!aPremium && bPremium) return 1;
           return new Date(b.created_at) - new Date(a.created_at);
         });
+        // K-170: consume LIMIT and OFFSET params (always appended by Listing.findAll)
+        const mockLimit = parseInt(params[pi++]) || 100;
+        const mockOffset = parseInt(params[pi++]) || 0;
+        rows = rows.slice(mockOffset, mockOffset + mockLimit);
         return { rows };
       }
       if (s.startsWith('INSERT')) {
