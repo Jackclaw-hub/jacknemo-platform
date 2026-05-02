@@ -20,12 +20,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - name: Run tests
-        run: npm test
+        run: npm test -- --forceExit
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-1234567890' }}
           NODE_ENV: test
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
@@ -71,8 +71,10 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             set -e
+            # Pull latest code
             docker exec openshell-cluster-nemoclaw kubectl exec -n openshell pod/jacknemo -- sh -c \
               'cd /sandbox/.openclaw-data/workspace/jacknemo-platform && git fetch origin main && git reset --hard origin/main'
+            # Restart backend (kill old, start new with dotenv)
             docker exec openshell-cluster-nemoclaw kubectl exec -n openshell pod/jacknemo -- sh -c \
-              'setsid /tmp/start-backend.sh </dev/null >/dev/null 2>&1 & sleep 3 && curl -sf http://localhost:3000/health'
+              'pkill -f "node src/app.js" 2>/dev/null; sleep 1; cd /sandbox/.openclaw-data/workspace/jacknemo-platform/backend && nohup node src/app.js >> /tmp/backend.log 2>&1 & sleep 4 && curl -sf http://localhost:3001/health'
             echo "Deploy OK at $(date)"
