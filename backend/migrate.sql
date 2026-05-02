@@ -114,8 +114,10 @@ CREATE TABLE IF NOT EXISTS listing_reports (
   listing_id INTEGER NOT NULL,
   reporter_id INTEGER,
   reason TEXT,
+  dismissed BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+ALTER TABLE listing_reports ADD COLUMN IF NOT EXISTS dismissed BOOLEAN DEFAULT FALSE;
 
 -- ---- PASSWORD RESETS ----
 CREATE TABLE IF NOT EXISTS password_resets (
