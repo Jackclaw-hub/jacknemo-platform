@@ -301,12 +301,26 @@ class MockDatabase {
     // ---- LISTINGS (text search) ----
     if (sl.includes('lower(title)')) {
       const term = (params[0] || '').replace(/%/g, '').toLowerCase();
-      const rows = this.listings.filter(x =>
-        x.status === 'active' && (
-          (x.title || '').toLowerCase().includes(term) ||
-          (x.description || '').toLowerCase().includes(term) ||
-          (x.city || '').toLowerCase().includes(term)
-        )
+      const active = this.listings.filter(x => x.status === 'active');
+      // K-162: relevance scoring if query requests it
+      if (sl.includes('relevance_score')) {
+        const scored = active
+          .map(x => {
+            const tagsText = Array.isArray(x.tags) ? x.tags.join(' ').toLowerCase() : (x.tags || '').toLowerCase();
+            const titleHit = (x.title || '').toLowerCase().includes(term);
+            const tagHit   = tagsText.includes(term);
+            const descHit  = (x.description || '').toLowerCase().includes(term);
+            const relevance_score = (titleHit ? 3 : 0) + (tagHit ? 2 : 0) + (descHit ? 1 : 0);
+            return { ...x, relevance_score };
+          })
+          .filter(x => x.relevance_score > 0);
+        scored.sort((a, b) => b.relevance_score - a.relevance_score || new Date(b.created_at) - new Date(a.created_at));
+        return { rows: scored };
+      }
+      const rows = active.filter(x =>
+        (x.title || '').toLowerCase().includes(term) ||
+        (x.description || '').toLowerCase().includes(term) ||
+        (x.city || '').toLowerCase().includes(term)
       );
       return { rows };
     }
@@ -368,16 +382,6 @@ class MockDatabase {
           }
           rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
           return { rows: rows.slice(0, 10) };
-        }
-        // K-122: full-text search with title/city rank weighting
-        if (sl.includes('lower(title) like') && sl.includes('lower(description) like')) {
-          const term = (params[0] || '').replace(/%/g, '').toLowerCase();
-          const active = this.listings.filter(x => x.status === 'active');
-          const titleMatch = active.filter(x => (x.title || '').toLowerCase().includes(term) || (x.city || '').toLowerCase().includes(term));
-          const descOnly  = active.filter(x => !(x.title || '').toLowerCase().includes(term) && !(x.city || '').toLowerCase().includes(term) && (x.description || '').toLowerCase().includes(term));
-          titleMatch.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-          descOnly.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-          return { rows: [...titleMatch, ...descOnly] };
         }
         // K-66: export query — no WHERE clause, no params
         if (!params.length) {

@@ -50,19 +50,19 @@ class Listing {
   }
 
   static async search(term) {
-    // K-122: title/city matches ranked above description-only matches
+    // K-162: relevance scoring — title=3, tags=2 each, description=1; sort by score DESC then created_at DESC
     const like = `%${term.toLowerCase()}%`;
     const result = await pool.query(
-      `SELECT *, CASE
-          WHEN LOWER(title) LIKE $1 THEN 0
-          WHEN LOWER(city)  LIKE $1 THEN 1
-          ELSE 2
-        END AS _rank
+      `SELECT *,
+          (CASE WHEN LOWER(title) LIKE $1 THEN 3 ELSE 0 END
+         + CASE WHEN LOWER(tags::text) LIKE $1 THEN 2 ELSE 0 END
+         + CASE WHEN LOWER(description) LIKE $1 THEN 1 ELSE 0 END
+          ) AS relevance_score
        FROM listings
        WHERE status = 'active' AND (
-         LOWER(title) LIKE $1 OR LOWER(description) LIKE $1 OR LOWER(city) LIKE $1
+         LOWER(title) LIKE $1 OR LOWER(description) LIKE $1 OR LOWER(tags::text) LIKE $1
        )
-       ORDER BY _rank, created_at DESC`,
+       ORDER BY relevance_score DESC, created_at DESC`,
       [like]
     );
     return result.rows;

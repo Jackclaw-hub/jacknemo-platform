@@ -318,4 +318,65 @@ describe('POST /api/listings/:id/view — deduplication', () => {
   });
 });
 
+// K-162: Search relevance scoring
+describe('GET /api/listings?search= — relevance scoring', () => {
+  let titleOnlyId, tagOnlyId, descOnlyId, adminToken;
+
+  beforeAll(async () => {
+    const adminLogin = await request(app).post('/api/auth/login')
+      .send({ email: 'admin@nemoclaw.dev', password: 'admin2026!' });
+    adminToken = adminLogin.body.access_token || adminLogin.body.token;
+
+    const titleRes = await request(app).post('/api/listings')
+      .set('Authorization', 'Bearer ' + providerToken)
+      .send({ title: 'Robotik Workshop Spezial', type: 'equipment', geo: 'local', city: 'Berlin', description: 'Allgemeiner Kurs', tags: ['allgemein'] });
+    titleOnlyId = titleRes.body.listing?.id;
+
+    const tagRes = await request(app).post('/api/listings')
+      .set('Authorization', 'Bearer ' + providerToken)
+      .send({ title: 'Kurs ohne Titel', type: 'equipment', geo: 'local', city: 'Berlin', description: 'Allgemein', tags: ['robotik'] });
+    tagOnlyId = tagRes.body.listing?.id;
+
+    const descRes = await request(app).post('/api/listings')
+      .set('Authorization', 'Bearer ' + providerToken)
+      .send({ title: 'Unrelated Titel', type: 'equipment', geo: 'local', city: 'Berlin', description: 'Hier geht es um robotik', tags: [] });
+    descOnlyId = descRes.body.listing?.id;
+
+    // Bulk-approve (sets status = 'active') so they appear in search results
+    const ids = [titleOnlyId, tagOnlyId, descOnlyId].filter(Boolean);
+    if (ids.length) {
+      await request(app).post('/api/admin/listings/bulk-action')
+        .set('Authorization', 'Bearer ' + adminToken)
+        .send({ ids, action: 'approve' });
+    }
+  });
+
+  it('returns relevance_score per listing', async () => {
+    const res = await request(app).get('/api/listings?search=robotik');
+    expect(res.status).toBe(200);
+    const listings = res.body.listings || [];
+    expect(listings.length).toBeGreaterThan(0);
+    listings.forEach(l => {
+      expect(typeof l.relevance_score).toBe('number');
+    });
+  });
+
+  it('title match scores higher than description-only match', async () => {
+    const res = await request(app).get('/api/listings?search=robotik');
+    const listings = res.body.listings || [];
+    const titleListing = listings.find(l => l.id === titleOnlyId);
+    const descListing  = listings.find(l => l.id === descOnlyId);
+    if (!titleListing || !descListing) return;
+    expect(titleListing.relevance_score).toBeGreaterThan(descListing.relevance_score);
+  });
+
+  it('results are sorted by relevance_score descending', async () => {
+    const res = await request(app).get('/api/listings?search=robotik');
+    const listings = res.body.listings || [];
+    for (let i = 1; i < listings.length; i++) {
+      expect(listings[i - 1].relevance_score).toBeGreaterThanOrEqual(listings[i].relevance_score);
+    }
+  });
+});
+
 afterAll(async () => {});
