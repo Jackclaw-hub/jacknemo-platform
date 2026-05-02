@@ -103,6 +103,16 @@
         <p id="prov-web"></p>
         <div id="prov-verified" style="display:none;margin-top:8px;font-size:13px;color:#065f46;background:#d1fae5;padding:4px 10px;border-radius:6px;display:inline-block">✓ Verifizierter Anbieter</div>
         <a id="prov-profile-link" href="#" style="display:none;margin-top:10px;font-size:13px;color:#4f46e5;text-decoration:none">Vollständiges Profil ansehen →</a>
+        <!-- K-165: Provider availability -->
+        <div id="prov-availability" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid #e5e7eb">
+          <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Verfügbarkeit</div>
+          <div id="prov-lead-time" style="display:none;font-size:13px;color:#374151;margin-bottom:6px"></div>
+          <div id="prov-blocked-wrap" style="display:none">
+            <div style="font-size:13px;color:#6b7280;margin-bottom:4px">Gesperrte Zeiträume:</div>
+            <div id="prov-blocked-list" style="font-size:13px;color:#374151;line-height:1.8"></div>
+          </div>
+          <div id="prov-avail-ok" style="display:none;font-size:13px;color:#059669">✓ Derzeit verfügbar</div>
+        </div>
       </div>
 
       <button class="contact-btn" id="contact-btn" onclick="toggleContact()">Kontakt aufnehmen</button>
@@ -257,6 +267,39 @@
               profLink.style.display = 'inline-block';
             }
           } catch(e) { /* provider profile optional */ }
+
+          // K-165: Load provider availability (non-blocking)
+          try {
+            const av = await ProvidersAPI.getAvailability(l.provider_id);
+            const avSection = document.getElementById('prov-availability');
+            const leadEl = document.getElementById('prov-lead-time');
+            const blockedWrap = document.getElementById('prov-blocked-wrap');
+            const blockedList = document.getElementById('prov-blocked-list');
+            const availOk = document.getElementById('prov-avail-ok');
+            const hasLead = av && av.lead_time_days > 0;
+            const hasBlocked = av && Array.isArray(av.blocked) && av.blocked.length > 0;
+            if (hasLead || hasBlocked) {
+              avSection.style.display = 'block';
+              if (hasLead) {
+                leadEl.textContent = '⏱ Vorlaufzeit: mindestens ' + av.lead_time_days + ' Tag' + (av.lead_time_days !== 1 ? 'e' : '');
+                leadEl.style.display = 'block';
+              }
+              if (hasBlocked) {
+                blockedList.innerHTML = av.blocked.map(range => {
+                  const parts = String(range).split('..');
+                  if (parts.length === 2) {
+                    const fmt = d => new Date(d).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    return '• ' + fmt(parts[0]) + ' – ' + fmt(parts[1]);
+                  }
+                  return '• ' + range;
+                }).join('<br>');
+                blockedWrap.style.display = 'block';
+              }
+            } else if (av) {
+              avSection.style.display = 'block';
+              availOk.style.display = 'block';
+            }
+          } catch(e) { /* availability optional */ }
         }
 
         document.getElementById('loading').style.display = 'none';
