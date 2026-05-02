@@ -115,10 +115,20 @@
       </div>
 
       <!-- Ratings -->
-      <div class="section" id="ratings-section" style="display:none">
+      <div class="section" id="ratings-section">
         <div class="section-title">Bewertungen</div>
         <div class="rating-summary" id="rating-summary" style="display:none"></div>
         <div id="reviews-list"></div>
+        <!-- K-166: Submit rating (founders only) -->
+        <div id="rate-form" style="display:none;margin-top:16px;padding:14px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px">
+          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">Eigene Bewertung abgeben</div>
+          <div id="star-picker" style="font-size:28px;cursor:pointer;letter-spacing:4px;color:#d1d5db;margin-bottom:8px">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <textarea id="rate-comment" rows="2" placeholder="Optionaler Kommentar…" maxlength="500" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;resize:vertical;box-sizing:border-box;margin-bottom:8px"></textarea>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button id="rate-submit-btn" onclick="doSubmitRating()" style="padding:7px 16px;background:#4f46e5;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">Bewertung senden</button>
+            <span id="rate-msg" style="font-size:13px;display:none"></span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -247,32 +257,93 @@
 
         // Ratings
         const ratingsData = rateRes.status === 'fulfilled' ? rateRes.value : null;
-        const reviews = ratingsData?.ratings || [];
-        if (reviews.length) {
-          document.getElementById('ratings-section').style.display = 'block';
-          const avg = ratingsData.average || 0;
-          const count = ratingsData.count || reviews.length;
-          document.getElementById('rating-summary').style.display = 'flex';
-          document.getElementById('rating-summary').innerHTML = `
-            <div>
-              <div class="rating-big">${parseFloat(avg).toFixed(1)}</div>
-              <div class="stars">${stars(avg)}</div>
-              <div class="rating-count">${count} Bewertung${count !== 1 ? 'en' : ''}</div>
-            </div>
-          `;
-          document.getElementById('reviews-list').innerHTML = reviews.slice(0, 5).map(r => `
-            <div class="review-card">
-              <div class="review-stars">${stars(r.rating)} <strong>${r.rating}/5</strong></div>
-              ${r.comment ? '<p class="review-text">' + r.comment + '</p>' : ''}
-              <div class="review-meta">${new Date(r.created_at).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-            </div>
-          `).join('');
+        renderRatings(ratingsData);
+
+        // K-166: Show rating form for logged-in founders
+        const currentUser = auth.getUser();
+        if (currentUser && currentUser.role === 'founder') {
+          document.getElementById('rate-form').style.display = 'block';
+          initStarPicker();
         }
 
         show('profile');
       } catch(e) {
         show('error');
       }
+    }
+
+    function renderRatings(ratingsData) {
+      const reviews = ratingsData?.ratings || [];
+      if (reviews.length) {
+        const avg = ratingsData.average || 0;
+        const count = ratingsData.count || reviews.length;
+        document.getElementById('rating-summary').style.display = 'flex';
+        document.getElementById('rating-summary').innerHTML = `
+          <div>
+            <div class="rating-big">${parseFloat(avg).toFixed(1)}</div>
+            <div class="stars">${stars(avg)}</div>
+            <div class="rating-count">${count} Bewertung${count !== 1 ? 'en' : ''}</div>
+          </div>
+        `;
+        document.getElementById('reviews-list').innerHTML = reviews.slice(0, 10).map(r => `
+          <div class="review-card">
+            <div class="review-stars">${stars(r.rating)} <strong>${r.rating}/5</strong>${r.founder_name ? ' <span style="font-size:11px;color:#6b7280;font-weight:400">— ' + r.founder_name + '</span>' : ''}</div>
+            ${r.comment ? '<p class="review-text">' + r.comment.replace(/</g,'&lt;') + '</p>' : ''}
+            <div class="review-meta">${new Date(r.created_at).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // K-166: Interactive star picker
+    let _selectedStar = 0;
+    function initStarPicker() {
+      const picker = document.getElementById('star-picker');
+      if (!picker) return;
+      function renderStars(n) {
+        picker.innerHTML = [1,2,3,4,5].map(i =>
+          `<span data-v="${i}" style="color:${i<=n?'#f59e0b':'#d1d5db'};cursor:pointer">&#9733;</span>`
+        ).join('');
+      }
+      renderStars(0);
+      picker.addEventListener('mouseover', e => {
+        const v = parseInt(e.target.dataset.v);
+        if (v) renderStars(v);
+      });
+      picker.addEventListener('mouseout', () => renderStars(_selectedStar));
+      picker.addEventListener('click', e => {
+        const v = parseInt(e.target.dataset.v);
+        if (v) { _selectedStar = v; renderStars(v); }
+      });
+    }
+
+    async function doSubmitRating() {
+      if (!_selectedStar) {
+        showRateMsg('Bitte wähle eine Sternebewertung.', '#ef4444');
+        return;
+      }
+      const comment = document.getElementById('rate-comment').value.trim();
+      const btn = document.getElementById('rate-submit-btn');
+      btn.disabled = true;
+      try {
+        await ProvidersAPI.submitRating(providerId, _selectedStar, comment || null, null);
+        showRateMsg('✓ Bewertung gespeichert!', '#059669');
+        document.getElementById('rate-form').style.display = 'none';
+        // Refresh ratings
+        const fresh = await ProvidersAPI.getRatings(providerId).catch(() => null);
+        if (fresh) renderRatings(fresh);
+        document.getElementById('ratings-section').style.display = 'block';
+      } catch(e) {
+        btn.disabled = false;
+        showRateMsg('Fehler beim Senden. Bitte erneut versuchen.', '#ef4444');
+      }
+    }
+
+    function showRateMsg(text, color) {
+      const el = document.getElementById('rate-msg');
+      el.textContent = text;
+      el.style.color = color;
+      el.style.display = 'inline';
     }
 
     function show(view) {

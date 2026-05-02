@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { upsertProfile, getProfile, getProviderListings, requestVerification, getProviderAnalytics, getResponseRate, saveAvailability, getAvailability } = require('../controllers/providerProfileController');
-const { submitRating, getRating } = require('../controllers/ratingController');
+const { submitRating, getRating, getRatings } = require('../controllers/ratingController');
 const { getTemplates, createTemplate, deleteTemplate } = require('../controllers/templateController');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
@@ -13,9 +13,10 @@ router.get('/profile', authenticateToken, requireRole(['equipment_provider','ser
 router.get('/:userId/profile', getProfile);
 router.get('/:userId/listings', getProviderListings);
 
-// Ratings (KAN-022)
+// Ratings (KAN-022 / K-166)
 router.post('/:userId/rate', authenticateToken, requireRole(['founder']), submitRating);
 router.get('/:userId/rating', getRating);
+router.get('/:userId/ratings', getRatings);
 
 // K-40: Provider analytics
 router.get('/analytics', authenticateToken, requireRole(['equipment_provider','service_provider']), getProviderAnalytics);

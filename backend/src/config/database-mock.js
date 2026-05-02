@@ -551,18 +551,19 @@ class MockDatabase {
     // ---- PROVIDER RATINGS ----
     if (sl.includes('provider_ratings')) {
       if (s.startsWith('INSERT')) {
-        // params: provider_id, rater_id, listing_id, rating, comment
+        // params: provider_id, founder_id, listing_id, rating, comment
         const r = {
           id: this.nextRatingId++,
           provider_id: params[0],
-          rater_id: params[1],
+          founder_id: params[1],
+          rater_id: params[1], // alias
           listing_id: params[2] || null,
           rating: params[3],
           comment: params[4] || null,
           created_at: new Date().toISOString()
         };
-        // Upsert: one rating per rater per provider
-        const existing = this.ratings.findIndex(x => x.provider_id == params[0] && x.rater_id == params[1]);
+        // Upsert: one rating per founder per provider
+        const existing = this.ratings.findIndex(x => x.provider_id == params[0] && (x.founder_id == params[1] || x.rater_id == params[1]));
         if (existing >= 0) this.ratings[existing] = { ...this.ratings[existing], rating: params[3], comment: params[4] || null };
         else this.ratings.push(r);
         return { rows: [r] };
@@ -572,14 +573,16 @@ class MockDatabase {
           const pid = params[0];
           const rs = this.ratings.filter(x => x.provider_id == pid);
           const avg = rs.length ? rs.reduce((s, x) => s + Number(x.rating), 0) / rs.length : null;
-          return { rows: [{ avg_rating: avg ? avg.toFixed(2) : null, count: String(rs.length) }] };
+          return { rows: [{ average: avg ? String(Math.round(avg * 10) / 10) : null, count: String(rs.length) }] };
         }
+        // K-166: list ratings with founder name
         const pid = params[0];
-        const rs = this.ratings.filter(x => x.provider_id == pid);
+        const rs = this.ratings.filter(x => x.provider_id == pid)
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         return {
           rows: rs.map(r => {
-            const rater = this.users.find(u => u.id == r.rater_id);
-            return { ...r, rater_name: rater ? rater.name : null };
+            const founder = this.users.find(u => u.id == r.rater_id || u.id == r.founder_id);
+            return { ...r, founder_name: founder ? founder.name : null, rater_name: founder ? founder.name : null };
           })
         };
       }

@@ -2,7 +2,7 @@ const db = require('../config/database');
 
 const submitRating = async (req, res) => {
   try {
-    const { rating, listing_id } = req.body;
+    const { rating, comment, listing_id } = req.body;
     const providerId = req.params.userId;
     const founderId = req.user.id;
 
@@ -10,21 +10,12 @@ const submitRating = async (req, res) => {
       return res.status(400).json({ error: 'Rating must be between 1 and 5' });
     }
 
-    // Verify founder has contacted this provider (listing must exist in their history)
-    const histCheck = await db.query(
-      `SELECT id FROM founder_match_history WHERE user_id=$1 AND listing_id=$2 AND action='contact'`,
-      [founderId, listing_id]
-    );
-    if (!histCheck.rows.length) {
-      return res.status(403).json({ error: 'You must contact a listing before rating the provider' });
-    }
-
     const result = await db.query(
-      `INSERT INTO provider_ratings (provider_id, founder_id, listing_id, rating)
-       VALUES ($1,$2,$3,$4)
-       ON CONFLICT (provider_id, founder_id) DO UPDATE SET rating=$4, created_at=NOW()
+      `INSERT INTO provider_ratings (provider_id, founder_id, listing_id, rating, comment)
+       VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (provider_id, founder_id) DO UPDATE SET rating=$4, comment=$5, created_at=NOW()
        RETURNING *`,
-      [providerId, founderId, listing_id || null, rating]
+      [providerId, founderId, listing_id || null, rating, comment || null]
     );
     res.json({ rating: result.rows[0] });
   } catch (err) {
@@ -51,4 +42,32 @@ const getRating = async (req, res) => {
   }
 };
 
-module.exports = { submitRating, getRating };
+// K-166: GET /providers/:userId/ratings — individual reviews with average
+const getRatings = async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT pr.id, pr.rating, pr.comment, pr.created_at,
+              u.name AS founder_name
+         FROM provider_ratings pr
+         LEFT JOIN users u ON u.id = pr.founder_id
+        WHERE pr.provider_id = $1
+        ORDER BY pr.created_at DESC
+        LIMIT 50`,
+      [req.params.userId]
+    );
+    const ratings = result.rows;
+    const avg = ratings.length
+      ? ratings.reduce((s, r) => s + r.rating, 0) / ratings.length
+      : 0;
+    res.json({
+      ratings,
+      average: Math.round(avg * 10) / 10,
+      count: ratings.length,
+    });
+  } catch (err) {
+    console.error('getRatings error:', err);
+    res.status(500).json({ error: 'Failed to fetch ratings' });
+  }
+};
+
+module.exports = { submitRating, getRating, getRatings };
