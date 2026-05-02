@@ -1,7 +1,7 @@
 const { Pool } = require('pg');
 
-// Use real PostgreSQL if env vars are set, otherwise fall back to mock
-const hasRealDb = process.env.DB_HOST && process.env.DB_HOST !== '';
+// Use real PostgreSQL if env vars are set AND not in test mode
+const hasRealDb = process.env.NODE_ENV !== 'test' && process.env.DB_HOST && process.env.DB_HOST !== '';
 
 let pool;
 
