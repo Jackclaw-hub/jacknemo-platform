@@ -182,4 +182,47 @@ const getResponseRate = async (req, res) => {
   }
 };
 
-module.exports = { upsertProfile, getProfile, getProviderListings, requestVerification, adminVerifyProvider, getProviderAnalytics, getResponseRate };
+// K-164: Provider availability — blocked dates + lead time
+const saveAvailability = async (req, res) => {
+  try {
+    const { blocked, lead_time_days } = req.body;
+    if (!Array.isArray(blocked)) return res.status(400).json({ error: 'blocked must be an array' });
+    const leadTime = parseInt(lead_time_days, 10) || 0;
+    const blockedJson = JSON.stringify(blocked);
+    await db.query(
+      `INSERT INTO provider_profiles (user_id, availability_blocked, lead_time_days, updated_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (user_id) DO UPDATE SET
+         availability_blocked = EXCLUDED.availability_blocked,
+         lead_time_days = EXCLUDED.lead_time_days,
+         updated_at = NOW()`,
+      [req.user.id, blockedJson, leadTime]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('saveAvailability error:', err);
+    res.status(500).json({ error: 'Failed to save availability' });
+  }
+};
+
+const getAvailability = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const result = await db.query(
+      'SELECT availability_blocked, lead_time_days FROM provider_profiles WHERE user_id = $1',
+      [userId]
+    );
+    const row = result.rows[0];
+    if (!row) return res.json({ blocked: [], lead_time_days: 0 });
+    let blocked = [];
+    if (row.availability_blocked) {
+      try { blocked = typeof row.availability_blocked === 'string' ? JSON.parse(row.availability_blocked) : row.availability_blocked; } catch { blocked = []; }
+    }
+    res.json({ blocked, lead_time_days: row.lead_time_days || 0 });
+  } catch (err) {
+    console.error('getAvailability error:', err);
+    res.status(500).json({ error: 'Failed to fetch availability' });
+  }
+};
+
+module.exports = { upsertProfile, getProfile, getProviderListings, requestVerification, adminVerifyProvider, getProviderAnalytics, getResponseRate, saveAvailability, getAvailability };

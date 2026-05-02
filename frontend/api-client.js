@@ -128,6 +128,11 @@ const ProvidersAPI = {
   getRatings: (userId) => api('GET', '/providers/' + userId + '/ratings'),
   submitRating: (userId, rating, comment, listingId) =>
     api('POST', '/providers/' + userId + '/rate', { rating, comment, listing_id: listingId }, auth.getToken()),
+  // K-164: Availability
+  saveAvailability: (blocked, lead_time_days) =>
+    api('POST', '/providers/availability', { blocked, lead_time_days }, auth.getToken()),
+  getAvailability: (userId) =>
+    api('GET', '/providers/' + userId + '/availability'),
 };
 
 // Messages

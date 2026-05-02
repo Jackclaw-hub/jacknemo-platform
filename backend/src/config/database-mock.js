@@ -168,6 +168,13 @@ class MockDatabase {
             return { ...p, email: u.email || '', name: u.name || '' };
           })};
         }
+        // K-164: availability query — SELECT availability_blocked, lead_time_days WHERE user_id=$1
+        if (sl.includes('availability_blocked') && sl.includes('lead_time_days')) {
+          const uid = params[0];
+          const p = this.providerProfiles.find(x => x.user_id === uid || x.user_id == uid);
+          if (!p) return { rows: [] };
+          return { rows: [{ availability_blocked: p.availability_blocked || null, lead_time_days: p.lead_time_days || 0 }] };
+        }
         // Public profile lookup by user_id (numeric param)
         const uid = params[0];
         if (uid !== undefined) {
@@ -193,6 +200,21 @@ class MockDatabase {
           this.providerProfiles[idx].verification_requested_at = params[1];
         }
         return { rows: [this.providerProfiles[idx]] };
+      }
+      // K-164: availability upsert — INSERT INTO provider_profiles (user_id, availability_blocked, lead_time_days, ...)
+      if (sl.includes('availability_blocked') && sl.includes('lead_time_days')) {
+        const uid = params[0];
+        const blocked = params[1];
+        const leadTime = params[2] || 0;
+        const idx = this.providerProfiles.findIndex(x => x.user_id === uid || x.user_id == uid);
+        if (idx >= 0) {
+          this.providerProfiles[idx].availability_blocked = blocked;
+          this.providerProfiles[idx].lead_time_days = leadTime;
+          this.providerProfiles[idx].updated_at = new Date().toISOString();
+        } else {
+          this.providerProfiles.push({ user_id: uid, availability_blocked: blocked, lead_time_days: leadTime, updated_at: new Date().toISOString() });
+        }
+        return { rows: [] };
       }
       const existing = this.providerProfiles.find(x => x.user_id === params[0]) || {};
       let socialLinks = params[6] || null;
