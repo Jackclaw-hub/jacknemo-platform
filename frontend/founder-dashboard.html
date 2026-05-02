@@ -126,6 +126,11 @@
 
   <div id="back-wrap" style="display:none">
     <button class="back-btn" onclick="exitSearch()">&#8592; Back to Radar Results</button>
+    <!-- K-163: sort toggle -->
+    <span id="sort-toggle" style="display:none;margin-left:12px;font-size:12px;color:#6b7280">
+      Sortierung:
+      <button id="sort-btn-relevance" onclick="applySortOrder('relevance')" style="background:#4f46e5;color:white;border:none;padding:3px 10px;border-radius:4px 0 0 4px;cursor:pointer;font-size:12px">★ Relevanz</button><button id="sort-btn-date" onclick="applySortOrder('date')" style="background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-left:none;padding:3px 10px;border-radius:0 4px 4px 0;cursor:pointer;font-size:12px">Neueste</button>
+    </span>
   </div>
 
   <div id="mode-label" class="mode-label">Radar Results</div>
@@ -200,6 +205,9 @@
     // K-158: Bookmark state — module-level sets for reactivity
     let _savedIds = new Set();
     let _collections = [];
+    // K-163: cached search results for client-side re-sort
+    let _searchResults = [];
+    let _sortMode = 'relevance';
 
     // K-107: Search history
     const SEARCH_HIST_KEY = 'search_history';
@@ -593,6 +601,7 @@
         '<div class="score-badge ' + scoreClass(pct) + '" onclick="toggleExplanation(' + l.id + ')" title="Click for match details">' +
           pct + '% Match &#9660;' +
         '</div>' +
+        (l.relevance_score > 0 ? '<span title="Suchrelevanz: ' + l.relevance_score + ' Punkte" style="display:inline-block;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:8px;font-size:10px;padding:1px 7px;margin-left:4px;font-weight:600;vertical-align:middle;cursor:default">&#9733; ' + l.relevance_score + '</span>' : '') +
         '<span class="type-badge">' + (l.type || '&mdash;') + '</span>' + (l.is_featured ? '<span class="featured-chip">\u2B50 Featured</span>' : '') +
         (l.view_count > 0 ? '<span style="display:inline-block;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px;font-size:10px;padding:1px 7px;margin-left:4px;font-weight:600;vertical-align:middle">\uD83D\uDC41 ' + l.view_count + ' Views</span>' : '') +
         (l.image_url ? '<img src="' + l.image_url + '" alt="" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin:6px 0" onerror="this.remove()">' : '') +
@@ -794,32 +803,62 @@
       const q = document.getElementById('search-input').value.trim();
       if (!q) return;
       pushSearchHistory(q); // K-107
+      _sortMode = 'relevance';
       document.getElementById('back-wrap').style.display = 'block';
+      document.getElementById('sort-toggle').style.display = 'none';
       document.getElementById('radar-filters').style.display = 'none';
       document.getElementById('mode-label').textContent = 'Search results for "' + q + '"';
       document.getElementById('status').textContent = '';
       document.getElementById('results').innerHTML = '<div class="spinner">&#x1F50D; Suche...</div>';
       try {
         const data = await ListingsAPI.search(q);
-        const listings = data.listings || data || [];
+        _searchResults = data.listings || data || [];
         const el = document.getElementById('results');
-        if (!listings.length) {
+        if (!_searchResults.length) {
           el.innerHTML = '<div class="empty">No listings found for &ldquo;' + q + '&rdquo;</div>';
         } else {
-          el.innerHTML = listings.map(renderListing).join('');
-          document.getElementById('status').textContent = listings.length + ' result(s) found';
+          // K-163: show sort toggle only when results have relevance scores
+          const hasScores = _searchResults.some(l => (l.relevance_score || 0) > 0);
+          if (hasScores) {
+            document.getElementById('sort-toggle').style.display = 'inline';
+            document.getElementById('sort-btn-relevance').style.background = '#4f46e5';
+            document.getElementById('sort-btn-relevance').style.color = 'white';
+            document.getElementById('sort-btn-date').style.background = '#f3f4f6';
+            document.getElementById('sort-btn-date').style.color = '#374151';
+          }
+          el.innerHTML = _searchResults.map(renderListing).join('');
+          document.getElementById('status').textContent = _searchResults.length + ' result(s) found';
         }
       } catch(ex) {
         document.getElementById('results').innerHTML = '<div class="empty">Error: ' + ex.message + '</div>';
       }
     }
 
+    // K-163: client-side re-sort of cached search results
+    function applySortOrder(mode) {
+      _sortMode = mode;
+      const sorted = [..._searchResults];
+      if (mode === 'date') {
+        sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      } else {
+        sorted.sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      }
+      document.getElementById('results').innerHTML = sorted.map(renderListing).join('');
+      // Update button styles
+      document.getElementById('sort-btn-relevance').style.background = mode === 'relevance' ? '#4f46e5' : '#f3f4f6';
+      document.getElementById('sort-btn-relevance').style.color   = mode === 'relevance' ? 'white' : '#374151';
+      document.getElementById('sort-btn-date').style.background = mode === 'date' ? '#4f46e5' : '#f3f4f6';
+      document.getElementById('sort-btn-date').style.color   = mode === 'date' ? 'white' : '#374151';
+    }
+
     function exitSearch() {
       document.getElementById('search-input').value = '';
       document.getElementById('back-wrap').style.display = 'none';
+      document.getElementById('sort-toggle').style.display = 'none';
       document.getElementById('radar-filters').style.display = 'flex';
       document.getElementById('mode-label').innerHTML = 'Radar Results';
       document.getElementById('status').textContent = '';
+      _searchResults = [];
       if (radarCache) {
         document.getElementById('results').innerHTML = radarCache;
       } else {
