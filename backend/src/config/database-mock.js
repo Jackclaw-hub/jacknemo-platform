@@ -628,7 +628,7 @@ class MockDatabase {
       }
       if (s.startsWith('UPDATE')) {
         const uid = params[0];
-        if (sql.includes('id = $1')) {
+        if (sql.includes('WHERE id = $1')) {
           // mark single read: params = [id, user_id]
           const n = this.notifications.find(n => n.id == params[0] && n.user_id == params[1]);
           if (n) n.read_at = new Date().toISOString();
@@ -732,6 +732,25 @@ class MockDatabase {
         if (idx < 0) return { rows: [] };
         const [removed] = this.templates.splice(idx, 1);
         return { rows: [removed] };
+      }
+    }
+
+    // ---- SAVED SEARCHES ----
+    if (sl.includes('saved_searches')) {
+      if (!this.savedSearches) { this.savedSearches = []; this.nextSavedSearchId = 1; }
+      if (s.startsWith('INSERT')) {
+        const ss = { id: this.nextSavedSearchId++, user_id: params[0], name: params[1], filters: params[2], created_at: new Date().toISOString() };
+        this.savedSearches.push(ss);
+        return { rows: [ss] };
+      }
+      if (s.startsWith('SELECT')) {
+        return { rows: this.savedSearches.filter(s => s.user_id == params[0]).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) };
+      }
+      if (s.startsWith('DELETE')) {
+        const idx = this.savedSearches.findIndex(s => s.id == params[0] && s.user_id == params[1]);
+        if (idx < 0) return { rows: [] };
+        const [removed] = this.savedSearches.splice(idx, 1);
+        return { rows: [{ id: removed.id }] };
       }
     }
 
