@@ -754,13 +754,45 @@ class MockDatabase {
       }
     }
 
+    // ---- REFERRAL CODES & USES ----
+    if (sl.includes('referral_codes')) {
+      if (!this.referralCodes) { this.referralCodes = []; this.nextReferralCodeId = 1; }
+      if (s.startsWith('SELECT')) {
+        const row = this.referralCodes.find(r => r.user_id == params[0]);
+        return { rows: row ? [row] : [] };
+      }
+      if (s.startsWith('INSERT')) {
+        const existing = this.referralCodes.find(r => r.user_id == params[0]);
+        if (existing) return { rows: [existing] };
+        const rc = { id: this.nextReferralCodeId++, user_id: params[0], code: params[1], created_at: new Date().toISOString(), uses: 0 };
+        this.referralCodes.push(rc);
+        return { rows: [rc] };
+      }
+    }
+    if (sl.includes('referral_uses')) {
+      if (!this.referralUses) { this.referralUses = []; }
+      if (s.startsWith('SELECT') && sl.includes('count(*)')) {
+        const referrerId = params[0];
+        const count = this.referralUses.filter(u => u.referrer_id == referrerId).length;
+        return { rows: [{ confirmed_uses: String(count) }] };
+      }
+    }
+    // referral stats joined query: SELECT rc.uses, (SELECT COUNT(*) ...) FROM referral_codes rc WHERE rc.user_id=$1
+    if (sl.includes('referral_codes rc') || (sl.includes('referral_codes') && sl.includes('confirmed_uses'))) {
+      if (!this.referralCodes) this.referralCodes = [];
+      if (!this.referralUses) this.referralUses = [];
+      const rc = this.referralCodes.find(r => r.user_id == params[0]);
+      const uses = this.referralUses.filter(u => u.referrer_id == params[0]).length;
+      return { rows: rc ? [{ ...rc, confirmed_uses: String(uses) }] : [] };
+    }
+
     // ---- LISTING REPORTS (K-67) ----
     if (sl.includes('listing_reports')) {
       if (s.startsWith('INSERT')) {
         const report = { id: this.nextReportId++, listing_id: params[0], reporter_id: params[1], reason: params[2], dismissed: false, created_at: new Date().toISOString() };
         // prevent duplicate report from same user for same listing
         const dup = this.reports.find(r => r.listing_id == params[0] && r.reporter_id == params[1]);
-        if (dup) return { rows: [dup] }; // ON CONFLICT DO NOTHING equivalent
+        if (dup) return { rows: [] }; // ON CONFLICT DO NOTHING returns empty
         this.reports.push(report);
         return { rows: [report] };
       }
@@ -779,7 +811,7 @@ class MockDatabase {
         return { rows: this.reports };
       }
       if (s.startsWith('UPDATE') && sl.includes('dismissed')) {
-        const idx = this.reports.findIndex(r => r.id == params[1]);
+        const idx = this.reports.findIndex(r => r.id == params[0]);
         if (idx >= 0) { this.reports[idx].dismissed = true; }
         return { rows: idx >= 0 ? [this.reports[idx]] : [] };
       }
