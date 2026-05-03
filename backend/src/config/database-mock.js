@@ -268,13 +268,15 @@ class MockDatabase {
     // ---- MESSAGES ----
     if (sl.includes('messages')) {
       if (s.startsWith('INSERT')) {
+        // SQL: INSERT INTO messages (listing_id, sender_id, recipient_id, body) VALUES ($1,$2,$3,$4)
         const msg = {
           id: this.nextMessageId++,
-          sender_id: params[0],
-          recipient_id: params[1],
-          listing_id: params[2] || null,
+          listing_id: params[0] || null,
+          sender_id: params[1],
+          recipient_id: params[2],
           body: params[3],
           read: false,
+          is_read: false,
           created_at: new Date().toISOString()
         };
         this.messages.push(msg);
@@ -348,7 +350,7 @@ class MockDatabase {
     }
 
     // ---- LISTINGS CRUD ----
-    if (sl.includes('from listings') || sl.includes('into listings') || (s.startsWith('UPDATE') && sl.includes('listings ')) || (s.startsWith('DELETE') && sl.includes('listings '))) {
+    if (!sl.includes('saved_listings') && (sl.includes('from listings') || sl.includes('into listings') || (s.startsWith('UPDATE') && sl.includes('listings ')) || (s.startsWith('DELETE') && sl.includes('listings ')))) {
       if (s.startsWith('SELECT')) {
         if (sql.includes('WHERE id = $1') && sql.includes('provider_id = $2')) {
           const l = this.listings.find(x => x.id == params[0] && x.provider_id == params[1]);
