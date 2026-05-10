@@ -61,11 +61,10 @@ app.use("/api/messages", messageLimiter, messagesRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api", generalLimiter);
 
-// K-179: SEO routes (sitemap.xml, robots.txt)
+// K-179: SEO routes (sitemap.xml, robots.txt, dynamic meta)
 const seoRouter = require('./routes/seo');
-app.use('/sitemap.xml', seoRouter);
-app.use('/robots.txt', seoRouter);
-app.use('/api/seo', seoRouter);
+app.use(seoRouter);       // handles /sitemap.xml, /robots.txt
+app.use('/api/seo', seoRouter);  // handles /api/seo/listing/:id, /api/seo/provider/:id
 
 setupSwagger(app);
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));

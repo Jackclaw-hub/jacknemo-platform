@@ -202,4 +202,4 @@ async function notifyListingExpiryReminder(listing, providerEmail) {
   await saveNotification(listing.provider_id, "expiry_reminder", subject, text);
 }
 
-module.exports = { notifyListingApproved, notifyListingRejected, notifyContactReceived, notifyHighScoreMatch, notifyPremiumUpgrade, notifyVerificationApproved, notifyListingExpiryReminder };
+module.exports = { sendEmail, notifyListingApproved, notifyListingRejected, notifyContactReceived, notifyHighScoreMatch, notifyPremiumUpgrade, notifyVerificationApproved, notifyListingExpiryReminder };
