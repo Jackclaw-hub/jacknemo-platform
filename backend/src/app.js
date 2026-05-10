@@ -1,6 +1,9 @@
 const express = require('express');
 const app = express();
 const port = 3001;
+const uploadRoutes = require('./routes/uploadRoutes');
+
+app.use('/api', uploadRoutes);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
