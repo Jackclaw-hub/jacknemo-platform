@@ -168,6 +168,15 @@
       <h2>&#128202; Listing Analytics</h2>
       <div id="analytics-totals" style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;font-size:14px"></div>
       <div id="analytics-chart"></div>
+      <div id="views-breakdown" style="display:none;margin-top:20px;border-top:1px solid #e5e7eb;padding-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 id="breakdown-title" style="margin:0;font-size:15px;font-weight:600"></h3>
+          <div><select id="breakdown-period" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:13px"><option value="7d">7 Tage</option><option value="14d">14 Tage</option><option value="30d">30 Tage</option></select><button onclick="document.getElementById('views-breakdown').style.display='none'" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:18px;margin-left:8px">x</button></div>
+        </div>
+        <div id="breakdown-chart" style="display:flex;align-items:flex-end;gap:3px;height:80px"></div>
+        <div id="breakdown-labels" style="display:flex;gap:3px;margin-top:4px;font-size:10px;color:#9ca3af"></div>
+        <div id="breakdown-total" style="margin-top:8px;font-size:13px;color:#6b7280"></div>
+      </div>
     </div>
   </div>
 
@@ -842,6 +851,28 @@
         msg.className = 'form-msg error'; msg.textContent = 'Fehler: ' + ex.message; msg.style.display = 'block';
       }
     }
+
+    let _bid = null;
+    async function showBreakdown(lid, lt) {
+      document.getElementById('breakdown-title').textContent = 'Views: ' + lt;
+      _bid = lid;
+      document.getElementById('views-breakdown').style.display = 'block';
+      await renderBreakdown(lid, document.getElementById('breakdown-period').value);
+    }
+    async function renderBreakdown(lid, period) {
+      try {
+        const d = await api('GET', '/listings/' + lid + '/views/breakdown?period=' + period);
+        const mx = Math.max(...d.breakdown.map(x => x.views), 1);
+        document.getElementById('breakdown-chart').innerHTML = d.breakdown.map(x =>
+          '<div style="flex:1;background:' + (x.views > 0 ? '#4f46e5' : '#e5e7eb') + ';border-radius:3px 3px 0 0;height:' + Math.max(2, Math.round(x.views / mx * 78)) + 'px"></div>'
+        ).join('');
+        document.getElementById('breakdown-labels').innerHTML = d.breakdown.map((x, i) =>
+          '<div style="flex:1;text-align:center">' + (i % 3 === 0 ? x.date.slice(5) : '') + '</div>'
+        ).join('');
+        document.getElementById('breakdown-total').textContent = 'Total: ' + d.total + ' Views in ' + d.days + ' Tagen';
+      } catch(ex) { document.getElementById('breakdown-chart').innerHTML = '<p style="color:#dc2626;font-size:12px">' + ex.message + '</p>'; }
+    }
+    document.addEventListener('change', e => { if (e.target.id === 'breakdown-period' && _bid) renderBreakdown(_bid, e.target.value); });
 
     loadMyListings();
     loadProviderProfile();

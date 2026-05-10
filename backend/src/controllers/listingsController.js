@@ -457,4 +457,48 @@ const getMyListingById = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, getListingStats, promoteListing, demoteListing, publishListing, pauseListing, resumeListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings, getSimilarListings };
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, getListingStats, promoteListing, demoteListing, publishListing, pauseListing, resumeListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings, getSimilarListings, getViewsBreakdown };
+
+// K-186: GET /api/listings/:id/views/breakdown?period=7d
+const getViewsBreakdown = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const period = req.query.period || '7d';
+    const days = period === '30d' ? 30 : period === '14d' ? 14 : 7;
+
+    // Check ownership — only the provider who owns the listing can see detailed breakdown
+    const ownerCheck = await pool.query('SELECT provider_id FROM listings WHERE id = $1', [id]);
+    if (!ownerCheck.rows[0]) return res.status(404).json({ error: 'Listing not found' });
+    if (ownerCheck.rows[0].provider_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const result = await pool.query(`
+      SELECT
+        DATE(viewed_at AT TIME ZONE 'UTC') AS day,
+        COUNT(*) AS views
+      FROM listing_views
+      WHERE listing_id = $1
+        AND viewed_at >= NOW() - INTERVAL '${days} days'
+      GROUP BY day
+      ORDER BY day ASC
+    `, [id]);
+
+    // Fill in missing days with 0
+    const map = {};
+    result.rows.forEach(r => { map[r.day.toISOString().slice(0, 10)] = parseInt(r.views); });
+    const breakdown = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      breakdown.push({ date: key, views: map[key] || 0 });
+    }
+
+    const total = breakdown.reduce((s, r) => s + r.views, 0);
+    res.json({ listing_id: parseInt(id), period, days, total, breakdown });
+  } catch (err) {
+    console.error('getViewsBreakdown error:', err);
+    res.status(500).json({ error: 'Could not fetch views breakdown' });
+  }
+};
