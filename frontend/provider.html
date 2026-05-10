@@ -140,6 +140,12 @@
         </div>
       </div>
 
+      <!-- K-184: Portfolio / Case Studies -->
+      <div class="section" id="portfolio-section" style="display:none">
+        <div class="section-title">Portfolio &amp; Case Studies</div>
+        <div id="portfolio-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:12px"></div>
+      </div>
+
       <!-- Ratings -->
       <div class="section" id="ratings-section">
         <div class="section-title">Bewertungen</div>
@@ -290,6 +296,23 @@
         if (currentUser && currentUser.role === 'founder') {
           document.getElementById('rate-form').style.display = 'block';
           initStarPicker();
+        }
+
+        // K-184: Portfolio
+        const portfolioData = portfolioRes.status === 'fulfilled' ? portfolioRes.value : null;
+        if (portfolioData && portfolioData.portfolio && portfolioData.portfolio.length) {
+          const section = document.getElementById('portfolio-section');
+          const grid2 = document.getElementById('portfolio-grid');
+          section.style.display = '';
+          grid2.innerHTML = portfolioData.portfolio.map(p =>
+            '<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">' +
+            (p.image_url ? '<img src="' + p.image_url + '" alt="' + p.title + '" style="width:100%;height:160px;object-fit:cover">' : '') +
+            '<div style="padding:14px">' +
+            '<div style="font-weight:600;font-size:15px;margin-bottom:6px">' + p.title + '</div>' +
+            (p.description ? '<p style="font-size:13px;color:#6b7280;margin:0 0 10px">' + p.description + '</p>' : '') +
+            (p.link ? '<a href="' + p.link + '" target="_blank" rel="noopener" style="font-size:13px;color:#6366f1">Mehr erfahren →</a>' : '') +
+            '</div></div>'
+          ).join('');
         }
 
         show('profile');
