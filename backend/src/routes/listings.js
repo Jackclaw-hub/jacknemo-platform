@@ -6,7 +6,8 @@ const { listingsWriteLimiter } = require('../middleware/rateLimiter');
 const {
   createListing, getListings, getListing, contactListing,
   updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, getListingStats, promoteListing, demoteListing, publishListing, pauseListing, resumeListing,
-  renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings, getSimilarListings
+  renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings, getSimilarListings,
+  getViewsBreakdown, compareListings
 } = require('../controllers/listingsController');
 const { reportListing, getReportCount } = require('../controllers/reportController');
 
@@ -74,6 +75,8 @@ router.get('/me/listings/:id', authenticateToken, getMyListingById);
 // Public routes
 router.get('/suggest', suggestListings); // K-88: autocomplete — must be before /:id
 router.get('/', apiRateLimiter, getListings);
+// K-185: Compare up to 3 listings
+router.get('/compare', compareListings);
 router.get('/:id', apiRateLimiter, getListing);
 router.post('/:id/contact', authenticateToken, contactListing);
 

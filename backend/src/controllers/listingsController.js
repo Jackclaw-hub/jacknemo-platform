@@ -457,7 +457,26 @@ const getMyListingById = async (req, res) => {
   }
 };
 
-module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, getListingStats, promoteListing, demoteListing, publishListing, pauseListing, resumeListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings, getSimilarListings, getViewsBreakdown };
+
+// K-185: GET /api/listings/compare?ids=1,2,3 (max 3)
+const compareListings = async (req, res) => {
+  try {
+    const raw = (req.query.ids || '').split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (!raw.length) return res.status(400).json({ error: 'ids query param required' });
+    const ids = raw.slice(0, 3);
+    const placeholders = ids.map((_, i) => '$' + (i + 1)).join(', ');
+    const result = await pool.query(
+      'SELECT id, title, description, type, geo, city, hourly_rate, daily_rate, from_price, tags, is_premium, is_featured, view_count, contact_count, provider_id, status, created_at FROM listings WHERE id IN (' + placeholders + ") AND status = 'active'",
+      ids
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'No active listings found for given ids' });
+    res.json({ listings: result.rows, compared: result.rows.length });
+  } catch (err) {
+    console.error('compareListings error:', err);
+    res.status(500).json({ error: 'Comparison failed' });
+  }
+};
+
 
 // K-186: GET /api/listings/:id/views/breakdown?period=7d
 const getViewsBreakdown = async (req, res) => {
@@ -502,3 +521,5 @@ const getViewsBreakdown = async (req, res) => {
     res.status(500).json({ error: 'Could not fetch views breakdown' });
   }
 };
+
+module.exports = { createListing, getListings, getListing, contactListing, updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, getListingStats, promoteListing, demoteListing, publishListing, pauseListing, resumeListing, renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings, getSimilarListings, getViewsBreakdown, compareListings };
