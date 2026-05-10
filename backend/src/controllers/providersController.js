@@ -116,4 +116,57 @@ const submitRating = async (req, res) => {
   }
 };
 
-module.exports = { getProfile, saveProfile, getPublicProfile, getPublicListings, getRatings, submitRating };
+
+// GET /api/providers/:userId/response-time — avg response time for a provider (no auth)
+const getResponseTime = async (req, res) => {
+  try {
+    const providerUserId = parseInt(req.params.userId);
+    if (isNaN(providerUserId)) return res.status(400).json({ error: "Invalid user id" });
+
+    const query = `
+      WITH first_contact AS (
+        SELECT listing_id, sender_id as founder_id, MIN(created_at) as contacted_at
+        FROM messages
+        WHERE sender_id != $1  -- founder side, assuming sender_id is not the provider_id
+        GROUP BY listing_id, sender_id
+      ),
+      first_reply AS (
+        SELECT m.listing_id, m.thread_id, MIN(m.created_at) as replied_at, fc.contacted_at
+        FROM messages m
+        JOIN first_contact fc ON m.listing_id = fc.listing_id AND m.thread_id = m.thread_id AND m.sender_id = $1
+        WHERE m.created_at > fc.contacted_at
+        GROUP BY m.listing_id, m.thread_id, fc.contacted_at
+      )
+      SELECT AVG(EXTRACT(EPOCH FROM (replied_at - contacted_at))/3600) as avg_hours FROM first_reply
+    `;
+
+    const result = await pool.query(query, [providerUserId]);
+    const avgHours = result.rows[0].avg_hours;
+
+    let label = "Keine Daten";
+    let badge = "no_data";
+
+    if (avgHours !== null) {
+      const roundedAvgHours = Math.round(avgHours);
+      if (roundedAvgHours < 24) {
+        label = `⚡ Antwortet in ~${roundedAvgHours} Std.`;
+        badge = "fast";
+      } else if (roundedAvgHours >= 24 && roundedAvgHours <= 72) {
+        label = `🕐 Antwortet in ~${roundedAvgHours} Std.`;
+        badge = "normal";
+      } else {
+        label = `Antwortet langsam (~${roundedAvgHours} Std.)`;
+        badge = "slow";
+      }
+    }
+
+    res.json({ avg_hours: avgHours !== null ? parseFloat(avgHours.toFixed(1)) : null, label, badge });
+
+  } catch (err) {
+    console.error("getResponseTime:", err);
+    res.status(500).json({ error: "Failed to fetch response time" });
+  }
+};
+
+module.exports = { getProfile, saveProfile, getPublicProfile, getPublicListings, getRatings, submitRating, getResponseTime };
+

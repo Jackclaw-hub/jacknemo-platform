@@ -1,0 +1,1 @@
+Scorecard Template: | Kriterium | Gewicht | OptionA | OptionB | OptionC | |----------------------|---------|---------|---------|---------| | Passung zum Use Case | 30% | /10 | /10 | /10 | | Dokumentation | 20% | /10 | /10 | /10 | | Community/Support | 15% | /10 | /10 | /10 | | Performance | 20% | /10 | /10 | /10 | | Integrationskosten | 15% | /10 | /10 | /10 | 
