@@ -18,7 +18,7 @@ const { authenticateToken } = require("./middleware/auth");
 const paymentsRouter = require("./routes/payments");
 const { startPremiumExpiryCron } = require("./jobs/premiumExpiry");
 const { startExpiryReminderCron } = require("./jobs/expiryReminder");
-const { authLimiter, listingsWriteLimiter, messageLimiter, generalLimiter } = require("./middleware/rateLimiter");
+const { authLimiter, listingsWriteLimiter, messageLimiter, generalLimiter, twoFaLimiter } = require("./middleware/rateLimiter");
 
 const app = express();
 
