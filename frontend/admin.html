@@ -77,10 +77,8 @@
     <!-- K-67: Reports tab -->
     <button id="tab-reports" onclick="showTab('reports')" style="background:#e5e7eb;color:#374151;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px">Meldungen</button>
     <!-- K-66: CSV exports -->
-    <div style="margin-left:auto;display:flex;gap:8px">
-      <button onclick="downloadCSV('listings')" style="background:#f9fafb;border:1px solid #d1d5db;color:#374151;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px">&#11015; Listings CSV</button>
-      <button onclick="downloadCSV('users')" style="background:#f9fafb;border:1px solid #d1d5db;color:#374151;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px">&#11015; Users CSV</button>
-    </div>
+    <a href="/api/admin/export/listings" id="export-listings-btn" style="padding:6px 14px;background:#3b82f6;color:#fff;border-radius:6px;text-decoration:none;font-size:13px">⬇ Listings CSV</a>
+    <a href="/api/admin/export/users" id="export-users-btn" style="padding:6px 14px;background:#8b5cf6;color:#fff;border-radius:6px;text-decoration:none;font-size:13px;margin-left:8px">⬇ Users CSV</a>
   </div>
   <!-- K-60: Search & filter panel -->
   <div class="search-filter-bar" id="search-filter-bar">
@@ -600,23 +598,6 @@
       await loadListings({ status: 'pending' });
     }
 
-    // K-66: CSV export download
-    async function downloadCSV(type) {
-      const token = auth.getToken();
-      const url = '/api/admin/export/' + type + '.csv';
-      try {
-        const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const blob = await res.blob();
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = type + '-export.csv';
-        a.click();
-        URL.revokeObjectURL(a.href);
-      } catch(e) {
-        alert('Export fehlgeschlagen: ' + e.message);
-      }
-    }
 
     async function showListingDetail(id) {
       const overlay = document.getElementById('detail-modal-overlay');
