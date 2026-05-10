@@ -58,6 +58,15 @@
       .header-row { flex-direction: column; }
     }
   </style>
+  <style> /* Star Rating CSS */
+    .star-rating .star {
+      cursor: pointer;
+      color: #ccc; /* Default star color */
+    }
+    .star-rating .star.filled {
+      color: #facc15; /* Filled star color */
+    }
+  </style>
 </head>
 <body>
   <nav>
@@ -93,6 +102,42 @@
         <div class="share-row">
           <button class="share-btn" onclick="copyLink()">🔗 Link kopieren</button>
           <span id="copy-msg" style="font-size:13px;color:#059669;display:none">Kopiert!</span>
+        </div>
+
+        <div class="reviews-section" style="margin-top:32px">
+          <div class="section-label">Bewertungen</div>
+          <div id="review-summary" style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div id="avg-rating" style="font-size:24px;font-weight:700;color:#1f2937"></div>
+            <div id="star-display" style="color:#facc15;font-size:18px;"></div>
+            <div id="total-reviews" style="font-size:14px;color:#6b7280;"></div>
+          </div>
+          <div id="reviews-list" style="border-top:1px solid #e5e7eb;padding-top:16px;margin-top:16px">
+            <!-- Reviews will be loaded here -->
+            <div style="font-size:14px;color:#6b7280;" id="no-reviews-msg">Noch keine Bewertungen vorhanden. Sei der Erste!</div>
+          </div>
+
+          <div id="review-form-wrap" style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb">
+            <div class="section-label" style="margin-top:0">Deine Bewertung</div>
+            <div id="review-not-logged-in" style="font-size:14px;color:#6b7280;margin-bottom:12px;display:none">Bitte <a href="auth.html?tab=login" style="color:#4f46e5;text-decoration:none">einloggen</a>, um eine Bewertung abzugeben.</div>
+            <form id="review-form" style="display:none">
+              <div style="margin-bottom:10px">
+                <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px">Deine Sterne-Bewertung:</label>
+                <div id="rating-input" style="display:flex;gap:2px;font-size:24px;color:#d1d5db;cursor:pointer">
+                  <span data-rating="1">★</span>
+                  <span data-rating="2">★</span>
+                  <span data-rating="3">★</span>
+                  <span data-rating="4">★</span>
+                  <span data-rating="5">★</span>
+                </div>
+                <input type="hidden" id="selected-rating" value="0">
+              </div>
+              <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px">Kommentar (optional):</label>
+              <textarea id="review-comment" rows="3" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;resize:vertical;box-sizing:border-box"></textarea>
+              <button type="submit" style="margin-top:12px;padding:9px 20px;background:#4f46e5;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">Bewertung absenden</button>
+              <div id="review-form-error" style="color:#ef4444;font-size:13px;margin-top:8px;display:none"></div>
+              <div id="review-form-success" style="color:#059669;font-size:14px;margin-top:8px;display:none">✓ Bewertung gesendet!</div>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -345,10 +390,136 @@
 
         // K-70: Load similar listings (same type, exclude current)
         loadSimilar(l.type, l.id);
+        loadReviews(l.id); // Load reviews for the listing
       } catch(e) {
         showError();
       }
     }
+
+    // Function to load reviews
+    async function loadReviews(listingId) {
+      try {
+        const data = await api('GET', '/listings/' + listingId + '/reviews');
+        const { avg_rating, total_reviews, reviews } = data;
+
+        // Display summary
+        document.getElementById('avg-rating').textContent = avg_rating;
+        document.getElementById('total-reviews').textContent = `(${total_reviews} Bewertungen)`;
+        
+        // Star display
+        const starDisplay = document.getElementById('star-display');
+        starDisplay.innerHTML = ''; // Clear existing stars
+        const fullStars = Math.floor(avg_rating);
+        const hasHalfStar = avg_rating % 1 !== 0;
+
+        for (let i = 0; i < fullStars; i++) {
+          starDisplay.innerHTML += '<span class="star-rating star filled">★</span>';
+        }
+        if (hasHalfStar) {
+          starDisplay.innerHTML += '<span class="star-rating star half-filled">★</span>'; // Use a different class for half star if needed
+        }
+        for (let i = 0; i < (5 - fullStars - (hasHalfStar ? 1 : 0)); i++) {
+          starDisplay.innerHTML += '<span class="star-rating star">★</span>';
+        }
+
+        // Display individual reviews
+        const reviewsList = document.getElementById('reviews-list');
+        reviewsList.innerHTML = ''; // Clear previous reviews
+        if (reviews.length === 0) {
+          document.getElementById('no-reviews-msg').style.display = 'block';
+        } else {
+          document.getElementById('no-reviews-msg').style.display = 'none';
+          reviews.forEach(review => {
+            const reviewEl = document.createElement('div');
+            reviewEl.style.cssText = 'border-bottom:1px dashed #eee;padding:12px 0';
+            reviewEl.innerHTML = `
+              <div style="display:flex;align-items:center;margin-bottom:4px">
+                <div style="color:#facc15;font-size:16px;">${'★'.repeat(review.rating)}</div>
+                <div style="font-size:13px;color:#374151;font-weight:600;margin-left:8px">${review.username}</div>
+                <div style="font-size:12px;color:#9ca3af;margin-left:auto">${new Date(review.created_at).toLocaleDateString('de-DE')}</div>
+              </div>
+              <p style="font-size:14px;color:#374151;margin:0">${review.comment || ''}</p>
+            `;
+            reviewsList.appendChild(reviewEl);
+          });
+        }
+
+        // Setup review submission form
+        const user = auth.getUser();
+        const reviewFormWrap = document.getElementById('review-form-wrap');
+        const reviewNotLoggedIn = document.getElementById('review-not-logged-in');
+        const reviewForm = document.getElementById('review-form');
+        const selectedRatingInput = document.getElementById('selected-rating');
+        const ratingInputStars = document.querySelectorAll('#rating-input .star');
+        const reviewFormError = document.getElementById('review-form-error');
+        const reviewFormSuccess = document.getElementById('review-form-success');
+
+        if (!user) {
+          reviewNotLoggedIn.style.display = 'block';
+          reviewForm.style.display = 'none';
+        } else {
+          reviewNotLoggedIn.style.display = 'none';
+          reviewForm.style.display = 'block';
+
+          ratingInputStars.forEach(star => {
+            star.addEventListener('mouseover', () => {
+              const rating = star.dataset.rating;
+              ratingInputStars.forEach((s, i) => {
+                s.style.color = i < rating ? '#facc15' : '#ccc';
+              });
+            });
+            star.addEventListener('mouseout', () => {
+              const currentRating = selectedRatingInput.value;
+              ratingInputStars.forEach((s, i) => {
+                s.style.color = i < currentRating ? '#facc15' : '#ccc';
+              });
+            });
+            star.addEventListener('click', () => {
+              const rating = star.dataset.rating;
+              selectedRatingInput.value = rating;
+              ratingInputStars.forEach((s, i) => {
+                s.style.color = i < rating ? '#facc15' : '#ccc';
+              });
+            });
+          });
+
+          reviewForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            reviewFormError.style.display = 'none';
+            reviewFormSuccess.style.display = 'none';
+
+            const rating = parseInt(selectedRatingInput.value, 10);
+            const comment = document.getElementById('review-comment').value.trim();
+
+            if (rating === 0) {
+              reviewFormError.textContent = 'Bitte wähle eine Sterne-Bewertung.';
+              reviewFormError.style.display = 'block';
+              return;
+            }
+
+            try {
+              await api('POST', '/listings/' + listingId + '/reviews', { rating, comment }, auth.getToken());
+              reviewFormSuccess.style.display = 'block';
+              // Reload reviews after successful submission
+              loadReviews(listingId);
+              // Reset form
+              selectedRatingInput.value = '0';
+              document.getElementById('review-comment').value = '';
+              ratingInputStars.forEach(s => s.style.color = '#ccc');
+            } catch (error) {
+              reviewFormError.textContent = 'Fehler beim Senden der Bewertung: ' + error.message;
+              reviewFormError.style.display = 'block';
+            }
+          });
+        }
+
+      } catch (e) {
+        console.error('Error loading reviews:', e);
+        // Fallback to no reviews message if API fails
+        document.getElementById('no-reviews-msg').style.display = 'block';
+      }
+    }
+
 
     async function loadSimilar(type, currentId) {
       if (!type) return;
