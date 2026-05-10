@@ -50,6 +50,8 @@ app.use("/api/payments", paymentsRouter);
 
 // K-32: Per-endpoint rate limiting
 app.use("/api/auth", authLimiter, authRouter);
+// K-181: stricter 2FA limiter on top of authLimiter
+app.use("/api/auth/2fa", twoFaLimiter);
 app.use("/api/founders", authenticateToken, foundersRouter);
 app.use("/api/listings", listingsRouter);
 app.use("/api/radar", radarRouter);
