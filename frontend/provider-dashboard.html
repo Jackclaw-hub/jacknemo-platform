@@ -77,6 +77,12 @@
   </style>
 </head>
 <body>
+<div style="position:relative;display:inline-block">
+  <button id="notif-bell" onclick="toggleNotifDropdown()" style="background:none;border:none;cursor:pointer;font-size:20px">🔔<span id="notif-count" style="display:none;background:#ef4444;color:#fff;border-radius:50%;font-size:11px;padding:1px 5px;vertical-align:top"></span></button>
+  <div id="notif-dropdown" style="display:none;position:absolute;right:0;top:30px;background:#fff;border:1px solid #ddd;width:320px;max-height:400px;overflow-y:auto;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.1)">
+    <div id="notif-list" style="padding:8px"></div>
+  </div>
+</div>
   <div class="toast" id="toast"></div>
   <nav>
     <h1>&#x1F680; Startup Radar</h1>
@@ -944,5 +950,28 @@
     </div>
     <div id="notif-list" style="overflow-y:auto;max-height:400px;padding:0"></div>
   </div>
+<script>
+async function loadNotifCount(){
+  try{
+    const r=await fetch('/api/notifications/unread-count',{headers:{Authorization:'Bearer '+localStorage.getItem('token')}});
+    const d=await r.json();
+    if(d.count>0){const b=document.getElementById('notif-count');if(b){b.textContent=d.count;b.style.display='inline';}}
+  }catch(e){}
+}
+async function toggleNotifDropdown(){
+  const dd=document.getElementById('notif-dropdown');
+  if(dd.style.display==='none'){
+    dd.style.display='block';
+    const r=await fetch('/api/notifications',{headers:{Authorization:'Bearer '+localStorage.getItem('token')}});
+    const d=await r.json();
+    const list=document.getElementById('notif-list');
+    list.innerHTML=d.notifications.length?d.notifications.map(n=>`<div style="padding:8px;border-bottom:1px solid #f3f4f6;${n.read?'':'font-weight:bold'}" onclick="markNotifRead(${n.id})">${n.message||n.type}<br><small style="color:#9ca3af">${new Date(n.created_at).toLocaleString()}</small></div>`).join(''):'<div style="padding:8px;color:#9ca3af">Keine Benachrichtigungen</div>';
+  } else { dd.style.display='none'; }
+}
+async function markNotifRead(id){
+  await fetch('/api/notifications/'+id+'/read',{method:'PATCH',headers:{Authorization:'Bearer '+localStorage.getItem('token')}});
+}
+window.addEventListener('load',loadNotifCount);
+</script>
 </body>
 </html>
