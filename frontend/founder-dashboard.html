@@ -145,6 +145,11 @@
   </div>
 
   <div class="filters" id="radar-filters">
+    <input type="text" id="f-industry" placeholder="Branche..." style="width:140px">
+    <input type="text" id="f-location" placeholder="Ort..." style="width:140px">
+    <input type="number" id="f-min" placeholder="Budget min €" style="width:140px">
+    <input type="number" id="f-max" placeholder="Budget max €" style="width:140px">
+    <button onclick="loadRadar()" style="background:#4f46e5;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer">Filtern</button>
     <!-- K-64: type filter -->
     <select id="f-type" onchange="loadRadar()">
       <option value="">Alle Typen</option>
@@ -724,6 +729,10 @@
       if (stage) filters.stage = stage;
       if (geo)   filters.geo   = geo;
       if (city)  filters.city  = city;
+      if (industry) filters.industry = industry;
+      if (location) filters.location = location;
+      if (min_budget) filters.min_budget = min_budget;
+      if (max_budget) filters.max_budget = max_budget;
       const name = prompt('Name for this search:', 'My Search');
       if (name === null) return;
       try {
@@ -763,6 +772,10 @@
       if (filters.stage) document.getElementById('f-stage').value = filters.stage || '';
       if (filters.geo)   document.getElementById('f-geo').value   = filters.geo   || '';
       if (filters.city)  document.getElementById('f-city').value  = filters.city  || '';
+      if (filters.industry) document.getElementById('f-industry').value = filters.industry || '';
+      if (filters.location) document.getElementById('f-location').value = filters.location || '';
+      if (filters.min_budget) document.getElementById('f-min').value = filters.min_budget || '';
+      if (filters.max_budget) document.getElementById('f-max').value = filters.max_budget || '';
       loadRadar();
       async function loadInviteSection() {
       if (user?.role !== 'founder') return;
@@ -882,11 +895,17 @@
       if (p.get('stage')) document.getElementById('f-stage').value = p.get('stage');
       if (p.get('geo'))   document.getElementById('f-geo').value   = p.get('geo');
       if (p.get('city'))  document.getElementById('f-city').value  = p.get('city');
+      if (p.get('industry')) document.getElementById('f-industry').value = p.get('industry');
+      if (p.get('location')) document.getElementById('f-location').value = p.get('location');
+      if (p.get('min_budget')) document.getElementById('f-min').value = p.get('min_budget');
+      if (p.get('max_budget')) document.getElementById('f-max').value = p.get('max_budget');
     }
 
     function resetFilters() {
-      ['f-type', 'f-stage', 'f-geo'].forEach(id => document.getElementById(id).value = '');
+      ['f-type', 'f-stage', 'f-geo', 'f-industry', 'f-location'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('f-city').value = '';
+      document.getElementById('f-min').value = '';
+      document.getElementById('f-max').value = '';
       document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
       loadRadar();
     }
@@ -897,10 +916,18 @@
       const stage = document.getElementById('f-stage').value;
       const geo   = document.getElementById('f-geo').value;
       const city  = document.getElementById('f-city').value;
+      const industry = document.getElementById('f-industry').value;
+      const location = document.getElementById('f-location').value;
+      const min_budget = document.getElementById('f-min').value;
+      const max_budget = document.getElementById('f-max').value;
       if (type)  params.type  = type;
       if (stage) params.stage = stage;
       if (geo)   params.geo   = geo;
       if (city)  params.city  = city;
+      if (industry) params.industry = industry;
+      if (location) params.location = location;
+      if (min_budget) params.min_budget = min_budget;
+      if (max_budget) params.max_budget = max_budget;
       pushFiltersToURL(params);
       document.getElementById('results').innerHTML = '<div class="spinner">&#x26A1; Lade Radar...</div>';
       try {
@@ -913,6 +940,9 @@
             stage ? 'Stage: ' + stage : null,
             geo   ? 'Geo: ' + geo     : null,
             city  ? 'Stadt: ' + city  : null,
+            industry ? 'Branche: ' + industry : null,
+            location ? 'Ort: ' + location : null,
+            (min_budget && max_budget) ? 'Budget: ' + min_budget + '€-' + max_budget + '€' : min_budget ? 'Budget min: ' + min_budget + '€' : max_budget ? 'Budget max: ' + max_budget + '€' : null,
           ].filter(Boolean);
           const filterHint = activeFilters.length
             ? '<div style="font-size:12px;color:#9ca3af;margin-top:6px">Aktive Filter: ' + activeFilters.map(f => '<span style="background:#e0e7ff;color:#3730a3;padding:1px 7px;border-radius:8px;margin:0 3px">' + f + '</span>').join('') + '</div>'

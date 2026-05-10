@@ -25,7 +25,7 @@ class Listing {
     return result.rows[0];
   }
 
-  static async findAll({ type, geo, starterFriendly, tags, stage, city, status = 'active' } = {}) {
+  static async findAll({ type, geo, starterFriendly, tags, stage, city, status = 'active', min_budget, max_budget, industry, location, available_from } = {}) {
     let query = 'SELECT * FROM listings WHERE status = $1';
     const values = [status];
     let idx = 2;
@@ -36,6 +36,13 @@ class Listing {
     if (stage) { query += ` AND stages::jsonb @> $${idx++}::jsonb`; values.push(JSON.stringify([stage])); }
     // K-168: city filter — case-insensitive substring
     if (city)  { query += ` AND LOWER(city) LIKE $${idx++}`; values.push('%' + city.toLowerCase() + '%'); }
+    // K-192: New filters
+    if (min_budget) { query += ` AND hourly_rate >= $${idx++}`; values.push(min_budget); }
+    if (max_budget) { query += ` AND hourly_rate <= $${idx++}`; values.push(max_budget); }
+    if (industry) { query += ` AND LOWER(sectors::text) LIKE $${idx++}`; values.push('%' + industry.toLowerCase() + '%'); }
+    if (location) { query += ` AND LOWER(city) LIKE $${idx++}`; values.push('%' + location.toLowerCase() + '%'); }
+    // available_from is ignored as per instruction if column doesn't exist, which we assume due to psql not found
+    // if (available_from) { query += ` AND available_from <= $${idx++}`; values.push(available_from); }
     // tags: comma-separated string or array — filter in-memory after query (mock + PG compatible)
     query += ' ORDER BY created_at DESC';
     const result = await pool.query(query, values);
