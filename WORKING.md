@@ -1,1 +1,1 @@
-K-25: Admin Analytics — backend exists at /sandbox/.openclaw-data/workspace/backend/, port 3001. Read existing code first. DO NOT rebuild auth.
+K-195: Backend: Listing Image Upload API - Blocked on web_search for library comparison (multer vs formidable).
