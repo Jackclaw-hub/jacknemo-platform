@@ -1,0 +1,1 @@
+ALTER TABLE listings ADD COLUMN is_featured BOOLEAN DEFAULT FALSE;
