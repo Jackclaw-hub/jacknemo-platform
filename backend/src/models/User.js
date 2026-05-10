@@ -97,7 +97,7 @@ class User {
 
   // K-65: Admin user management
   static async listAll({ role, is_active, search, limit = 50, offset = 0 } = {}) {
-    let sql = 'SELECT id, email, role, name, email_verified, is_active, created_at FROM users WHERE 1=1';
+    let sql = 'SELECT id, email, role, name, email_verified, is_active, totp_enabled, created_at FROM users WHERE 1=1';
     const params = [];
     if (role) { params.push(role); sql += ` AND role = $${params.length}`; }
     if (is_active !== undefined && is_active !== null && is_active !== '') {
