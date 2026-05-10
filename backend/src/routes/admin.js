@@ -29,7 +29,7 @@ router.get('/providers/pending-verification', ...adminOnly, getPendingVerificati
 router.get('/listings/expired-premium', ...adminOnly, getExpiredPremium);
 router.post('/listings/run-expiry', ...adminOnly, runPremiumExpiry);
 // K-35: Admin approves/rejects provider verification
-router.patch('/providers/:userId/verify', ...adminOnly, adminVerifyProvider);
+router.patch('/providers/:id/verify', ...adminOnly, verifyProvider);
 
 // K-55: Bulk action
 router.post('/listings/bulk-action', ...adminOnly, bulkAction);

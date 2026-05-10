@@ -53,7 +53,7 @@
     .listing-thumb { width: 100%; height: 100px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; display: block; }
     .premium-chip { font-size: 11px; background: #fef3c7; color: #92400e; padding: 2px 7px; border-radius: 99px; font-weight: 600; margin-left: 6px; }
 
-    /* Empty / skeleton */
+    .verified-badge { background:#22c55e; color:#fff; font-size:12px; padding:2px 8px; border-radius:9999px; margin-left:8px; }
     .empty { color: #9ca3af; font-size: 14px; padding: 20px 0; text-align: center; }
     .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px; }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -100,6 +100,7 @@
         <div class="hero-logo" id="logo-wrap">&#x1F3E2;</div>
         <div class="hero-info">
           <h1 id="prov-name">—</h1>
+          <span id="verified-badge-display" class="verified-badge" style="display:none">✓ Verifiziert</span>
           <p class="hero-desc" id="prov-desc"></p>
           <div class="badges" id="prov-badges"></div>
           <div class="hero-meta" id="prov-meta"></div>
@@ -182,6 +183,11 @@
 
         // Hero
         document.getElementById('prov-name').textContent = profile.company_name || 'Anbieter';
+        if (profile.is_verified) {
+          document.getElementById('verified-badge-display').style.display = 'inline-block';
+        } else {
+          document.getElementById('verified-badge-display').style.display = 'none';
+        }
         if (profile.description) {
           document.getElementById('prov-desc').textContent = profile.description;
         }
