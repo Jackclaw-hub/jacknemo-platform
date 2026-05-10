@@ -13,6 +13,7 @@ const {
   confirmPasswordReset,
   changePassword
 } = require('../controllers/authController');
+const { setup2fa, verify2fa, disable2fa, validate2faLogin } = require('../controllers/twoFactorController');
 const { authenticateToken } = require('../middleware/auth');
 const { authRateLimiter, registrationRateLimiter, resetRateLimiter, validateRegistration, validateLogin } = require('../middleware/security');
 
@@ -48,5 +49,11 @@ router.post('/reset-password/confirm', confirmPasswordReset);
 
 // POST /api/auth/change-password - Change password (K-80, authenticated)
 router.post('/change-password', authenticateToken, changePassword);
+
+// K-176: 2FA TOTP endpoints
+router.post('/2fa/setup', authenticateToken, setup2fa);
+router.post('/2fa/verify', authenticateToken, verify2fa);
+router.post('/2fa/disable', authenticateToken, disable2fa);
+router.post('/2fa/validate-login', validate2faLogin);
 
 module.exports = router;
