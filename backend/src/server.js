@@ -14,6 +14,7 @@ dotenv.config();
 
 // Import routes
 const scoringRoutes = require('./scoring');
+const messageRoutes = require('./routes/messages');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -43,6 +44,9 @@ app.get('/health', (req, res) => {
 
 // Mount scoring routes
 app.use('/api/scoring', scoringRoutes);
+
+// Mount message routes
+app.use('/api/messages', messageRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
