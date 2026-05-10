@@ -100,6 +100,7 @@
         <div class="hero-logo" id="logo-wrap">&#x1F3E2;</div>
         <div class="hero-info">
           <h1 id="prov-name">—</h1>
+          <span id="response-badge" class="badge" style="display:none; margin-bottom: 6px;"></span>
           <p class="hero-desc" id="prov-desc"></p>
           <div class="badges" id="prov-badges"></div>
           <div class="hero-meta" id="prov-meta"></div>
@@ -169,8 +170,8 @@
           ProvidersAPI.getProfile(providerId),
           ProvidersAPI.getListings(providerId),
           ProvidersAPI.getRatings(providerId),
-          // K-71: response rate
-          api('GET', '/providers/' + providerId + '/response-rate'),
+          // K-188: response time badge
+          ProvidersAPI.getResponseTime(providerId),
         ]);
 
         const profile = profRes.status === 'fulfilled' ? profRes.value.profile : null;
@@ -184,6 +185,27 @@
         document.getElementById('prov-name').textContent = profile.company_name || 'Anbieter';
         if (profile.description) {
           document.getElementById('prov-desc').textContent = profile.description;
+        }
+
+        // K-188: Response time badge logic
+        const responseTimeData = responseRes.status === 'fulfilled' ? responseRes.value : null;
+        const responseBadgeEl = document.getElementById('response-badge');
+
+        if (responseTimeData && responseTimeData.badge !== 'no_data') {
+          responseBadgeEl.textContent = responseTimeData.label;
+          responseBadgeEl.style.display = 'inline-block';
+          if (responseTimeData.badge === 'fast') {
+            responseBadgeEl.style.background = '#d1fae5';
+            responseBadgeEl.style.color = '#065f46';
+          } else if (responseTimeData.badge === 'normal') {
+            responseBadgeEl.style.background = '#fef3c7';
+            responseBadgeEl.style.color = '#92400e';
+          } else if (responseTimeData.badge === 'slow') {
+            responseBadgeEl.style.background = '#e0e7ff';
+            responseBadgeEl.style.color = '#3730a3';
+          }
+        } else {
+          responseBadgeEl.style.display = 'none';
         }
 
         // Logo
@@ -200,15 +222,14 @@
         if (avgForBadge && parseFloat(avgForBadge) > 0) {
           badges.push('<span class="badge badge-rating">' + stars(avgForBadge) + ' ' + parseFloat(avgForBadge).toFixed(1) + '</span>');
         }
-        // K-71: Response rate badge
-        const rrData = responseRes.status === 'fulfilled' ? responseRes.value : null;
-        if (rrData && rrData.rate !== null && rrData.total > 0) {
-          const rr = rrData.rate;
-          const rrColor = rr >= 80 ? '#d1fae5' : rr >= 50 ? '#fef3c7' : '#fee2e2';
-          const rrText = rr >= 80 ? '#065f46' : rr >= 50 ? '#92400e' : '#991b1b';
-          badges.push('<span class="badge" style="background:' + rrColor + ';color:' + rrText + '" title="Antwortet auf ' + rrData.replied + ' von ' + rrData.total + ' Nachrichten">&#x1F4E9; ' + rr + '% Antwortrate</span>');
-        }
-        // K-121: Active listing count badge — computed before render since listings are already fetched
+        // K-71: Response rate badge (old, removed)
+        // const rrData = responseRes.status === 'fulfilled' ? responseRes.value : null;
+        // if (rrData && rrData.rate !== null && rrData.total > 0) {
+        //   const rr = rrData.rate;
+        //   const rrColor = rr >= 80 ? '#d1fae5' : rr >= 50 ? '#fef3c7' : '#fee2e2';
+        //   const rrText = rr >= 80 ? '#065f46' : rr >= 50 ? '#92400e' : '#991b1b';
+        //   badges.push('<span class="badge" style="background:' + rrColor + ';color:' + rrText + '" title="Antwortet auf ' + rrData.replied + ' von ' + rrData.total + ' Nachrichten">&#x1F4E9; ' + rr + '% Antwortrate</span>');
+        // }        // K-121: Active listing count badge — computed before render since listings are already fetched
         const listings = listRes.status === 'fulfilled' ? (listRes.value.listings || []) : [];
         if (listings.length) {
           badges.push('<span class="badge badge-listings">&#x1F4CB; ' + listings.length + ' aktive' + (listings.length !== 1 ? ' Inserate' : 's Inserat') + '</span>');
