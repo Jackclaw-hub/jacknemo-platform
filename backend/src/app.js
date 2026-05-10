@@ -16,6 +16,7 @@ const messagesRouter = require("./routes/messages");
 const notificationsRouter = require("./routes/notifications");
 const { authenticateToken } = require("./middleware/auth");
 const paymentsRouter = require("./routes/payments");
+const bookmarksRouter = require("./routes/bookmarks");
 const { startPremiumExpiryCron } = require("./jobs/premiumExpiry");
 const { startExpiryReminderCron } = require("./jobs/expiryReminder");
 const { authLimiter, listingsWriteLimiter, messageLimiter, generalLimiter } = require("./middleware/rateLimiter");
@@ -57,6 +58,8 @@ app.use("/api/admin", adminRouter);
 app.use("/api/providers", providersRouter);
 app.use("/api/messages", messageLimiter, messagesRouter);
 app.use("/api/notifications", notificationsRouter);
+// K-197: Founder bookmarks
+app.use("/api/founders/me/bookmarks", authenticateToken, bookmarksRouter);
 app.use("/api", generalLimiter);
 
 setupSwagger(app);
