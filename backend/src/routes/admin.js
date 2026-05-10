@@ -20,8 +20,7 @@ router.get('/analytics/trends', ...adminOnly, getTrends);
 router.get('/analytics/search-terms', ...adminOnly, getSearchTerms); // K-104
 router.get('/analytics/top-providers', ...adminOnly, getTopProviders); // K-157
 router.get('/stats/overview', ...adminOnly, getStatsOverview); // K-137
-router.put('/listings/:id/feature', ...adminOnly, featureListing);
-router.put('/listings/:id/unfeature', ...adminOnly, unfeatureListing);
+router.patch('/listings/:id/feature', ...adminOnly, featureListing);
 
 // K-37: Pending verification queue
 router.get('/providers/pending-verification', ...adminOnly, getPendingVerification);

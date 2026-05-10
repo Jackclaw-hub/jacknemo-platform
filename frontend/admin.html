@@ -266,8 +266,8 @@
 
     async function toggleFeature(id, isFeatured) {
       try {
-        if (isFeatured) await AdminAPI.unfeature(id);
-        else await AdminAPI.feature(id);
+        // Toggle featured flag via PATCH request
+        await api('PATCH', '/admin/listings/' + id + '/feature', { featured: !isFeatured }, auth.getToken());
         loadPending();
       } catch(ex) { alert('Error: ' + ex.message); }
     }
