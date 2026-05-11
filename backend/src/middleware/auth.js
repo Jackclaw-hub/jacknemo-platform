@@ -1,35 +1,14 @@
-const NativeAuth = require('../auth-native');
-const auth = new NativeAuth();
+const jwt = require('jsonwebtoken');
 
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  // Also support token via query param (for SSE EventSource which can't set headers)
-  const token = (authHeader && authHeader.split(' ')[1]) || req.query.token;
-  if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
-  const result = auth.verifyToken(token);
-  if (!result.valid) {
-    return res.status(403).json({ error: result.error });
-  }
-  // K-65: block disabled accounts
-  if (result.user.is_active === false) {
-    return res.status(403).json({ error: 'Account has been disabled' });
-  }
-  req.user = result.user;
-  next();
+const authenticate = async (req, res, next) => {
+    try {
+        const token = req.header('Authorization').replace('Bearer ', '');
+        const decoded = jwt.verify(token, process.env.SECRET_KEY);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        res.status(401).json({ message: 'Please authenticate' });
+    }
 };
 
-const requireRole = (roles) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Insufficient permissions' });
-    }
-    next();
-  };
-};
-
-module.exports = { authenticateToken, requireRole };
+module.exports = authenticate;

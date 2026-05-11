@@ -1,52 +1,39 @@
 const express = require('express');
 const router = express.Router();
-const {
-  register,
-  login,
-  getProfile,
-  updateProfile,
-  verifyEmail,
-  resendVerification,
-  refreshToken,
-  logout,
-  requestPasswordReset,
-  confirmPasswordReset,
-  changePassword
-} = require('../controllers/authController');
-const { authenticateToken } = require('../middleware/auth');
-const { authRateLimiter, registrationRateLimiter, resetRateLimiter, validateRegistration, validateLogin } = require('../middleware/security');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
+dotenv.config();
+const User = require('../models/User');
 
-// POST /api/auth/register - User registration
-router.post('/register', registrationRateLimiter, validateRegistration, register);
+router.post('/register', async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = new User({ name, email, password: hashedPassword });
+        await user.save();
+        res.status(201).json({ message: 'User created successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error creating user' });
+    }
+});
 
-// POST /api/auth/login - User login
-router.post('/login', authRateLimiter, validateLogin, login);
-
-// POST /api/auth/refresh - Refresh access token
-router.post('/refresh', refreshToken);
-
-// POST /api/auth/logout - User logout
-router.post('/logout', authenticateToken, logout);
-
-// GET /api/auth/profile - Get user profile (protected)
-router.get('/profile', authenticateToken, getProfile);
-
-// PUT /api/auth/profile - Update user profile (protected)
-router.put('/profile', authenticateToken, updateProfile);
-
-// GET /api/auth/verify/:token - Verify email (public)
-router.get('/verify/:token', verifyEmail);
-
-// POST /api/auth/resend-verification - Resend verification email (public)
-router.post('/resend-verification', resendVerification);
-
-// POST /api/auth/reset-password - Request reset (K-22)
-router.post('/reset-password', resetRateLimiter, requestPasswordReset);
-
-// POST /api/auth/reset-password/confirm - Confirm reset (K-22)
-router.post('/reset-password/confirm', confirmPasswordReset);
-
-// POST /api/auth/change-password - Change password (K-80, authenticated)
-router.post('/change-password', authenticateToken, changePassword);
-
-module.exports = router;
+router.post('/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid email or password' });
+        }
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) {
+            return res.status(401).json({ message: 'Invalid email or password' });
+        }
+        const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
+            expiresIn: '1h'
+        });
+        res.json({ token });
+    } catch (error) {
+        res.status(500).json({ message: 'Error logging in' });
+    }
+});
