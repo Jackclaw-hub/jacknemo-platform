@@ -125,7 +125,12 @@ class ScheduledReminder {
     async execCommand(command) {
         const { exec } = require('child_process');
         return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                reject(new Error(`Command timed out after 10 seconds: ${command}`));
+            }, 10000);
+            
             exec(command, (error, stdout, stderr) => {
+                clearTimeout(timeout);
                 if (error) {
                     reject(error);
                 } else {
