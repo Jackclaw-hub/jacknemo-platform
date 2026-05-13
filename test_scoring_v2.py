@@ -3,6 +3,7 @@
 
 import sys
 import os
+from datetime import datetime
 
 # Add paths
 sys.path.insert(0, '/sandbox/.openclaw-data/workspace/autofiller/src')
@@ -29,36 +30,32 @@ def test_basic_functionality():
     try:
         # Create a simple funding opportunity
         opportunity = FundingOpportunity(
-            id="test-1",
             title="Test Funding Opportunity",
             description="This is a test funding opportunity for AI startups",
+            funder="Test Funder",
+            amount="$50,000 - $500,000",
+            deadline="2024-12-31",
+            eligibility="AI startups",
+            link="https://example.com/opportunity",
+            source="Test Source",
+            raw_data={},
             industry_tags=["AI", "Technology"],
-            location_tags=["California", "Remote"],
-            themes=["innovation", "machine learning"],
             employee_min=5,
             employee_max=50,
             revenue_min=100000,
             revenue_max=5000000,
-            funding_amount_min=50000,
-            funding_amount_max=500000,
-            equity_required=10.0,
-            investment_type="Equity",
-            application_deadline="2024-12-31",
-            funding_start_date="2024-06-01",
-            remote_eligible=True
+            location_tags=["California", "Remote"],
+            themes=["innovation", "machine learning"]
         )
         
         # Create a user query
         query = UserQuery(
             text="AI startup funding for machine learning",
-            industry="AI",
-            location_state="California",
+            timestamp=datetime.now(),
             employee_count=25,
             annual_revenue=1000000,
-            funding_needed=250000,
-            equity_willingness=15.0,
-            investment_preference="Equity",
-            remote_preference=True
+            industry="AI",
+            location_state="California"
         )
         
         print("✓ Test data created successfully")

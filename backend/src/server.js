@@ -13,7 +13,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Import routes
-const scoringRoutes = require('./scoring');
+const scoringRoutes = require('./routes/scoring');
 const messageRoutes = require('./routes/messages');
 
 const app = express();
