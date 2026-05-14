@@ -4,22 +4,28 @@ class Listing {
   static async create(data) {
     const {
       type, title, description, providerId, providerRole, geo, city,
-      tags, stages, sectors, starterFriendly, hourlyRate, dailyRate, fromPrice, status, imageUrl
+      tags, stages, sectors, starterFriendly, hourlyRate, dailyRate, fromPrice, status, imageUrl,
+      rentalPricePerDay, rentalAvailable, rentalCategory,
+      equipmentCategory, perDayRate, perWeekRate, depositAmount, pickupLocation, shipsNationwide
     } = data;
 
     const query = `
       INSERT INTO listings
         (type, title, description, provider_id, provider_role, geo, city,
          tags, stages, sectors, starter_friendly, hourly_rate, daily_rate, from_price, status, image_url,
+         rental_price_per_day, rental_available, rental_category,
+         equipment_category, per_day_rate, per_week_rate, deposit_amount, pickup_location, ships_nationwide,
          expires_at, created_at, updated_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16, NOW() + INTERVAL '90 days', NOW(), NOW())
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24, NOW() + INTERVAL '90 days', NOW(), NOW())
       RETURNING *
     `;
     const values = [
       type, title, description, providerId, providerRole, geo, city || null,
       JSON.stringify(tags || []), JSON.stringify(stages || []), JSON.stringify(sectors || []),
       starterFriendly || false, hourlyRate || null, dailyRate || null, fromPrice || null,
-      status || 'pending', imageUrl || null
+      status || 'pending', imageUrl || null,
+      rentalPricePerDay || null, rentalAvailable ?? false, rentalCategory || null,
+      equipmentCategory || null, perDayRate || null, perWeekRate || null, depositAmount || null, pickupLocation || null, shipsNationwide ?? false
     ];
     const result = await pool.query(query, values);
     return result.rows[0];
@@ -86,7 +92,9 @@ class Listing {
 
   static async update(id, providerId, data) {
     const allowed = ['title','description','geo','city','tags','stages','sectors',
-                     'starter_friendly','hourly_rate','daily_rate','from_price','image_url'];
+                     'starter_friendly','hourly_rate','daily_rate','from_price','image_url',
+                     'rental_price_per_day','rental_available','rental_category',
+                     'equipment_category','per_day_rate','per_week_rate','deposit_amount','pickup_location','ships_nationwide'];
     const sets = [];
     const values = [];
     let idx = 1;
