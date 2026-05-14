@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Equipment Rental Hub — Startup Radar</title>
+  <style>
+    body { font-family: system-ui; max-width: 1000px; margin: 0 auto; padding: 20px; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 2px solid #4f46e5; margin-bottom: 24px; }
+    nav h1 { margin: 0; color: #4f46e5; font-size: 1.4rem; }
+    nav a { color: #4f46e5; text-decoration: none; font-size: 14px; }
+    h2 { color: #1f2937; margin-bottom: 8px; }
+    .subtitle { color: #6b7280; margin-bottom: 24px; }
+
+    /* Category pills */
+    .categories { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+    .pill { padding: 8px 18px; border-radius: 20px; border: 2px solid #e5e7eb; background: white; cursor: pointer; font-size: 14px; font-weight: 500; transition: all .15s; }
+    .pill:hover { border-color: #4f46e5; color: #4f46e5; }
+    .pill.active { background: #4f46e5; color: white; border-color: #4f46e5; }
+
+    /* Equipment grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+    .card { border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; cursor: pointer; transition: box-shadow .15s; }
+    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+    .card-img { width: 100%; height: 180px; object-fit: cover; background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 40px; }
+    .card-body { padding: 16px; }
+    .card-title { font-weight: 600; font-size: 16px; margin: 0 0 6px; color: #111827; }
+    .card-provider { font-size: 13px; color: #6b7280; margin-bottom: 10px; }
+    .card-footer { display: flex; justify-content: space-between; align-items: center; }
+    .price { font-weight: 700; color: #4f46e5; font-size: 15px; }
+    .badge { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+    .badge.available { background: #d1fae5; color: #065f46; }
+    .badge.unavailable { background: #fee2e2; color: #991b1b; }
+    .category-tag { font-size: 11px; background: #ede9fe; color: #5b21b6; padding: 2px 8px; border-radius: 8px; text-transform: capitalize; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 60px 20px; color: #9ca3af; }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .loading { text-align: center; padding: 40px; color: #6b7280; }
+
+    /* Modal */
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; align-items: center; justify-content: center; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: white; border-radius: 12px; padding: 28px; max-width: 480px; width: 90%; max-height: 90vh; overflow-y: auto; }
+    .modal h3 { margin: 0 0 6px; }
+    .modal .provider { font-size: 14px; color: #6b7280; margin-bottom: 20px; }
+    .modal label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; margin-top: 16px; }
+    .modal input, .modal textarea { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+    .modal textarea { height: 80px; resize: vertical; }
+    .modal-price { font-size: 15px; color: #4f46e5; font-weight: 700; margin-bottom: 4px; }
+    .btn-primary { background: #4f46e5; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 15px; width: 100%; margin-top: 20px; font-weight: 600; }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-secondary { background: white; color: #374151; border: 1px solid #d1d5db; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; margin-top: 8px; width: 100%; }
+    .modal-footer { display: flex; gap: 10px; flex-direction: column; margin-top: 4px; }
+    .success-msg { background: #d1fae5; color: #065f46; padding: 12px; border-radius: 6px; text-align: center; font-weight: 500; display: none; }
+    .error-msg { background: #fee2e2; color: #991b1b; padding: 10px; border-radius: 6px; font-size: 13px; display: none; }
+
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr; }
+      .categories { gap: 6px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <h1>🎬 Equipment Rental Hub</h1>
+  <div style="display:flex;gap:16px;align-items:center;">
+    <a href="founder-dashboard.html">← Dashboard</a>
+    <a href="auth.html" id="logout-link">Logout</a>
+  </div>
+</nav>
+
+<h2>Ausrüstung leihen</h2>
+<p class="subtitle">Video, Audio, Film & Foto — professionelle Ausrüstung direkt von Providern mieten.</p>
+
+<!-- Category filter pills -->
+<div class="categories">
+  <button class="pill active" onclick="filterCategory(null, this)">Alle</button>
+  <button class="pill" onclick="filterCategory('video', this)">📹 Video</button>
+  <button class="pill" onclick="filterCategory('audio', this)">🎙️ Audio</button>
+  <button class="pill" onclick="filterCategory('film', this)">🎬 Film</button>
+  <button class="pill" onclick="filterCategory('photo', this)">📷 Foto</button>
+</div>
+
+<div id="loading" class="loading">Lade Ausrüstung…</div>
+<div id="grid" class="grid" style="display:none;"></div>
+<div id="empty" class="empty" style="display:none;">
+  <div class="empty-icon">📦</div>
+  <p>Keine Ausrüstung in dieser Kategorie verfügbar.</p>
+</div>
+
+<!-- Rental Modal -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <h3 id="modal-title"></h3>
+    <div class="modal-provider" id="modal-provider"></div>
+    <div class="modal-price" id="modal-price"></div>
+    <div class="success-msg" id="success-msg">✓ Anfrage gesendet! Der Provider wird sich melden.</div>
+    <div class="error-msg" id="error-msg"></div>
+
+    <form id="rental-form" onsubmit="submitRental(event)">
+      <label>Von</label>
+      <input type="date" id="start-date" required min="">
+      <label>Bis</label>
+      <input type="date" id="end-date" required min="">
+      <label>Nachricht (optional)</label>
+      <textarea id="rental-message" placeholder="Kurze Beschreibung deines Projekts…"></textarea>
+      <div class="modal-footer">
+        <button type="submit" class="btn-primary">Anfrage senden</button>
+        <button type="button" class="btn-secondary" onclick="closeModal()">Abbrechen</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const API = '/api';
+  let currentListingId = null;
+  let allItems = [];
+  let activeCategory = null;
+
+  const token = localStorage.getItem('token');
+  if (!token) { window.location.href = 'auth.html'; }
+
+  document.getElementById('logout-link').onclick = (e) => {
+    e.preventDefault();
+    localStorage.clear();
+    window.location.href = 'auth.html';
+  };
+
+  // Set min date to today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('start-date').min = today;
+  document.getElementById('end-date').min = today;
+
+  async function loadEquipment(category = null) {
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('grid').style.display = 'none';
+    document.getElementById('empty').style.display = 'none';
+
+    try {
+      let url = `${API}/listings?rental_available=true&limit=50`;
+      if (category) url += `&category=${category}`;
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await r.json();
+      allItems = Array.isArray(data.listings) ? data.listings : (Array.isArray(data) ? data : []);
+      renderGrid(allItems);
+    } catch (e) {
+      console.error(e);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('empty').style.display = 'block';
+    }
+  }
+
+  function renderGrid(items) {
+    document.getElementById('loading').style.display = 'none';
+    const grid = document.getElementById('grid');
+    const empty = document.getElementById('empty');
+
+    const rentable = items.filter(i => i.rental_available);
+    if (!rentable.length) {
+      grid.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+
+    grid.innerHTML = rentable.map(item => {
+      const catIcon = { video: '📹', audio: '🎙️', film: '🎬', photo: '📷' }[item.rental_category] || '📦';
+      const imgContent = item.image_url
+        ? `<img src="${item.image_url}" alt="${item.title}" style="width:100%;height:180px;object-fit:cover;">`
+        : `<div class="card-img">${catIcon}</div>`;
+      return `
+        <div class="card" onclick="openModal(${item.id}, '${esc(item.title)}', '${esc(item.provider_name || 'Provider')}', ${item.rental_price_per_day || 0})">
+          ${imgContent}
+          <div class="card-body">
+            <div class="card-title">${esc(item.title)}</div>
+            <div class="card-provider">von ${esc(item.provider_name || 'Provider')}</div>
+            <div class="card-footer">
+              <span class="price">${item.rental_price_per_day ? `€${parseFloat(item.rental_price_per_day).toFixed(2)}/Tag` : 'Preis auf Anfrage'}</span>
+              <div style="display:flex;gap:6px;align-items:center;">
+                ${item.rental_category ? `<span class="category-tag">${item.rental_category}</span>` : ''}
+                <span class="badge available">Verfügbar</span>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    grid.style.display = 'grid';
+    empty.style.display = 'none';
+  }
+
+  function esc(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function filterCategory(cat, el) {
+    activeCategory = cat;
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    loadEquipment(cat);
+  }
+
+  function openModal(id, title, provider, pricePerDay) {
+    currentListingId = id;
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-provider').textContent = 'von ' + provider;
+    document.getElementById('modal-price').textContent = pricePerDay ? `€${parseFloat(pricePerDay).toFixed(2)} / Tag` : 'Preis auf Anfrage';
+    document.getElementById('success-msg').style.display = 'none';
+    document.getElementById('error-msg').style.display = 'none';
+    document.getElementById('rental-form').style.display = 'block';
+    document.getElementById('modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+    currentListingId = null;
+    document.getElementById('rental-form').reset();
+  }
+
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  async function submitRental(e) {
+    e.preventDefault();
+    const errEl = document.getElementById('error-msg');
+    const successEl = document.getElementById('success-msg');
+    errEl.style.display = 'none';
+
+    const start_date = document.getElementById('start-date').value;
+    const end_date = document.getElementById('end-date').value;
+    const message = document.getElementById('rental-message').value;
+
+    if (new Date(start_date) >= new Date(end_date)) {
+      errEl.textContent = 'Enddatum muss nach dem Startdatum liegen.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true;
+    btn.textContent = 'Wird gesendet…';
+
+    try {
+      const r = await fetch(`${API}/listings/${currentListingId}/rent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ start_date, end_date, message })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Fehler beim Senden');
+      document.getElementById('rental-form').style.display = 'none';
+      successEl.style.display = 'block';
+      setTimeout(closeModal, 2500);
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Anfrage senden';
+    }
+  }
+
+  loadEquipment();
+</script>
+</body>
+</html>
