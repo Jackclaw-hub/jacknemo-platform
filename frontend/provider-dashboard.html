@@ -108,7 +108,7 @@
           <label>Stadt</label>
           <input type="text" id="l-city" placeholder="Berlin">
           <label>Tags (kommagetrennt)</label>
-          <input type="text" id="l-tags" placeholder="3d-druck, prototyping" list="tags-dl" onkeyup="fetchTagSuggestions(this.value)"><datalist id="tags-dl"></datalist>
+          <input type="text" id="l-tags" placeholder="3d-druck, prototyping">
           <label>Bild-URL <span style="font-weight:400;color:#9ca3af;font-size:12px">(optional)</span></label>
           <input type="url" id="l-image" placeholder="https://beispiel.de/bild.jpg" oninput="previewImage('l-image','l-image-preview')">
           <!-- K-110: Live image preview -->
@@ -357,9 +357,7 @@
       };
     }
 
-    async function fetchTagSuggestions(v){if(v.length<2)return;fetch('/api/tags?q='+encodeURIComponent(v)).then(r=>r.json()).then(d=>{const dl=document.getElementById('tags-dl');dl.innerHTML=(d.tags||[]).map(t=>`<option value="${t}">`).join('');});}
-
-function loadMyListings() {
+    async function loadMyListings() {
       try {
         const data = await ListingsAPI.getMine();
         const el = document.getElementById('my-listings');

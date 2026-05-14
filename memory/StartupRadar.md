@@ -1,1 +1,0 @@
-Startup Radar platform: multi-sided marketplace for founders, equipment/space providers, and service providers.
