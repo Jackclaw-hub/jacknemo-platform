@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { upsertProfile, getProfile, getProviderListings, requestVerification, getProviderAnalytics, getResponseRate, saveAvailability, getAvailability } = require('../controllers/providerProfileController');
+const { getMyStats } = require('../controllers/providersController');
 const { submitRating, getRating, getRatings } = require('../controllers/ratingController');
 const { getTemplates, createTemplate, deleteTemplate } = require('../controllers/templateController');
 const { authenticateToken, requireRole } = require('../middleware/auth');
@@ -35,5 +36,7 @@ router.get('/:userId/response-rate', getResponseRate);
 // K-164: Availability — provider saves, public reads
 router.post('/availability', authenticateToken, requireRole(['equipment_provider','service_provider']), saveAvailability);
 router.get('/:userId/availability', getAvailability);
+
+router.get('/me/stats', authenticateToken, getMyStats);
 
 module.exports = router;
