@@ -319,14 +319,36 @@
       }
     }
 
-    async function dismissGroup(listingId, reportIds) {
+        async function loadReports() {
+      const listEl = document.getElementById('reports-list');
+      const sumEl = document.getElementById('reports-summary');
+      listEl.innerHTML = '<div class="empty">Lade Meldungen…</div>';
       try {
-        await Promise.all(reportIds.map(id => api('PATCH', '/admin/reports/' + id + '/dismiss', {}, auth.getToken())));
-        document.getElementById('rgroup-' + listingId)?.remove();
-      } catch(e) { alert('Fehler: ' + e.message); }
+        const data = await api('GET', '/admin/reports', null, auth.getToken());
+        const reports = data.reports || [];
+        sumEl.textContent = reports.length + ' Meldungen gefunden';
+        if (!reports.length) { listEl.innerHTML = '<div class="empty">Keine Meldungen ✓</div>'; return; }
+        listEl.innerHTML = `
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr style="background:#f9fafb;text-align:left">
+              <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Listing</th>
+              <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Melder</th>
+              <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Grund</th>
+              <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Datum</th>
+            </tr></thead>
+            <tbody>${reports.map(r => `
+              <tr style="border-bottom:1px solid #f3f4f6">
+                <td style="padding:8px 10px"><a href="listing.html?id=${r.listing_id}" target="_blank" style="color:#4f46e5;text-decoration:none">${r.listing_title || '#' + r.listing_id}</a></td>
+                <td style="padding:8px 10px">${r.reporter_email || '#' + r.reporter_id}</td>
+                <td style="padding:8px 10px">${r.reason}</td>
+                <td style="padding:8px 10px">${new Date(r.created_at).toLocaleDateString('de-DE')}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>`;
+      } catch(e) {
+        listEl.innerHTML = '<div class="empty">Fehler: ' + e.message + '</div>';
+      }
     }
-
-    // K-65: User management
     let userSearchTimer;
     function debounceUserSearch() {
       clearTimeout(userSearchTimer);
@@ -856,5 +878,5 @@ E-Mail verifiziert: ${u.email_verified ? 'Ja' : 'Nein'}
     </div>
     <div id="notif-list" style="overflow-y:auto;max-height:400px;padding:0"></div>
   </div>
-</body>
+<script>(function(){if(localStorage.getItem('dm')==='1')document.body.classList.add('dark')})();function toggleDark(){var o=document.body.classList.toggle('dark');localStorage.setItem('dm',o?'1':'0');}</script><style>body.dark{background:#1a1a2e!important;color:#e2e8f0!important}</style><button onclick="toggleDark()" style="position:fixed;bottom:20px;right:20px;z-index:9999;background:#1e293b;color:#f1f5f9;border:none;border-radius:50%;width:42px;height:42px;font-size:18px;cursor:pointer">🌙</button><button onclick="toggleDark()" style="position:fixed;bottom:20px;right:20px;z-index:9999;background:#1e293b;color:#f1f5f9;border:none;border-radius:50%;width:42px;height:42px;font-size:18px;cursor:pointer">🌙</button><script>(function(){if(localStorage.getItem('dm')==='1')document.body.classList.add('dark')})();function toggleDark(){var o=document.body.classList.toggle('dark');localStorage.setItem('dm',o?'1':'0');}</script></body>
 </html>

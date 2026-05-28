@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS listing_reports(id SERIAL PRIMARY KEY,listing_id INTEGER NOT NULL,reporter_id INTEGER NOT NULL,reason VARCHAR(30) NOT NULL CHECK(reason IN('spam','misleading','inappropriate','other')),details TEXT,created_at TIMESTAMPTZ DEFAULT NOW());CREATE INDEX IF NOT EXISTS idx_reports_listing ON listing_reports(listing_id);

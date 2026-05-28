@@ -8,7 +8,7 @@ const {
   updateListing, deleteListing, getMyListings, getMyListingById, updateListingTags, getListingStats, promoteListing, demoteListing, publishListing, pauseListing, resumeListing,
   renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings, getSimilarListings
 } = require('../controllers/listingsController');
-const { reportListing, getReportCount } = require('../controllers/reportController');
+const { submitReport } = require('../controllers/reportsController');
 
 // SSE clients registry (in-memory, resets on restart — sufficient for polling fallback)
 const sseClients = new Map(); // userId → res
@@ -97,8 +97,7 @@ router.patch('/:id/renew', authenticateToken, renewListing);
 router.post('/admin/expire', authenticateToken, runListingExpiry);
 
 // K-67: Report abuse
-router.post('/:id/report', authenticateToken, reportListing);
-router.get('/:id/reports/count', authenticateToken, getReportCount);
+router.post('/:id/report', authenticateToken, submitReport);
 
 // K-140: Public stats
 router.get('/:id/stats', getListingStats);

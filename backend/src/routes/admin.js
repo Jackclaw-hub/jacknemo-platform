@@ -5,7 +5,7 @@ const { getPendingListings, getAllListings, approveListing, rejectListing, featu
 const { getAnalytics, getTrends, getSearchTerms, getStatsOverview, getTopProviders } = require('../controllers/adminAnalyticsController');
 const { listUsers, disableUser, enableUser, getUserDetail } = require('../controllers/adminUserController');
 const { exportListings, exportUsers } = require('../controllers/adminExportController');
-const { getReports, dismissReport } = require('../controllers/reportController');
+const { getReports } = require('../controllers/reportsController');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 const adminOnly = [authenticateToken, requireRole(['admin'])];
