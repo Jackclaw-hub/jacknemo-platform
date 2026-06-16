@@ -9,6 +9,7 @@ const {
   renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings, getSimilarListings
 } = require('../controllers/listingsController');
 const { reportListing, getReportCount } = require('../controllers/reportController');
+const { getReviews, submitReview } = require('../controllers/reviewsController');
 
 // SSE clients registry (in-memory, resets on restart — sufficient for polling fallback)
 const sseClients = new Map(); // userId → res
@@ -76,6 +77,8 @@ router.get('/suggest', suggestListings); // K-88: autocomplete — must be befor
 router.get('/', apiRateLimiter, getListings);
 router.get('/:id', apiRateLimiter, getListing);
 router.post('/:id/contact', authenticateToken, contactListing);
+router.get('/:id/reviews', getReviews);
+router.post('/:id/reviews', authenticateToken, submitReview);
 
 // Admin: premium management (K-20)
 router.patch('/:id/premium', authenticateToken, promoteListing);
