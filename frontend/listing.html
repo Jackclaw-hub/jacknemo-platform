@@ -118,8 +118,16 @@
       <button class="contact-btn" id="contact-btn" onclick="toggleContact()">Kontakt aufnehmen</button>
       <div class="contact-form" id="contact-form">
         <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:3px">Betreff <span style="color:#ef4444">*</span></label>
-        <input type="text" id="contact-subject" placeholder="z.B. Interesse an Ihrem Angebot" maxlength="80" oninput="updateSubjectCounter()">
-        <div style="font-size:11px;color:#9ca3af;text-align:right;margin-top:2px"><span id="subject-count">0</span>/80</div>
+        <select id="contact-subject" style="width:100%;padding:9px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;margin-bottom:8px;box-sizing:border-box;">
+          <option value="">Bitte auswählen</option>
+          <option value="Preisanfrage">Preisanfrage</option>
+          <option value="Verfügbarkeit">Verfügbarkeit</option>
+          <option value="Partnerschaft">Partnerschaft</option>
+          <option value="Demo-Anfrage">Demo-Anfrage</option>
+          <option value="Allgemeine Anfrage">Allgemeine Anfrage</option>
+        </select>
+        <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:3px;margin-top:8px">Budget (optional)</label>
+        <input type="text" id="contact-budget" placeholder="z.B. 500-1000€" style="width:100%;padding:9px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;margin-bottom:8px;box-sizing:border-box;">
         <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:3px;margin-top:8px">Nachricht <span style="color:#ef4444">*</span></label>
         <textarea id="contact-msg" rows="4" placeholder="Kurze Nachricht an den Anbieter... (mind. 20 Zeichen)" maxlength="2000" oninput="updateMsgCounter()"></textarea>
         <div class="char-counter" id="msg-counter">0 / 2000 (mind. 20)</div>
@@ -407,17 +415,25 @@
       if (!auth.getToken()) { location.href = 'auth.html?tab=login'; return; }
       const subject = document.getElementById('contact-subject').value.trim();
       const msg = document.getElementById('contact-msg').value.trim();
+      const budget = document.getElementById('contact-budget').value.trim();
       const errEl = document.getElementById('contact-error');
       errEl.style.display = 'none';
-      if (!subject) { errEl.textContent = 'Bitte gib einen Betreff ein.'; errEl.style.display = 'block'; return; }
-      if (subject.length > 80) { errEl.textContent = 'Betreff darf max. 80 Zeichen haben.'; errEl.style.display = 'block'; return; }
+
+      if (!subject) { errEl.textContent = 'Bitte wähle einen Betreff aus.'; errEl.style.display = 'block'; return; }
       if (msg.length < 20) { errEl.textContent = 'Nachricht muss mindestens 20 Zeichen lang sein.'; errEl.style.display = 'block'; return; }
+
       try {
-        await ListingsAPI.contact(listingId, msg, subject);
+        const data = await api('POST', '/listings/' + listingId + '/inquiry', {subject, message: msg, budget_range: budget || undefined}, auth.getToken());
         document.getElementById('msg-sent').style.display = 'block';
         document.getElementById('contact-btn').disabled = true;
         document.getElementById('contact-btn').textContent = '&#x2713; Kontakt gesendet';
-        setTimeout(() => toggleContact(), 2000);
+        setTimeout(() => {
+          if (data.thread_url) {
+            window.location.href = data.thread_url;
+          } else {
+            window.location.href = 'messages.html';
+          }
+        }, 2000);
       } catch(e) {
         errEl.textContent = 'Fehler: ' + e.message;
         errEl.style.display = 'block';
