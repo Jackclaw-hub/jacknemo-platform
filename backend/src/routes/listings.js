@@ -9,6 +9,7 @@ const {
   renewListing, runListingExpiry, recordView, duplicateListing, suggestListings, getRelatedListings, getSimilarListings
 } = require('../controllers/listingsController');
 const { reportListing, getReportCount } = require('../controllers/reportController');
+const { toggleBookmark } = require('../controllers/bookmarksController');
 
 // SSE clients registry (in-memory, resets on restart — sufficient for polling fallback)
 const sseClients = new Map(); // userId → res
@@ -105,6 +106,9 @@ router.get('/:id/stats', getListingStats);
 
 // K-69: Explicit view tracking (session-deduplicated by frontend)
 router.post('/:id/view', recordView);
+
+// K-197: Toggle bookmark
+router.post('/:id/bookmark', authenticateToken, toggleBookmark);
 
 // K-73: Duplicate listing as draft
 router.post('/:id/duplicate', authenticateToken, duplicateListing);
