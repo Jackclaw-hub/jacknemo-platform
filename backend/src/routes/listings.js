@@ -119,4 +119,7 @@ router.post('/', authenticateToken, listingsWriteLimiter, validateListing, creat
 router.put('/:id', authenticateToken, listingsWriteLimiter, validateListing, updateListing);
 router.delete('/:id', authenticateToken, deleteListing);
 
+// K-186: Per-day views breakdown (provider-only)
+router.get('/:id/views/breakdown', authenticateToken, getViewsBreakdown);
+
 module.exports = router;

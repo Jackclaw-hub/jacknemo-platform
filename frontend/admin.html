@@ -357,6 +357,7 @@
               <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Name</th>
               <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Rolle</th>
               <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Status</th>
+              <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">2FA</th>
               <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Registriert</th>
               <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Aktionen</th>
             </tr></thead>
@@ -367,6 +368,7 @@
                 <td style="padding:8px 10px">${u.name || '—'}</td>
                 <td style="padding:8px 10px"><span style="background:${u.role==='admin'?'#fef3c7':u.role==='provider'?'#dbeafe':'#f0fdf4'};color:${u.role==='admin'?'#92400e':u.role==='provider'?'#1e40af':'#166534'};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">${u.role}</span></td>
                 <td style="padding:8px 10px"><span style="background:${u.is_active!==false?'#dcfce7':'#fee2e2'};color:${u.is_active!==false?'#166534':'#991b1b'};padding:2px 8px;border-radius:10px;font-size:11px">${u.is_active!==false?'Aktiv':'Deaktiviert'}</span></td>
+                <td style="padding:8px 10px;text-align:center">${u.totp_enabled ? '<span title="2FA aktiv" style="color:#059669;font-size:16px">✓</span>' : '<span title="2FA inaktiv" style="color:#d1d5db;font-size:14px">—</span>'}</td>
                 <td style="padding:8px 10px;color:#6b7280">${u.created_at ? new Date(u.created_at).toLocaleDateString('de-DE') : '—'}</td>
                 <td style="padding:8px 10px;display:flex;gap:6px;align-items:center" id="uact-${u.id}">
                   ${u.is_active !== false

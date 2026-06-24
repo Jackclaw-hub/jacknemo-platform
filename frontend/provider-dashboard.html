@@ -168,6 +168,33 @@
       <h2>&#128202; Listing Analytics</h2>
       <div id="analytics-totals" style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;font-size:14px"></div>
       <div id="analytics-chart"></div>
+      <div id="views-breakdown" style="display:none;margin-top:20px;border-top:1px solid #e5e7eb;padding-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 id="breakdown-title" style="margin:0;font-size:15px;font-weight:600"></h3>
+          <div><select id="breakdown-period" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:13px"><option value="7d">7 Tage</option><option value="14d">14 Tage</option><option value="30d">30 Tage</option></select><button onclick="document.getElementById('views-breakdown').style.display='none'" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:18px;margin-left:8px">x</button></div>
+        </div>
+        <div id="breakdown-chart" style="display:flex;align-items:flex-end;gap:3px;height:80px"></div>
+        <div id="breakdown-labels" style="display:flex;gap:3px;margin-top:4px;font-size:10px;color:#9ca3af"></div>
+        <div id="breakdown-total" style="margin-top:8px;font-size:13px;color:#6b7280"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- K-184: Portfolio Management -->
+  <div class="profile-section" id="portfolio-mgmt-section">
+    <div class="card">
+      <h2>&#x1F4BC; Mein Portfolio <span id="portfolio-count" style="font-size:13px;font-weight:400;color:#6b7280">(0/5)</span></h2>
+      <div id="portfolio-list" style="margin-bottom:16px"></div>
+      <form id="portfolio-form" style="border-top:1px solid #e5e7eb;padding-top:16px">
+        <div style="display:grid;gap:10px">
+          <input id="pf-title" placeholder="Titel (max 120 Zeichen) *" maxlength="120" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px">
+          <textarea id="pf-desc" placeholder="Beschreibung (optional)" rows="2" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;resize:vertical"></textarea>
+          <input id="pf-image" placeholder="Bild-URL (optional)" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px">
+          <input id="pf-link" placeholder="Link (optional, z.B. https://...)" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px">
+          <button type="submit" class="primary" style="justify-self:start">Eintrag hinzufügen</button>
+          <span id="pf-msg" style="font-size:13px"></span>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -825,9 +852,83 @@
       }
     }
 
+    let _bid = null;
+    async function showBreakdown(lid, lt) {
+      document.getElementById('breakdown-title').textContent = 'Views: ' + lt;
+      _bid = lid;
+      document.getElementById('views-breakdown').style.display = 'block';
+      await renderBreakdown(lid, document.getElementById('breakdown-period').value);
+    }
+    async function renderBreakdown(lid, period) {
+      try {
+        const d = await api('GET', '/listings/' + lid + '/views/breakdown?period=' + period);
+        const mx = Math.max(...d.breakdown.map(x => x.views), 1);
+        document.getElementById('breakdown-chart').innerHTML = d.breakdown.map(x =>
+          '<div style="flex:1;background:' + (x.views > 0 ? '#4f46e5' : '#e5e7eb') + ';border-radius:3px 3px 0 0;height:' + Math.max(2, Math.round(x.views / mx * 78)) + 'px"></div>'
+        ).join('');
+        document.getElementById('breakdown-labels').innerHTML = d.breakdown.map((x, i) =>
+          '<div style="flex:1;text-align:center">' + (i % 3 === 0 ? x.date.slice(5) : '') + '</div>'
+        ).join('');
+        document.getElementById('breakdown-total').textContent = 'Total: ' + d.total + ' Views in ' + d.days + ' Tagen';
+      } catch(ex) { document.getElementById('breakdown-chart').innerHTML = '<p style="color:#dc2626;font-size:12px">' + ex.message + '</p>'; }
+    }
+    document.addEventListener('change', e => { if (e.target.id === 'breakdown-period' && _bid) renderBreakdown(_bid, e.target.value); });
+
     loadMyListings();
     loadProviderProfile();
     loadAnalytics();
+    loadPortfolioManagement();
+
+    // K-184: Portfolio management
+    async function loadPortfolioManagement() {
+      try {
+        const res = await api('GET', '/providers/' + authUser.id + '/portfolio');
+        const entries = res.portfolio || [];
+        document.getElementById('portfolio-count').textContent = '(' + entries.length + '/5)';
+        const list = document.getElementById('portfolio-list');
+        if (!entries.length) {
+          list.innerHTML = '<p style="color:#9ca3af;font-size:13px">Noch keine Einträge. Füge dein erstes Projekt hinzu.</p>';
+          return;
+        }
+        list.innerHTML = entries.map(e =>
+          '<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:8px">' +
+          (e.image_url ? '<img src="' + e.image_url + '" style="width:56px;height:40px;object-fit:cover;border-radius:4px" onerror="this.remove()">' : '') +
+          '<div style="flex:1">' +
+          '<div style="font-weight:600;font-size:14px">' + e.title + '</div>' +
+          (e.link ? '<a href="' + e.link + '" target="_blank" style="font-size:12px;color:#6366f1">' + e.link + '</a>' : '') +
+          '</div>' +
+          '<button onclick="deletePortfolioEntry(' + e.id + ')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:18px" title="Löschen">×</button>' +
+          '</div>'
+        ).join('');
+      } catch(ex) { console.error(ex); }
+    }
+
+    async function deletePortfolioEntry(id) {
+      if (!confirm('Eintrag löschen?')) return;
+      try {
+        await api('DELETE', '/providers/portfolio/' + id);
+        loadPortfolioManagement();
+      } catch(ex) { alert('Fehler: ' + ex.message); }
+    }
+
+    document.getElementById('portfolio-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('pf-title').value.trim();
+      const description = document.getElementById('pf-desc').value.trim();
+      const image_url = document.getElementById('pf-image').value.trim();
+      const link = document.getElementById('pf-link').value.trim();
+      const msg = document.getElementById('pf-msg');
+      if (!title) { msg.textContent = 'Titel ist Pflichtfeld'; msg.style.color = '#dc2626'; return; }
+      try {
+        await api('POST', '/providers/portfolio', { title, description: description || undefined, image_url: image_url || undefined, link: link || undefined });
+        msg.textContent = '✓ Eintrag hinzugefügt'; msg.style.color = '#059669';
+        document.getElementById('pf-title').value = '';
+        document.getElementById('pf-desc').value = '';
+        document.getElementById('pf-image').value = '';
+        document.getElementById('pf-link').value = '';
+        loadPortfolioManagement();
+      } catch(ex) { msg.textContent = 'Fehler: ' + ex.message; msg.style.color = '#dc2626'; }
+    });
       } catch(ex) {
         err.style.display = 'block';
         err.textContent = ex.message;

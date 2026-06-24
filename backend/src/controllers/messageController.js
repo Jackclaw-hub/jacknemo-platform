@@ -25,7 +25,7 @@ const sendMessage = async (req, res) => {
 
     // K-21: Email notify provider of new contact
     if (listing_id) {
-      db.query("SELECT * FROM listings WHERE id = \\", [listing_id]).then(lr=>{
+      db.query("SELECT * FROM listings WHERE id = $1", [listing_id]).then(lr=>{
         const l = lr.rows[0];
         if (l) notifyContactReceived(l, recipient_id, req.user.name||req.user.email, body.trim().slice(0,200)).catch(console.error);
       }).catch(()=>{});

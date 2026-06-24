@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { sendEmail } = require('../services/notificationService');
 const NativeAuth = require('../auth-native');
 const auth = new NativeAuth();
 
@@ -59,6 +60,16 @@ const register = async (req, res) => {
 
     const tokens = generateTokens(user);
 
+    // K-177: Send verification email (fire-and-forget)
+    const appUrl = process.env.APP_URL || 'https://jacknemo1994.de';
+    const verifyLink = appUrl + '/api/auth/verify/' + verificationToken;
+    sendEmail(
+      email,
+      'Verify your JackNemo account',
+      '<p>Hi ' + name + ',</p><p><a href="' + verifyLink + '">Verify Email</a></p><p>' + verifyLink + '</p>',
+      'Hi ' + name + ', verify your email: ' + verifyLink
+    ).catch(() => {});
+
     res.status(201).json({
       message: 'User registered successfully',
       user: { id: user.id, email: user.email, role: user.role, name: user.name, email_verified: user.email_verified },
@@ -79,13 +90,26 @@ const login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ error: 'Missing required fields', message: 'Email and password are required' });
     }
-    const user = await User.findByEmail(email);
+    const user = await User.findByEmailWithTotp(email);
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials', message: 'Email or password is incorrect' });
     }
     const isValidPassword = await auth.verifyPassword(password, user.password_hash);
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid credentials', message: 'Email or password is incorrect' });
+    }
+    // K-177: Block login if email not verified
+    if (!user.email_verified) {
+      return res.status(403).json({
+        error: 'Email not verified',
+        message: 'Check your inbox or POST /api/auth/resend-verification'
+      });
+    }
+
+    // K-176: If 2FA is enabled, issue a short-lived challenge token instead of full auth
+    if (user.totp_enabled) {
+      const challenge_token = auth.generateChallengeToken(user);
+      return res.json({ requires_2fa: true, temp_token: challenge_token });
     }
     const tokens = generateTokens(user);
     res.json({
