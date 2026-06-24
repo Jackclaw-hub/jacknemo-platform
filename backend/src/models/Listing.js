@@ -37,7 +37,7 @@ class Listing {
     // K-168: city filter — case-insensitive substring
     if (city)  { query += ` AND LOWER(city) LIKE $${idx++}`; values.push('%' + city.toLowerCase() + '%'); }
     // tags: comma-separated string or array — filter in-memory after query (mock + PG compatible)
-    query += ' ORDER BY created_at DESC';
+    query += ' ORDER BY is_featured DESC, created_at DESC';
     const result = await pool.query(query, values);
     let rows = result.rows;
     // Tag filter (works with both JSON array stored as string and real array)

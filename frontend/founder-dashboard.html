@@ -605,7 +605,7 @@
         '<span class="type-badge">' + (l.type || '&mdash;') + '</span>' + (l.is_featured ? '<span class="featured-chip">\u2B50 Featured</span>' : '') +
         (l.view_count > 0 ? '<span style="display:inline-block;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px;font-size:10px;padding:1px 7px;margin-left:4px;font-weight:600;vertical-align:middle">\uD83D\uDC41 ' + l.view_count + ' Views</span>' : '') +
         (l.image_url ? '<img src="' + l.image_url + '" alt="" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin:6px 0" onerror="this.remove()">' : '') +
-        '<h3 style="margin:8px 0 4px">' + l.title +
+        '<h3 style="margin:8px 0 4px">' + (l.is_featured ? '&#11088; ' : '') + l.title +
           (l.provider_verified ? ' <span style="display:inline-block;background:#ecfdf5;color:#065f46;border:1px solid #6ee7b7;border-radius:10px;font-size:10px;padding:1px 6px;font-weight:600;vertical-align:middle">✓ Verifiziert</span>' : '') +
         '</h3>' +
         '<p style="margin:4px 0;color:#6b7280;font-size:13px"><strong>Geo:</strong> ' + (l.geo || '&mdash;') + ' | <strong>Stadt:</strong> ' + (l.city || '&mdash;') + '</p>' +
