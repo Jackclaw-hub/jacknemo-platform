@@ -1,10 +1,10 @@
 const { adminVerifyProvider } = require('../controllers/providerProfileController');
 const express = require('express');
 const router = express.Router();
-const { getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, bulkAction, getAdminListingDetail, getListingHistory } = require('../controllers/adminController');
+const { getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, bulkAction, getAdminListingDetail, getListingHistory, exportListingsCSV, exportUsersCSV } = require('../controllers/adminController');
 const { getAnalytics, getTrends, getSearchTerms, getStatsOverview, getTopProviders } = require('../controllers/adminAnalyticsController');
 const { listUsers, disableUser, enableUser, getUserDetail } = require('../controllers/adminUserController');
-const { exportListings, exportUsers } = require('../controllers/adminExportController');
+
 const { getReports, dismissReport } = require('../controllers/reportController');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
@@ -45,8 +45,8 @@ router.patch('/users/:id/disable', ...adminOnly, disableUser);
 router.patch('/users/:id/enable', ...adminOnly, enableUser);
 
 // K-66: CSV exports
-router.get('/export/listings.csv', ...adminOnly, exportListings);
-router.get('/export/users.csv', ...adminOnly, exportUsers);
+router.get('/export/listings', ...adminOnly, exportListingsCSV);
+router.get('/export/users', ...adminOnly, exportUsersCSV);
 
 // K-67: Abuse reports
 router.get('/reports', ...adminOnly, getReports);

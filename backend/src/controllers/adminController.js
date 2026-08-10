@@ -243,5 +243,27 @@ const getListingHistory = async (req, res) => {
   }
 };
 
+const exportListingsCSV = async (req, res) => {
+  try {
+    const { rows } = await db.query(`SELECT id,title,type,geo,city,status,created_at,provider_id FROM listings ORDER BY id`);
+    const header = 'id,title,type,geo,city,status,created_at,provider_id';
+    const lines = rows.map(r => [r.id,`"${(r.title||'').replace(/"/g,'""')}"`,r.type,r.geo,r.city||'',r.status,r.created_at,r.provider_id].join(','));
+    res.setHeader('Content-Type','text/csv');
+    res.setHeader('Content-Disposition','attachment; filename="listings.csv"');
+    res.send([header,...lines].join('\n'));
+  } catch(e){ res.status(500).json({error:e.message}); }
+};
+
+const exportUsersCSV = async (req, res) => {
+  try {
+    const { rows } = await db.query(`SELECT id,email,role,email_verified,created_at FROM users ORDER BY id`);
+    const header = 'id,email,role,email_verified,created_at';
+    const lines = rows.map(r => [r.id,`"${(r.email||'').replace(/"/g,'""')}"`,r.role,r.email_verified,r.created_at].join(','));
+    res.setHeader('Content-Type','text/csv');
+    res.setHeader('Content-Disposition','attachment; filename="users.csv"');
+    res.send([header,...lines].join('\n'));
+  } catch(e){ res.status(500).json({error:e.message}); }
+};
+
 module.exports = {
-  bulkAction, getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, getAdminListingDetail, getListingHistory };
+  bulkAction, getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, getAdminListingDetail, getListingHistory, exportListingsCSV, exportUsersCSV };
