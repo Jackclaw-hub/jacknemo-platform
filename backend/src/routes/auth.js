@@ -11,7 +11,11 @@ const {
   logout,
   requestPasswordReset,
   confirmPasswordReset,
-  changePassword
+  changePassword,
+  setup2fa,
+  verify2fa,
+  disable2fa,
+  login2fa
 } = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');
 const { authRateLimiter, registrationRateLimiter, resetRateLimiter, validateRegistration, validateLogin } = require('../middleware/security');
@@ -48,5 +52,17 @@ router.post('/reset-password/confirm', confirmPasswordReset);
 
 // POST /api/auth/change-password - Change password (K-80, authenticated)
 router.post('/change-password', authenticateToken, changePassword);
+
+// POST /api/auth/login/2fa - 2FA login
+router.post('/login/2fa', authRateLimiter, login2fa);
+
+// POST /api/auth/2fa/setup - Setup 2FA (protected)
+router.post('/2fa/setup', authenticateToken, setup2fa);
+
+// POST /api/auth/2fa/verify - Verify 2FA setup (protected)
+router.post('/2fa/verify', authenticateToken, verify2fa);
+
+// POST /api/auth/2fa/disable - Disable 2FA (protected)
+router.post('/2fa/disable', authenticateToken, disable2fa);
 
 module.exports = router;

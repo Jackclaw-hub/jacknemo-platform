@@ -45,10 +45,13 @@ class User {
   }
 
   static async update(id, updates) {
+    // Ensure updated_at is always set for any update
+    updates.updated_at = new Date().toISOString();
+
     const fields = [];
     const values = [];
     let paramCount = 1;
-    const allowed = ['name', 'email', 'password_hash', 'email_verified', 'verification_token', 'updated_at'];
+    const allowed = ['name', 'email', 'password_hash', 'email_verified', 'verification_token', 'two_factor_secret', 'two_factor_enabled', 'two_factor_temp_secret', 'updated_at'];
     for (const key of allowed) {
       if (updates[key] !== undefined) {
         fields.push(`${key} = $${paramCount}`);
