@@ -196,6 +196,9 @@
   </div>
 
   <div id="results"><div class="empty">Lade Radar-Ergebnisse...</div></div>
+  <div id="load-more-wrap" style="display:none;text-align:center;margin:18px 0">
+    <button id="load-more-btn" onclick="loadMoreRadar()" style="background:#4f46e5;color:#fff;border:none;padding:10px 28px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer">Mehr laden</button>
+  </div>
 
   <script src="api-client.js"></script>
   <script>
@@ -891,8 +894,12 @@
       loadRadar();
     }
 
-    async function loadRadar() {
-      const params = {};
+    // K-171: pagination state
+    let _radarOffset = 0;
+    const RADAR_LIMIT = 20;
+
+    function _radarParams(offset) {
+      const params = { limit: RADAR_LIMIT, offset };
       const type  = document.getElementById('f-type').value;
       const stage = document.getElementById('f-stage').value;
       const geo   = document.getElementById('f-geo').value;
@@ -901,13 +908,25 @@
       if (stage) params.stage = stage;
       if (geo)   params.geo   = geo;
       if (city)  params.city  = city;
+      return params;
+    }
+
+    function _updateLoadMore(hasMore) {
+      document.getElementById('load-more-wrap').style.display = hasMore ? 'block' : 'none';
+    }
+
+    async function loadRadar() {
+      _radarOffset = 0;
+      const params = _radarParams(0);
       pushFiltersToURL(params);
       document.getElementById('results').innerHTML = '<div class="spinner">&#x26A1; Lade Radar...</div>';
+      _updateLoadMore(false);
       try {
         const data = await RadarAPI.getResults(params);
         const el = document.getElementById('results');
         if (!data.listings || data.listings.length === 0) {
           // K-125: Show active filters and inline reset button
+          const { type, stage, geo, city } = params;
           const activeFilters = [
             type  ? 'Typ: ' + type   : null,
             stage ? 'Stage: ' + stage : null,
@@ -918,18 +937,19 @@
             ? '<div style="font-size:12px;color:#9ca3af;margin-top:6px">Aktive Filter: ' + activeFilters.map(f => '<span style="background:#e0e7ff;color:#3730a3;padding:1px 7px;border-radius:8px;margin:0 3px">' + f + '</span>').join('') + '</div>'
             : '';
           el.innerHTML = '<div class="empty" style="padding:32px 20px">' +
-            '<div style="font-size:24px;margin-bottom:8px">🔍</div>' +
+            '<div style="font-size:24px;margin-bottom:8px">&#x1F50D;</div>' +
             '<div style="font-weight:600;margin-bottom:4px">Keine Matches gefunden</div>' +
             '<div style="font-size:13px;color:#9ca3af">Passe deine Filter an oder setze sie zurück.</div>' +
             filterHint +
             (activeFilters.length ? '<button onclick="resetFilters()" style="margin-top:12px;background:#4f46e5;color:#fff;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px">Filter zurücksetzen</button>' : '') +
             '</div>';
-          // K-109: clear count badge
           document.getElementById('mode-label').innerHTML = 'Radar Results';
           document.getElementById('status').textContent = '';
         } else {
           el.innerHTML = data.listings.map(renderListing).join('');
           radarCache = el.innerHTML;
+          _radarOffset = RADAR_LIMIT;
+          _updateLoadMore(!!data.has_more);
           // K-109: embed count pill in mode label
           const cnt = data.total || data.listings.length;
           document.getElementById('mode-label').innerHTML =
@@ -938,6 +958,29 @@
         }
       } catch(ex) {
         document.getElementById('results').innerHTML = '<div class="empty">Fehler: ' + ex.message + '</div>';
+      }
+    }
+
+    // K-171: append next page
+    async function loadMoreRadar() {
+      const btn = document.getElementById('load-more-btn');
+      btn.disabled = true;
+      btn.textContent = 'Lade...';
+      try {
+        const params = _radarParams(_radarOffset);
+        const data = await RadarAPI.getResults(params);
+        if (data.listings && data.listings.length) {
+          const el = document.getElementById('results');
+          el.insertAdjacentHTML('beforeend', data.listings.map(renderListing).join(''));
+          radarCache = el.innerHTML;
+          _radarOffset += RADAR_LIMIT;
+        }
+        _updateLoadMore(!!data.has_more);
+      } catch(ex) {
+        document.getElementById('results').insertAdjacentHTML('beforeend', '<div class="empty">Fehler: ' + ex.message + '</div>');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Mehr laden';
       }
     }
 
