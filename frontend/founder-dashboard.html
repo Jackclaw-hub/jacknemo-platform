@@ -196,6 +196,9 @@
   </div>
 
   <div id="results"><div class="empty">Lade Radar-Ergebnisse...</div></div>
+  <div id="load-more-wrap" style="display:none;text-align:center;margin:18px 0">
+    <button id="load-more-btn" onclick="loadMoreRadar()" style="background:#4f46e5;color:#fff;border:none;padding:10px 28px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer">Mehr laden</button>
+  </div>
 
   <script src="api-client.js"></script>
   <script>
@@ -623,6 +626,7 @@
           (_savedIds.has(String(l.id)) ? '❤️' : '🤍') +
         '</button>' +
         '<button onclick="toggleNote(' + l.id + ')" style="margin-left:6px;background:none;border:none;cursor:pointer;font-size:15px;vertical-align:middle;padding:0;" title="Notiz">📝</button>' +
+        '<button onclick="addToCompare(' + l.id + ')" id="cmp-btn-' + l.id + '" style="margin-left:6px;background:none;border:1px solid #e5e7eb;border-radius:4px;cursor:pointer;font-size:12px;padding:2px 7px;vertical-align:middle;color:#6b7280" title="Zum Vergleich hinzufügen">⚖️</button>' +
         '<div id="note-wrap-' + l.id + '" style="display:none;margin-top:8px">' +
           '<textarea id="note-txt-' + l.id + '" rows="2" placeholder="Private Notiz…" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid #e5e7eb;border-radius:4px;resize:vertical;box-sizing:border-box" onblur="saveNote(' + l.id + ')"></textarea>' +
           '<div id="note-status-' + l.id + '" style="font-size:11px;color:#9ca3af;height:14px"></div>' +
@@ -633,7 +637,66 @@
         '</div></div>';
     }
 
+
+    // K-185: Compare logic (max 3 listings)
+    function addToCompare(id) {
+      if (_cmpIds.has(id)) {
+        _cmpIds.delete(id);
+      } else {
+        if (_cmpIds.size >= 3) { alert('Max. 3 Inserate vergleichen'); return; }
+        _cmpIds.add(id);
+      }
+      const btn = document.getElementById('cmp-btn-' + id);
+      if (btn) btn.style.background = _cmpIds.has(id) ? '#ede9fe' : '';
+      renderCmpQueue();
+    }
+    function renderCmpQueue() {
+      const panel = document.getElementById('compare-panel');
+      document.getElementById('cmp-count').textContent = _cmpIds.size;
+      panel.style.display = _cmpIds.size > 0 ? 'block' : 'none';
+      document.getElementById('cmp-result').style.display = 'none';
+      document.getElementById('cmp-queue').innerHTML = [..._cmpIds].map(id => {
+        const t = (_cmpData[id] && _cmpData[id].title) || ('Inserat #' + id);
+        return '<span style="background:#ede9fe;color:#4f46e5;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600">' + t.slice(0,30) + '<button onclick="addToCompare(' + id + ')" style="background:none;border:none;cursor:pointer;margin-left:4px;color:#6b7280">x</button></span>';
+      }).join('');
+    }
+    function clearCompare() {
+      [..._cmpIds].forEach(id => {
+        const btn = document.getElementById('cmp-btn-' + id);
+        if (btn) btn.style.background = '';
+      });
+      _cmpIds.clear();
+      renderCmpQueue();
+    }
+    async function runCompare() {
+      if (_cmpIds.size < 2) { alert('Mindestens 2 Inserate auswaehlen'); return; }
+      const ids = [..._cmpIds].join(',');
+      try {
+        const data = await api('GET', '/listings/compare?ids=' + ids);
+        const listings = data.listings || [];
+        listings.forEach(l => { _cmpData[l.id] = l; });
+        const fields = ['Typ','Geo','Stadt','Stuendlich','Taeglich','Ab Preis','Premium','Views','Kontakte'];
+        const vals = [
+          l => l.type || '-',
+          l => l.geo || '-',
+          l => l.city || '-',
+          l => l.hourly_rate ? 'ab EUR' + l.hourly_rate : '-',
+          l => l.daily_rate ? 'ab EUR' + l.daily_rate : '-',
+          l => l.from_price ? 'ab EUR' + l.from_price : '-',
+          l => l.is_premium ? 'Ja' : '-',
+          l => l.view_count || 0,
+          l => l.contact_count || 0,
+        ];
+        const cols = listings.map(l => '<th style="padding:8px 14px;text-align:left;font-size:14px;font-weight:600;min-width:160px;border-bottom:1px solid #e5e7eb"><a href="listing.html?id=' + l.id + '" style="color:#4f46e5">' + l.title.slice(0,40) + '</a></th>').join('');
+        const rows = fields.map((f, i) => '<tr><td style="padding:6px 14px;font-size:12px;color:#6b7280;white-space:nowrap;border-bottom:1px solid #f3f4f6;font-weight:600">' + f + '</td>' + listings.map(l => '<td style="padding:6px 14px;font-size:13px;border-bottom:1px solid #f3f4f6">' + vals[i](l) + '</td>').join('') + '</tr>').join('');
+        const resEl = document.getElementById('cmp-result');
+        resEl.innerHTML = '<table style="border-collapse:collapse;width:100%;font-size:13px"><thead><tr><th style="padding:8px 14px;text-align:left;color:#9ca3af;font-size:11px;border-bottom:1px solid #e5e7eb">Eigenschaft</th>' + cols + '</tr></thead><tbody>' + rows + '</tbody></table>';
+        resEl.style.display = 'block';
+      } catch(ex) { alert('Vergleich fehlgeschlagen: ' + ex.message); }
+    }
+
     function markContacted(id, providerId) {
+
       localStorage.setItem('contacted_' + id, '1');
       localStorage.setItem('contacted_provider_' + id, providerId || '');
       const btn = document.querySelector('#card-' + id + ' .contact-btn');
@@ -891,8 +954,12 @@
       loadRadar();
     }
 
-    async function loadRadar() {
-      const params = {};
+    // K-171: pagination state
+    let _radarOffset = 0;
+    const RADAR_LIMIT = 20;
+
+    function _radarParams(offset) {
+      const params = { limit: RADAR_LIMIT, offset };
       const type  = document.getElementById('f-type').value;
       const stage = document.getElementById('f-stage').value;
       const geo   = document.getElementById('f-geo').value;
@@ -901,13 +968,25 @@
       if (stage) params.stage = stage;
       if (geo)   params.geo   = geo;
       if (city)  params.city  = city;
+      return params;
+    }
+
+    function _updateLoadMore(hasMore) {
+      document.getElementById('load-more-wrap').style.display = hasMore ? 'block' : 'none';
+    }
+
+    async function loadRadar() {
+      _radarOffset = 0;
+      const params = _radarParams(0);
       pushFiltersToURL(params);
       document.getElementById('results').innerHTML = '<div class="spinner">&#x26A1; Lade Radar...</div>';
+      _updateLoadMore(false);
       try {
         const data = await RadarAPI.getResults(params);
         const el = document.getElementById('results');
         if (!data.listings || data.listings.length === 0) {
           // K-125: Show active filters and inline reset button
+          const { type, stage, geo, city } = params;
           const activeFilters = [
             type  ? 'Typ: ' + type   : null,
             stage ? 'Stage: ' + stage : null,
@@ -918,18 +997,19 @@
             ? '<div style="font-size:12px;color:#9ca3af;margin-top:6px">Aktive Filter: ' + activeFilters.map(f => '<span style="background:#e0e7ff;color:#3730a3;padding:1px 7px;border-radius:8px;margin:0 3px">' + f + '</span>').join('') + '</div>'
             : '';
           el.innerHTML = '<div class="empty" style="padding:32px 20px">' +
-            '<div style="font-size:24px;margin-bottom:8px">🔍</div>' +
+            '<div style="font-size:24px;margin-bottom:8px">&#x1F50D;</div>' +
             '<div style="font-weight:600;margin-bottom:4px">Keine Matches gefunden</div>' +
             '<div style="font-size:13px;color:#9ca3af">Passe deine Filter an oder setze sie zurück.</div>' +
             filterHint +
             (activeFilters.length ? '<button onclick="resetFilters()" style="margin-top:12px;background:#4f46e5;color:#fff;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px">Filter zurücksetzen</button>' : '') +
             '</div>';
-          // K-109: clear count badge
           document.getElementById('mode-label').innerHTML = 'Radar Results';
           document.getElementById('status').textContent = '';
         } else {
           el.innerHTML = data.listings.map(renderListing).join('');
           radarCache = el.innerHTML;
+          _radarOffset = RADAR_LIMIT;
+          _updateLoadMore(!!data.has_more);
           // K-109: embed count pill in mode label
           const cnt = data.total || data.listings.length;
           document.getElementById('mode-label').innerHTML =
@@ -938,6 +1018,29 @@
         }
       } catch(ex) {
         document.getElementById('results').innerHTML = '<div class="empty">Fehler: ' + ex.message + '</div>';
+      }
+    }
+
+    // K-171: append next page
+    async function loadMoreRadar() {
+      const btn = document.getElementById('load-more-btn');
+      btn.disabled = true;
+      btn.textContent = 'Lade...';
+      try {
+        const params = _radarParams(_radarOffset);
+        const data = await RadarAPI.getResults(params);
+        if (data.listings && data.listings.length) {
+          const el = document.getElementById('results');
+          el.insertAdjacentHTML('beforeend', data.listings.map(renderListing).join(''));
+          radarCache = el.innerHTML;
+          _radarOffset += RADAR_LIMIT;
+        }
+        _updateLoadMore(!!data.has_more);
+      } catch(ex) {
+        document.getElementById('results').insertAdjacentHTML('beforeend', '<div class="empty">Fehler: ' + ex.message + '</div>');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Mehr laden';
       }
     }
 
@@ -1201,6 +1304,19 @@
   </div>
 
   <!-- K-48: Bookmarks panel -->
+  <!-- K-185: Compare panel (sticky bottom bar) -->
+  <div id="compare-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:2px solid #4f46e5;box-shadow:0 -4px 20px rgba(0,0,0,.12);z-index:900;padding:16px 24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <b style="font-size:15px">Vergleich (<span id="cmp-count">0</span>/3)</b>
+      <div style="display:flex;gap:8px">
+        <button onclick="runCompare()" style="background:#4f46e5;color:#fff;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">Jetzt vergleichen</button>
+        <button onclick="clearCompare()" style="background:none;border:1px solid #e5e7eb;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:13px">Leeren x</button>
+      </div>
+    </div>
+    <div id="cmp-queue" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+    <div id="cmp-result" style="display:none;overflow-x:auto"></div>
+  </div>
+
   <div id="bookmarks-panel" style="display:none;position:fixed;top:0;right:0;width:360px;max-width:95vw;height:100vh;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.12);z-index:1000;padding:24px;overflow-y:auto">
     <button onclick="document.getElementById('bookmarks-panel').style.display='none'" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280">✕</button>
   </div>

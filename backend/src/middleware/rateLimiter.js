@@ -3,7 +3,7 @@
 const noop = (req, res, next) => next();
 
 if (process.env.NODE_ENV === 'test') {
-  module.exports = { authLimiter: noop, listingsWriteLimiter: noop, messageLimiter: noop, generalLimiter: noop };
+  module.exports = { authLimiter: noop, listingsWriteLimiter: noop, messageLimiter: noop, generalLimiter: noop, twoFaLimiter: noop };
 } else {
   const rateLimit = require('express-rate-limit');
 
@@ -31,5 +31,9 @@ if (process.env.NODE_ENV === 'test') {
   // General API catch-all: 200 per 15 min per IP
   const generalLimiter = rateLimit({ ...baseOpts, windowMs: windowMs15, max: 200 });
 
-  module.exports = { authLimiter, listingsWriteLimiter, messageLimiter, generalLimiter };
+  // K-181: 2FA brute-force protection — 5 attempts per 15min per IP
+  const twoFaLimiter = rateLimit({ ...baseOpts, windowMs: windowMs15, max: 5,
+    message: { error: 'Too many 2FA attempts', message: 'Try again in 15 minutes' } });
+
+  module.exports = { authLimiter, listingsWriteLimiter, messageLimiter, generalLimiter, twoFaLimiter };
 }
