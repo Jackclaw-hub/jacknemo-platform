@@ -79,13 +79,18 @@ const login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ error: 'Missing required fields', message: 'Email and password are required' });
     }
-    const user = await User.findByEmail(email);
+    const user = await User.findByEmailWithTotp(email);
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials', message: 'Email or password is incorrect' });
     }
     const isValidPassword = await auth.verifyPassword(password, user.password_hash);
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid credentials', message: 'Email or password is incorrect' });
+    }
+    // K-176: If 2FA is enabled, issue a short-lived challenge token instead of full auth
+    if (user.totp_enabled) {
+      const challenge_token = auth.generateChallengeToken(user);
+      return res.json({ requires_2fa: true, temp_token: challenge_token });
     }
     const tokens = generateTokens(user);
     res.json({

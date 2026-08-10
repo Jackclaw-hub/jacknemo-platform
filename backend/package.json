@@ -17,13 +17,15 @@
     "express-rate-limit": "^6.10.0",
     "helmet": "^7.0.0",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.3",
-    "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1",
     "morgan": "^1.10.0",
     "node-cron": "^3.0.3",
+    "pg": "^8.11.3",
+    "qrcode": "^1.5.4",
     "resend": "^3.2.0",
-    "stripe": "^14.21.0"
+    "speakeasy": "^2.0.0",
+    "stripe": "^14.21.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "jest": "^29.7.0",
