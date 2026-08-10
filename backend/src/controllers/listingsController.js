@@ -48,7 +48,7 @@ const createListing = async (req, res) => {
 
 const getListings = async (req, res) => {
   try {
-    const { type, geo, starterFriendly, search, status, premium, tags, stage, city } = req.query;
+    const { type, geo, starterFriendly, search, status, premium, tags, stage, city, min_budget, max_budget, industry, location, available_from } = req.query;
 
     if (search && search.trim()) {
       const q = search.trim();
@@ -66,6 +66,12 @@ const getListings = async (req, res) => {
     if (tags) filters.tags = tags;
     if (stage) filters.stage = stage;  // K-168
     if (city) filters.city = city;     // K-168
+
+    if (min_budget) filters.min_budget = parseInt(min_budget);
+    if (max_budget) filters.max_budget = parseInt(max_budget);
+    if (industry) filters.industry = industry;
+    if (location) filters.location = location;
+    if (available_from) filters.available_from = available_from;
 
     let listings = await Listing.findAll(filters);
     // K-81: Attach provider_verified flag
