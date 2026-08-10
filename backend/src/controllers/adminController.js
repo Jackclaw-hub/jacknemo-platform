@@ -243,5 +243,60 @@ const getListingHistory = async (req, res) => {
   }
 };
 
+const getDuplicateListings = async (req, res) => {
+  try {
+    const sql = `
+      SELECT title, provider_id, array_agg(id ORDER BY created_at) as listing_ids, COUNT(*) as count
+      FROM listings
+      WHERE status='active'
+      GROUP BY title, provider_id
+      HAVING COUNT(*) > 1
+    `;
+    const result = await db.query(sql);
+    res.json({ groups: result.rows });
+  } catch (err) {
+    console.error('getDuplicateListings error:', err);
+    res.status(500).json({ error: 'Failed to fetch duplicate listings' });
+  }
+};
+
+const mergeListings = async (req, res) => {
+  const client = await db.getClient();
+  try {
+    await client.query('BEGIN');
+    const { keep_id, merge_ids } = req.body;
+
+    if (!keep_id || !Array.isArray(merge_ids) || merge_ids.length === 0) {
+      return res.status(400).json({ error: 'keep_id and merge_ids are required' });
+    }
+
+    // Remove keep_id from merge_ids if present
+    const actualMergeIds = merge_ids.filter(id => id !== keep_id);
+
+    if (actualMergeIds.length === 0) {
+      await client.query('COMMIT');
+      return res.json({ merged: 0, kept: keep_id, message: 'No listings to merge' });
+    }
+
+    // Update messages
+    await client.query('UPDATE messages SET listing_id=$1 WHERE listing_id=ANY($2)', [keep_id, actualMergeIds]);
+    // Update bookmarks
+    await client.query('UPDATE bookmarks SET listing_id=$1 WHERE listing_id=ANY($2)', [keep_id, actualMergeIds]);
+    // Update listing_views
+    await client.query('UPDATE listing_views SET listing_id=$1 WHERE listing_id=ANY($2)', [keep_id, actualMergeIds]);
+    // Archive duplicate listings
+    const updateResult = await client.query('UPDATE listings SET status='archived' WHERE id=ANY($1) RETURNING id', [actualMergeIds]);
+
+    await client.query('COMMIT');
+    res.json({ merged: updateResult.rows.length, kept: keep_id, message: 'Listings merged successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('mergeListings error:', err);
+    res.status(500).json({ error: 'Failed to merge listings' });
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
-  bulkAction, getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, getAdminListingDetail, getListingHistory };
+  bulkAction, getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, getAdminListingDetail, getListingHistory, getDuplicateListings, mergeListings };

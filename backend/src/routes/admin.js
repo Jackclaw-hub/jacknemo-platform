@@ -52,4 +52,7 @@ router.get('/export/users.csv', ...adminOnly, exportUsers);
 router.get('/reports', ...adminOnly, getReports);
 router.patch('/reports/:id/dismiss', ...adminOnly, dismissReport);
 
+router.get('/listings/duplicates', ...adminOnly, getDuplicateListings);
+router.post('/listings/merge', ...adminOnly, mergeListings);
+
 module.exports = router;

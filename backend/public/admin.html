@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Duplicate Listings</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1, h2 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; }
+        button:hover { background-color: #0056b3; }
+        .error { color: red; }
+        .success { color: green; }
+        #duplicateListings { margin-top: 20px; }
+        .group-item { border: 1px solid #eee; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+        .group-item h3 { margin-top: 0; }
+        .group-item label { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Admin Panel</h1>
+
+    <section id="duplicateListings">
+        <h2>Duplikate</h2>
+        <button id="loadDuplicates">Duplikate laden</button>
+        <p id="duplicateMessage"></p>
+        <div id="duplicatesContainer"></div>
+        <button id="mergeSelected" style="display: none;">Zusammenführen</button>
+    </section>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loadDuplicatesButton = document.getElementById('loadDuplicates');
+            const mergeSelectedButton = document.getElementById('mergeSelected');
+            const duplicatesContainer = document.getElementById('duplicatesContainer');
+            const duplicateMessage = document.getElementById('duplicateMessage');
+
+            let duplicateGroups = [];
+
+            loadDuplicatesButton.addEventListener('click', async () => {
+                duplicateMessage.textContent = 'Lade Duplikate...';
+                duplicateMessage.className = '';
+                try {
+                    const response = await fetch('/api/admin/listings/duplicates');
+                    const data = await response.json();
+                    if (response.ok) {
+                        duplicateGroups = data.groups;
+                        renderDuplicateGroups(duplicateGroups);
+                        duplicateMessage.textContent = `Gefundene Duplikatsgruppen: ${duplicateGroups.length}`;
+                        duplicateMessage.className = 'success';
+                        mergeSelectedButton.style.display = duplicateGroups.length > 0 ? 'block' : 'none';
+                    } else {
+                        duplicateMessage.textContent = `Fehler beim Laden der Duplikate: ${data.error || response.statusText}`;
+                        duplicateMessage.className = 'error';
+                        duplicatesContainer.innerHTML = '';
+                        mergeSelectedButton.style.display = 'none';
+                    }
+                } catch (error) {
+                    duplicateMessage.textContent = `Netzwerkfehler: ${error.message}`;
+                    duplicateMessage.className = 'error';
+                    duplicatesContainer.innerHTML = '';
+                    mergeSelectedButton.style.display = 'none';
+                }
+            });
+
+            function renderDuplicateGroups(groups) {
+                duplicatesContainer.innerHTML = '';
+                if (groups.length === 0) {
+                    duplicatesContainer.innerHTML = '<p>Keine doppelten Einträge gefunden.</p>';
+                    return;
+                }
+
+                groups.forEach((group, index) => {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'group-item';
+                    groupDiv.innerHTML = `
+                        <h3>${group.title} (Provider ID: ${group.provider_id}) - ${group.count} Duplikate</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Aktion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${group.listing_ids.map(id => `
+                                    <tr>
+                                        <td>${id}</td>
+                                        <td>
+                                            <label>
+                                                <input type="radio" name="keep-${index}" value="${id}" data-group-index="${index}" ${id === group.listing_ids[0] ? 'checked' : ''}> Behalten
+                                            </label>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    duplicatesContainer.appendChild(groupDiv);
+                });
+            }
+
+            mergeSelectedButton.addEventListener('click', async () => {
+                duplicateMessage.textContent = 'Führe Duplikate zusammen...';
+                duplicateMessage.className = '';
+                const merges = [];
+                duplicateGroups.forEach((group, index) => {
+                    const keepIdRadio = document.querySelector(`input[name="keep-${index}"]:checked`);
+                    if (keepIdRadio) {
+                        const keep_id = keepIdRadio.value;
+                        const merge_ids = group.listing_ids.filter(id => id !== keep_id);
+                        if (merge_ids.length > 0) {
+                            merges.push({ keep_id, merge_ids });
+                        }
+                    }
+                });
+
+                if (merges.length === 0) {
+                    duplicateMessage.textContent = 'Bitte wählen Sie für jede Gruppe einen Eintrag zum Behalten aus.';
+                    duplicateMessage.className = 'error';
+                    return;
+                }
+
+                try {
+                    // Execute merges sequentially to avoid potential database deadlocks with parallel updates on related tables
+                    let totalMerged = 0;
+                    for (const merge of merges) {
+                        const response = await fetch('/api/admin/listings/merge', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(merge),
+                        });
+                        const data = await response.json();
+                        if (response.ok) {
+                            totalMerged += data.merged;
+                        } else {
+                            throw new Error(data.error || response.statusText);
+                        }
+                    }
+
+                    duplicateMessage.textContent = `Erfolgreich ${totalMerged} Duplikate zusammengeführt.`;
+                    duplicateMessage.className = 'success';
+                    // Reload duplicates after merge
+                    loadDuplicatesButton.click();
+                } catch (error) {
+                    duplicateMessage.textContent = `Fehler beim Zusammenführen: ${error.message}`;
+                    duplicateMessage.className = 'error';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
