@@ -97,7 +97,7 @@ class User {
 
   // K-65: Admin user management
   static async listAll({ role, is_active, search, limit = 50, offset = 0 } = {}) {
-    let sql = 'SELECT id, email, role, name, email_verified, is_active, created_at FROM users WHERE 1=1';
+    let sql = 'SELECT id, email, role, name, email_verified, is_active, totp_enabled, created_at FROM users WHERE 1=1';
     const params = [];
     if (role) { params.push(role); sql += ` AND role = $${params.length}`; }
     if (is_active !== undefined && is_active !== null && is_active !== '') {
@@ -137,6 +137,58 @@ class User {
       [is_active, id]
     );
     return result.rows[0] || null;
+  }
+
+  // K-176: 2FA TOTP methods
+  static async setTotpSecret(id, secret) {
+    await pool.query(
+      'UPDATE users SET totp_secret = $1, totp_enabled = false, updated_at = NOW() WHERE id = $2',
+      [secret, id]
+    );
+  }
+
+  static async enableTotp(id, backupCodes) {
+    await pool.query(
+      'UPDATE users SET totp_enabled = true, totp_backup_codes = $1, updated_at = NOW() WHERE id = $2',
+      [backupCodes, id]
+    );
+  }
+
+  static async disableTotp(id) {
+    await pool.query(
+      'UPDATE users SET totp_secret = NULL, totp_enabled = false, totp_backup_codes = NULL, updated_at = NOW() WHERE id = $1',
+      [id]
+    );
+  }
+
+  static async findByIdWithTotp(id) {
+    const result = await pool.query(
+      'SELECT id, email, role, name, password_hash, totp_secret, totp_enabled, totp_backup_codes FROM users WHERE id = $1',
+      [id]
+    );
+    return result.rows[0] || null;
+  }
+
+  static async findByEmailWithTotp(email) {
+    const result = await pool.query(
+      'SELECT id, email, password_hash, role, name, email_verified, totp_secret, totp_enabled, totp_backup_codes, is_active FROM users WHERE email = $1',
+      [email]
+    );
+    return result.rows[0] || null;
+  }
+
+  static async consumeBackupCode(id, code) {
+    const result = await pool.query(
+      'SELECT totp_backup_codes FROM users WHERE id = $1',
+      [id]
+    );
+    if (!result.rows[0]) return false;
+    const codes = result.rows[0].totp_backup_codes || [];
+    const idx = codes.indexOf(code);
+    if (idx === -1) return false;
+    codes.splice(idx, 1);
+    await pool.query('UPDATE users SET totp_backup_codes = $1, updated_at = NOW() WHERE id = $2', [codes, id]);
+    return true;
   }
 }
 

@@ -18,7 +18,7 @@ const { authenticateToken } = require("./middleware/auth");
 const paymentsRouter = require("./routes/payments");
 const { startPremiumExpiryCron } = require("./jobs/premiumExpiry");
 const { startExpiryReminderCron } = require("./jobs/expiryReminder");
-const { authLimiter, listingsWriteLimiter, messageLimiter, generalLimiter } = require("./middleware/rateLimiter");
+const { authLimiter, listingsWriteLimiter, messageLimiter, generalLimiter, twoFaLimiter } = require("./middleware/rateLimiter");
 
 const app = express();
 
@@ -50,6 +50,8 @@ app.use("/api/payments", paymentsRouter);
 
 // K-32: Per-endpoint rate limiting
 app.use("/api/auth", authLimiter, authRouter);
+// K-181: stricter 2FA limiter on top of authLimiter
+app.use("/api/auth/2fa", twoFaLimiter);
 app.use("/api/founders", authenticateToken, foundersRouter);
 app.use("/api/listings", listingsRouter);
 app.use("/api/radar", radarRouter);
@@ -59,8 +61,13 @@ app.use("/api/messages", messageLimiter, messagesRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api", generalLimiter);
 
+// K-179: SEO routes (sitemap.xml, robots.txt, dynamic meta)
+const seoRouter = require('./routes/seo');
+app.use(seoRouter);       // handles /sitemap.xml, /robots.txt
+app.use('/api/seo', seoRouter);  // handles /api/seo/listing/:id, /api/seo/provider/:id
+
 setupSwagger(app);
-app.use((req, res) => res.status(404).json({ error: "Not found" }));
+app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({ error: "Internal server error" });

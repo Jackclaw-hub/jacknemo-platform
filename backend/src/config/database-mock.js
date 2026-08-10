@@ -268,13 +268,15 @@ class MockDatabase {
     // ---- MESSAGES ----
     if (sl.includes('messages')) {
       if (s.startsWith('INSERT')) {
+        // SQL: INSERT INTO messages (listing_id, sender_id, recipient_id, body) VALUES ($1,$2,$3,$4)
         const msg = {
           id: this.nextMessageId++,
-          sender_id: params[0],
-          recipient_id: params[1],
-          listing_id: params[2] || null,
+          listing_id: params[0] || null,
+          sender_id: params[1],
+          recipient_id: params[2],
           body: params[3],
           read: false,
+          is_read: false,
           created_at: new Date().toISOString()
         };
         this.messages.push(msg);
@@ -348,7 +350,7 @@ class MockDatabase {
     }
 
     // ---- LISTINGS CRUD ----
-    if (sl.includes('from listings') || sl.includes('into listings') || (s.startsWith('UPDATE') && sl.includes('listings ')) || (s.startsWith('DELETE') && sl.includes('listings '))) {
+    if (!sl.includes('saved_listings') && (sl.includes('from listings') || sl.includes('into listings') || (s.startsWith('UPDATE') && sl.includes('listings ')) || (s.startsWith('DELETE') && sl.includes('listings ')))) {
       if (s.startsWith('SELECT')) {
         if (sql.includes('WHERE id = $1') && sql.includes('provider_id = $2')) {
           const l = this.listings.find(x => x.id == params[0] && x.provider_id == params[1]);
@@ -437,6 +439,10 @@ class MockDatabase {
           if (!aPremium && bPremium) return 1;
           return new Date(b.created_at) - new Date(a.created_at);
         });
+        // K-170: consume LIMIT and OFFSET params (always appended by Listing.findAll)
+        const mockLimit = parseInt(params[pi++]) || 100;
+        const mockOffset = parseInt(params[pi++]) || 0;
+        rows = rows.slice(mockOffset, mockOffset + mockLimit);
         return { rows };
       }
       if (s.startsWith('INSERT')) {
@@ -622,7 +628,7 @@ class MockDatabase {
       }
       if (s.startsWith('UPDATE')) {
         const uid = params[0];
-        if (sql.includes('id = $1')) {
+        if (sql.includes('WHERE id = $1')) {
           // mark single read: params = [id, user_id]
           const n = this.notifications.find(n => n.id == params[0] && n.user_id == params[1]);
           if (n) n.read_at = new Date().toISOString();
@@ -729,13 +735,64 @@ class MockDatabase {
       }
     }
 
+    // ---- SAVED SEARCHES ----
+    if (sl.includes('saved_searches')) {
+      if (!this.savedSearches) { this.savedSearches = []; this.nextSavedSearchId = 1; }
+      if (s.startsWith('INSERT')) {
+        const ss = { id: this.nextSavedSearchId++, user_id: params[0], name: params[1], filters: params[2], created_at: new Date().toISOString() };
+        this.savedSearches.push(ss);
+        return { rows: [ss] };
+      }
+      if (s.startsWith('SELECT')) {
+        return { rows: this.savedSearches.filter(s => s.user_id == params[0]).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) };
+      }
+      if (s.startsWith('DELETE')) {
+        const idx = this.savedSearches.findIndex(s => s.id == params[0] && s.user_id == params[1]);
+        if (idx < 0) return { rows: [] };
+        const [removed] = this.savedSearches.splice(idx, 1);
+        return { rows: [{ id: removed.id }] };
+      }
+    }
+
+    // ---- REFERRAL CODES & USES ----
+    if (sl.includes('referral_codes')) {
+      if (!this.referralCodes) { this.referralCodes = []; this.nextReferralCodeId = 1; }
+      if (s.startsWith('SELECT')) {
+        const row = this.referralCodes.find(r => r.user_id == params[0]);
+        return { rows: row ? [row] : [] };
+      }
+      if (s.startsWith('INSERT')) {
+        const existing = this.referralCodes.find(r => r.user_id == params[0]);
+        if (existing) return { rows: [existing] };
+        const rc = { id: this.nextReferralCodeId++, user_id: params[0], code: params[1], created_at: new Date().toISOString(), uses: 0 };
+        this.referralCodes.push(rc);
+        return { rows: [rc] };
+      }
+    }
+    if (sl.includes('referral_uses')) {
+      if (!this.referralUses) { this.referralUses = []; }
+      if (s.startsWith('SELECT') && sl.includes('count(*)')) {
+        const referrerId = params[0];
+        const count = this.referralUses.filter(u => u.referrer_id == referrerId).length;
+        return { rows: [{ confirmed_uses: String(count) }] };
+      }
+    }
+    // referral stats joined query: SELECT rc.uses, (SELECT COUNT(*) ...) FROM referral_codes rc WHERE rc.user_id=$1
+    if (sl.includes('referral_codes rc') || (sl.includes('referral_codes') && sl.includes('confirmed_uses'))) {
+      if (!this.referralCodes) this.referralCodes = [];
+      if (!this.referralUses) this.referralUses = [];
+      const rc = this.referralCodes.find(r => r.user_id == params[0]);
+      const uses = this.referralUses.filter(u => u.referrer_id == params[0]).length;
+      return { rows: rc ? [{ ...rc, confirmed_uses: String(uses) }] : [] };
+    }
+
     // ---- LISTING REPORTS (K-67) ----
     if (sl.includes('listing_reports')) {
       if (s.startsWith('INSERT')) {
         const report = { id: this.nextReportId++, listing_id: params[0], reporter_id: params[1], reason: params[2], dismissed: false, created_at: new Date().toISOString() };
         // prevent duplicate report from same user for same listing
         const dup = this.reports.find(r => r.listing_id == params[0] && r.reporter_id == params[1]);
-        if (dup) return { rows: [dup] }; // ON CONFLICT DO NOTHING equivalent
+        if (dup) return { rows: [] }; // ON CONFLICT DO NOTHING returns empty
         this.reports.push(report);
         return { rows: [report] };
       }
@@ -754,7 +811,7 @@ class MockDatabase {
         return { rows: this.reports };
       }
       if (s.startsWith('UPDATE') && sl.includes('dismissed')) {
-        const idx = this.reports.findIndex(r => r.id == params[1]);
+        const idx = this.reports.findIndex(r => r.id == params[0]);
         if (idx >= 0) { this.reports[idx].dismissed = true; }
         return { rows: idx >= 0 ? [this.reports[idx]] : [] };
       }

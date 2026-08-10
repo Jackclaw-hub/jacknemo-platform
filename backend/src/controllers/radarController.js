@@ -70,12 +70,19 @@ const getRadar = async (req, res) => {
     // Score and rank
     const radarResults = scoreListingsForFounder(founder, listings, minScore);
 
+    // K-171: pagination
+    const limitVal = Math.min(parseInt(req.query.limit) || 20, 100);
+    const offsetVal = parseInt(req.query.offset) || 0;
+    const page = radarResults.slice(offsetVal, offsetVal + limitVal);
+
     res.json({
       founder,
       has_profile: !!savedProfile,
       threshold: minScore,
       total: radarResults.length,
-      listings: radarResults
+      offset: offsetVal,
+      has_more: offsetVal + limitVal < radarResults.length,
+      listings: page
     });
   } catch (err) {
     console.error('getRadar error:', err);
