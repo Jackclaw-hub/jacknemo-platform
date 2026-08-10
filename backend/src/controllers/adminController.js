@@ -243,5 +243,14 @@ const getListingHistory = async (req, res) => {
   }
 };
 
+const verifyProvider = async (req, res) => {
+  const { id } = req.params;
+  const { verified } = req.body; // true or false
+  try {
+    const db = require('../config/database');
+    await db.query('UPDATE providers SET is_verified=$1 WHERE user_id=$2', [!!verified, id]);
+    res.json({ ok: true, user_id: id, is_verified: !!verified });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+};
 module.exports = {
-  bulkAction, getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, getAdminListingDetail, getListingHistory };
+  bulkAction, getPendingListings, getAllListings, approveListing, rejectListing, featureListing, unfeatureListing, getPendingVerification, getExpiredPremium, runPremiumExpiry, getAdminListingDetail, getListingHistory, verifyProvider };

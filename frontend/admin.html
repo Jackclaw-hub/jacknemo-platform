@@ -356,7 +356,7 @@
               <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">E-Mail</th>
               <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Name</th>
               <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Rolle</th>
-              <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Status</th>
+              <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Verifiziert</th>
               <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Registriert</th>
               <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Aktionen</th>
             </tr></thead>
@@ -367,6 +367,7 @@
                 <td style="padding:8px 10px">${u.name || '—'}</td>
                 <td style="padding:8px 10px"><span style="background:${u.role==='admin'?'#fef3c7':u.role==='provider'?'#dbeafe':'#f0fdf4'};color:${u.role==='admin'?'#92400e':u.role==='provider'?'#1e40af':'#166534'};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">${u.role}</span></td>
                 <td style="padding:8px 10px"><span style="background:${u.is_active!==false?'#dcfce7':'#fee2e2'};color:${u.is_active!==false?'#166534':'#991b1b'};padding:2px 8px;border-radius:10px;font-size:11px">${u.is_active!==false?'Aktiv':'Deaktiviert'}</span></td>
+                <td style="padding:8px 10px"><span style="background:${u.is_verified?'#dcfce7':'#f3f4f6'};color:${u.is_verified?'#166534':'#374151'};padding:2px 8px;border-radius:10px;font-size:11px">${u.is_verified?'✓':'—'}</span></td>
                 <td style="padding:8px 10px;color:#6b7280">${u.created_at ? new Date(u.created_at).toLocaleDateString('de-DE') : '—'}</td>
                 <td style="padding:8px 10px;display:flex;gap:6px;align-items:center" id="uact-${u.id}">
                   ${u.is_active !== false
@@ -374,6 +375,7 @@
                     : `<button onclick="toggleUser(${u.id},true)" style="background:#059669;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px">Aktivieren</button>`
                   }
                   <button class="btn-details" onclick="showUserDetail(${u.id})">&#128269; Details</button>
+                  ${u.role === 'provider' ? `<button onclick="toggleVerified(${u.id},${u.is_verified})" style="background:${u.is_verified?'#ef4444':'#059669'};color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px">${u.is_verified?'Unverify':'Verify'}</button>` : ''}
                 </td>
               </tr>`).join('')}
             </tbody>
@@ -389,6 +391,16 @@
       try {
         if (enable) await AdminAPI.enableUser(id);
         else await AdminAPI.disableUser(id);
+        loadUsers();
+      } catch(e) {
+        alert('Fehler: ' + e.message);
+      }
+    }
+
+    async function toggleVerified(userId, isVerified) {
+      if (!confirm(`Anbieter wirklich ${isVerified ? 'de-verifizieren' : 'verifizieren'}?`)) return;
+      try {
+        await api('PATCH', '/admin/providers/' + userId + '/verify', { verified: !isVerified }, auth.getToken());
         loadUsers();
       } catch(e) {
         alert('Fehler: ' + e.message);
@@ -422,13 +434,13 @@
       }
     }
 
-    async function verifyProvider(userId, approve) {
+    async function verifyProvider(userId, verifiedStatus) {
       try {
-        await api('PATCH', '/admin/providers/' + userId + '/verify', { approve }, auth.getToken());
+        await api('PATCH', '/admin/providers/' + userId + '/verify', { verified: verifiedStatus }, auth.getToken());
         const card = document.getElementById('vcard-' + userId);
         if (card) {
           card.style.opacity = '0.5';
-          card.querySelector('.actions').innerHTML = approve
+          card.querySelector('.actions').innerHTML = verifiedStatus
             ? '<span style="color:#059669;font-weight:600">✓ Approved</span>'
             : '<span style="color:#dc2626;font-weight:600">✗ Rejected</span>';
         }
