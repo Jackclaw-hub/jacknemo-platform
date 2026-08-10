@@ -141,6 +141,22 @@ class NativeAuth {
     }
   }
 
+
+  // K-176: Generate short-lived challenge token for 2FA login
+  generateChallengeToken(user) {
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64');
+    const payload = Buffer.from(JSON.stringify({
+      id: user.id,
+      type: '2fa_challenge',
+      exp: Math.floor(Date.now() / 1000) + (5 * 60) // 5 minutes
+    })).toString('base64');
+    const signature = crypto
+      .createHmac('sha256', this.jwtSecret)
+      .update(`${header}.${payload}`)
+      .digest('base64');
+    return `${header}.${payload}.${signature}`;
+  }
+
   generateVerificationToken() {
     return crypto.randomBytes(32).toString('hex');
   }

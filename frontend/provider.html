@@ -4,6 +4,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Anbieter-Profil — Startup Radar</title>
+  <meta name="description" content="Provider-Profil auf Startup Radar.">
+  <meta property="og:site_name" content="Startup Radar by JackNemo">
+  <meta property="og:type" content="profile">
+  <meta property="og:title" id="og-title" content="">
+  <meta property="og:description" id="og-desc" content="">
+  <meta property="og:url" id="og-url" content="">
+  <!-- K-179: Dynamic SEO meta populated by JS -->
+  <script>
+    (function() {
+      const params = new URLSearchParams(location.search);
+      const id = params.get('id');
+      if (!id) return;
+      fetch('/api/seo/provider/' + id)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (!d) return;
+          document.title = d.title;
+          const setMeta = (id, val) => { const el = document.getElementById(id); if (el && val) el.setAttribute('content', val); };
+          const desc = document.querySelector('meta[name="description"]');
+          if (desc && d.description) desc.setAttribute('content', d.description);
+          setMeta('og-title', d.og && d.og.title);
+          setMeta('og-desc', d.og && d.og.description);
+          setMeta('og-url', d.og && d.og.url);
+        }).catch(() => {});
+    })();
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: system-ui, -apple-system, sans-serif; background: #f1f5f9; margin: 0; min-height: 100vh; }
@@ -112,6 +138,12 @@
         <div class="listing-grid" id="listing-grid">
           <p class="empty">Keine aktiven Inserate.</p>
         </div>
+      </div>
+
+      <!-- K-184: Portfolio / Case Studies -->
+      <div class="section" id="portfolio-section" style="display:none">
+        <div class="section-title">Portfolio &amp; Case Studies</div>
+        <div id="portfolio-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:12px"></div>
       </div>
 
       <!-- Ratings -->
@@ -264,6 +296,23 @@
         if (currentUser && currentUser.role === 'founder') {
           document.getElementById('rate-form').style.display = 'block';
           initStarPicker();
+        }
+
+        // K-184: Portfolio
+        const portfolioData = portfolioRes.status === 'fulfilled' ? portfolioRes.value : null;
+        if (portfolioData && portfolioData.portfolio && portfolioData.portfolio.length) {
+          const section = document.getElementById('portfolio-section');
+          const grid2 = document.getElementById('portfolio-grid');
+          section.style.display = '';
+          grid2.innerHTML = portfolioData.portfolio.map(p =>
+            '<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">' +
+            (p.image_url ? '<img src="' + p.image_url + '" alt="' + p.title + '" style="width:100%;height:160px;object-fit:cover">' : '') +
+            '<div style="padding:14px">' +
+            '<div style="font-weight:600;font-size:15px;margin-bottom:6px">' + p.title + '</div>' +
+            (p.description ? '<p style="font-size:13px;color:#6b7280;margin:0 0 10px">' + p.description + '</p>' : '') +
+            (p.link ? '<a href="' + p.link + '" target="_blank" rel="noopener" style="font-size:13px;color:#6366f1">Mehr erfahren →</a>' : '') +
+            '</div></div>'
+          ).join('');
         }
 
         show('profile');

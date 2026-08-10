@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { getPortfolio, addPortfolioEntry, updatePortfolioEntry, deletePortfolioEntry } = require('../controllers/portfolioController');
 const { upsertProfile, getProfile, getProviderListings, requestVerification, getProviderAnalytics, getResponseRate, saveAvailability, getAvailability } = require('../controllers/providerProfileController');
 const { submitRating, getRating, getRatings } = require('../controllers/ratingController');
 const { getTemplates, createTemplate, deleteTemplate } = require('../controllers/templateController');
@@ -35,5 +36,11 @@ router.get('/:userId/response-rate', getResponseRate);
 // K-164: Availability — provider saves, public reads
 router.post('/availability', authenticateToken, requireRole(['equipment_provider','service_provider']), saveAvailability);
 router.get('/:userId/availability', getAvailability);
+
+// K-184: Provider portfolio
+router.get('/:userId/portfolio', getPortfolio);
+router.post('/portfolio', authenticateToken, requireRole(['equipment_provider','service_provider']), addPortfolioEntry);
+router.put('/portfolio/:id', authenticateToken, requireRole(['equipment_provider','service_provider']), updatePortfolioEntry);
+router.delete('/portfolio/:id', authenticateToken, requireRole(['equipment_provider','service_provider']), deletePortfolioEntry);
 
 module.exports = router;

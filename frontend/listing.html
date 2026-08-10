@@ -4,6 +4,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Inserat — Startup Radar</title>
+  <meta name="description" content="Startup Radar — Finde und buche Equipment und Services für dein Startup.">
+  <meta property="og:site_name" content="Startup Radar by JackNemo">
+  <meta property="og:type" content="article">
+  <meta property="og:title" id="og-title" content="Inserat — Startup Radar">
+  <meta property="og:description" id="og-desc" content="">
+  <meta property="og:url" id="og-url" content="">
+  <!-- K-179: Dynamic SEO meta populated by JS -->
+  <script>
+    (function() {
+      const params = new URLSearchParams(location.search);
+      const id = params.get('id');
+      if (!id) return;
+      fetch('/api/seo/listing/' + id)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (!d) return;
+          document.title = d.title;
+          const setMeta = (id, val) => { const el = document.getElementById(id); if (el && val) el.setAttribute('content', val); };
+          const desc = document.querySelector('meta[name="description"]');
+          if (desc && d.description) desc.setAttribute('content', d.description);
+          setMeta('og-title', d.og && d.og.title);
+          setMeta('og-desc', d.og && d.og.description);
+          setMeta('og-url', d.og && d.og.url);
+        }).catch(() => {});
+    })();
+  </script>
   <style>
     * { box-sizing: border-box; }
     body { font-family: system-ui, sans-serif; margin: 0; background: #f3f4f6; color: #1f2937; }
