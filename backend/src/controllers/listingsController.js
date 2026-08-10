@@ -48,14 +48,14 @@ const createListing = async (req, res) => {
 
 const getListings = async (req, res) => {
   try {
-    const { type, geo, starterFriendly, search, status, premium, tags, stage, city } = req.query;
+    const { type, geo, starterFriendly, search, status, premium, tags, stage, city, limit, offset } = req.query;
 
     if (search && search.trim()) {
       const q = search.trim();
       // K-104: Log search query (fire-and-forget)
       db.query('INSERT INTO search_logs (query, created_at) VALUES ($1, NOW())', [q.slice(0, 100)]).catch(() => {});
       const listings = await Listing.search(q);
-      return res.json({ listings, count: listings.length });
+      return res.json({ listings, count: listings.length, total: listings.length });
     }
 
     const filters = { status: status || 'active' };
@@ -66,6 +66,8 @@ const getListings = async (req, res) => {
     if (tags) filters.tags = tags;
     if (stage) filters.stage = stage;  // K-168
     if (city) filters.city = city;     // K-168
+    if (limit) filters.limit = limit;  // K-170
+    if (offset) filters.offset = offset; // K-170
 
     let listings = await Listing.findAll(filters);
     // K-81: Attach provider_verified flag
@@ -75,7 +77,9 @@ const getListings = async (req, res) => {
       for (const row of profilesRes.rows) verifiedMap[String(row.user_id)] = !!row.is_verified;
       listings = listings.map(l => ({ ...l, provider_verified: verifiedMap[String(l.provider_id)] || false }));
     } catch(e) { /* provider_verified optional */ }
-    res.json({ listings, count: listings.length });
+    const limitVal = Math.min(parseInt(limit) || 100, 100);
+    const offsetVal = parseInt(offset) || 0;
+    res.json({ listings, count: listings.length, has_more: listings.length === limitVal, offset: offsetVal });
   } catch (err) {
     console.error('getListings error:', err);
     res.status(500).json({ error: 'Failed to fetch listings' });
