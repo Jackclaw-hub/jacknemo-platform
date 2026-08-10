@@ -25,7 +25,7 @@ class Listing {
     return result.rows[0];
   }
 
-  static async findAll({ type, geo, starterFriendly, tags, stage, city, status = 'active' } = {}) {
+  static async findAll({ type, geo, starterFriendly, tags, stage, city, status = 'active', limit, offset } = {}) {
     let query = 'SELECT * FROM listings WHERE status = $1';
     const values = [status];
     let idx = 2;
@@ -37,7 +37,12 @@ class Listing {
     // K-168: city filter — case-insensitive substring
     if (city)  { query += ` AND LOWER(city) LIKE $${idx++}`; values.push('%' + city.toLowerCase() + '%'); }
     // tags: comma-separated string or array — filter in-memory after query (mock + PG compatible)
-    query += ' ORDER BY created_at DESC';
+    query += ' ORDER BY is_premium DESC, created_at DESC';
+    // K-170: pagination
+    const limitVal = Math.min(parseInt(limit) || 100, 100);
+    const offsetVal = parseInt(offset) || 0;
+    query += ` LIMIT $${idx++} OFFSET $${idx++}`;
+    values.push(limitVal, offsetVal);
     const result = await pool.query(query, values);
     let rows = result.rows;
     // Tag filter (works with both JSON array stored as string and real array)
